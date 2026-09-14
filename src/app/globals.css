@@ -124,3 +124,162 @@
     padding-inline: 2rem;
   }
 }
+
+/* ============================================================
+   PROSE — ép @tailwindcss/typography dùng token của theme,
+   nếu không chữ sẽ ra màu slate mặc định, lệch với phần còn lại của site.
+   ============================================================ */
+.prose {
+  --tw-prose-body: var(--color-foreground);
+  --tw-prose-headings: var(--color-foreground);
+  --tw-prose-lead: var(--color-muted-foreground);
+  --tw-prose-links: var(--color-primary);
+  --tw-prose-bold: var(--color-foreground);
+  --tw-prose-counters: var(--color-muted-foreground);
+  --tw-prose-bullets: var(--color-border);
+  --tw-prose-hr: var(--color-border);
+  --tw-prose-quotes: var(--color-foreground);
+  --tw-prose-quote-borders: var(--color-border);
+  --tw-prose-captions: var(--color-muted-foreground);
+  --tw-prose-code: var(--color-foreground);
+  --tw-prose-th-borders: var(--color-border);
+  --tw-prose-td-borders: var(--color-border);
+}
+
+/* dark: prose-invert ghi đè lại chính các biến trên, nên phải lặp ở đây. */
+.dark .prose {
+  --tw-prose-body: var(--color-foreground);
+  --tw-prose-headings: var(--color-foreground);
+  --tw-prose-lead: var(--color-muted-foreground);
+  --tw-prose-links: var(--color-primary);
+  --tw-prose-bold: var(--color-foreground);
+  --tw-prose-counters: var(--color-muted-foreground);
+  --tw-prose-bullets: var(--color-border);
+  --tw-prose-hr: var(--color-border);
+  --tw-prose-quotes: var(--color-foreground);
+  --tw-prose-quote-borders: var(--color-border);
+  --tw-prose-captions: var(--color-muted-foreground);
+  --tw-prose-code: var(--color-foreground);
+  --tw-prose-th-borders: var(--color-border);
+  --tw-prose-td-borders: var(--color-border);
+}
+
+/* ============================================================
+   CODE BLOCK (rehype-pretty-code + Shiki)
+   Shiki gắn sẵn 2 bộ biến: --shiki-light* và --shiki-dark*.
+   Chỉ cần đổi biến nào được dùng theo class .dark — không cần JS.
+   ============================================================ */
+code[data-theme],
+code[data-theme] span {
+  color: var(--shiki-light);
+  background-color: var(--shiki-light-bg);
+}
+
+.dark code[data-theme],
+.dark code[data-theme] span {
+  color: var(--shiki-dark);
+  background-color: var(--shiki-dark-bg);
+}
+
+/* Code inline: giữ nền riêng, không dùng nền của Shiki. */
+:not(pre) > code[data-theme],
+:not(pre) > code[data-theme] span {
+  background-color: transparent;
+}
+
+:not(pre) > code {
+  background-color: var(--color-muted);
+  border-radius: 0.3rem;
+  padding: 0.15em 0.4em;
+  font-size: 0.875em;
+  font-weight: 500;
+}
+
+:not(pre) > code::before,
+:not(pre) > code::after {
+  content: none; /* bỏ dấu backtick mà @tailwindcss/typography thêm vào */
+}
+
+pre > code {
+  display: grid; /* mỗi .line thành một hàng → nền highlight kéo hết chiều ngang */
+  background-color: transparent;
+}
+
+/* rehype-pretty-code đánh dấu dòng bằng [data-line], không phải class .line. */
+[data-line] {
+  padding-inline: 1rem;
+}
+
+/* Số dòng: bật bằng ```bash showLineNumbers */
+code[data-line-numbers] {
+  counter-reset: line;
+}
+
+code[data-line-numbers] > [data-line]::before {
+  counter-increment: line;
+  content: counter(line);
+  display: inline-block;
+  width: 1.25rem;
+  margin-right: 1.25rem;
+  text-align: right;
+  color: var(--color-muted-foreground);
+  opacity: 0.6;
+}
+
+code[data-line-numbers-max-digits='3'] > [data-line]::before {
+  width: 2rem;
+}
+
+/* Highlight dòng: ```ts {3-5} */
+.line--highlighted {
+  background-color: color-mix(in oklch, var(--color-brand-500) 14%, transparent);
+  box-shadow: inset 3px 0 0 var(--color-brand-500);
+}
+
+/* Highlight chữ: ```ts /useState/ */
+.word--highlighted {
+  background-color: color-mix(in oklch, var(--color-brand-500) 18%, transparent);
+  border-radius: 0.25rem;
+  padding: 0.1rem 0.25rem;
+}
+
+/* Diff dùng ```diff — màu +/- do grammar của Shiki lo, không cần CSS riêng. */
+
+/* Tiêu đề file: ```ts title="src/app/page.tsx" */
+figcaption[data-rehype-pretty-code-title] {
+  border: 1px solid var(--color-border);
+  border-bottom: 0;
+  border-radius: 0.5rem 0.5rem 0 0;
+  background-color: var(--color-muted);
+  padding: 0.5rem 1rem;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--color-muted-foreground);
+}
+
+figcaption[data-rehype-pretty-code-title] + div > pre {
+  margin-top: 0;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+
+/* Anchor cạnh heading — chỉ hiện khi hover hoặc focus bàn phím. */
+.heading-anchor {
+  margin-left: 0.5rem;
+  color: var(--color-muted-foreground);
+  text-decoration: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+h2:hover > .heading-anchor,
+h3:hover > .heading-anchor,
+h4:hover > .heading-anchor,
+.heading-anchor:focus-visible {
+  opacity: 1;
+}
+
+/* Neo heading không bị header sticky che khi nhảy từ TOC. */
+:where(h2, h3, h4)[id] {
+  scroll-margin-top: 5rem;
+}

@@ -568,18 +568,30 @@ Không sang phase sau khi **Cổng ra (Exit Gate)** của phase hiện tại ch�
 
 | #     | Task                                                                             | Ghi chú                                        | Done |
 | ----- | -------------------------------------------------------------------------------- | ---------------------------------------------- | ---- |
-| P2-1  | `lib/mdx.ts`: đọc `content/posts/*.mdx`, cache theo build                        |                                                | [ ]  |
-| P2-2  | Zod schema validate frontmatter                                                  | thiếu field → **fail build**, không render sai | [ ]  |
-| P2-3  | `rehype-pretty-code` + Shiki theme `github-dark-dimmed`                          |                                                | [ ]  |
-| P2-4  | Line numbers, highlight dòng `{3-5}`, diff `+/-`, tiêu đề file                   |                                                | [ ]  |
-| P2-5  | `remark-gfm`, `rehype-slug`, `rehype-autolink-headings`                          |                                                | [ ]  |
-| P2-6  | Component MDX: `<Callout>`, `<CodeBlock>` (nút Copy), `<FileTree>`, `<Terminal>` | đúng chất blog server/devops                   | [ ]  |
-| P2-7  | Ảnh trong MDX map sang `next/image` (lazy + blur)                                |                                                | [ ]  |
-| P2-8  | Tính reading time + word count                                                   |                                                | [ ]  |
-| P2-9  | `scripts/new-post.ts` scaffold bài mới                                           | giảm ma sát khi viết                           | [ ]  |
-| P2-10 | Viết **3 bài thật** (1 bài Nginx, 1 bài Docker, 1 bài code)                      | test pipeline bằng nội dung thật               | [ ]  |
+| P2-1  | `lib/mdx.ts`: đọc `content/posts/*.mdx`, cache theo build                        |                                                | [x]  |
+| P2-2  | Zod schema validate frontmatter                                                  | thiếu field → **fail build**, không render sai | [x]  |
+| P2-3  | `rehype-pretty-code` + Shiki `github-dark-dimmed` / `github-light-high-contrast` |                                                | [x]  |
+| P2-4  | Line numbers, highlight dòng `{3-5}`, diff `+/-`, tiêu đề file                   |                                                | [x]  |
+| P2-5  | `remark-gfm`, `rehype-slug`, `rehype-autolink-headings`                          |                                                | [x]  |
+| P2-6  | Component MDX: `<Callout>`, `<CodeBlock>` (nút Copy), `<FileTree>`, `<Terminal>` | đúng chất blog server/devops                   | [x]  |
+| P2-7  | Ảnh trong MDX map sang `next/image` (lazy + blur)                                |                                                | [x]  |
+| P2-8  | Tính reading time + word count                                                   |                                                | [x]  |
+| P2-9  | `scripts/new-post.ts` scaffold bài mới                                           | giảm ma sát khi viết                           | [x]  |
+| P2-10 | Viết **3 bài thật** (1 bài Nginx, 1 bài Docker, 1 bài code)                      | test pipeline bằng nội dung thật               | [x]  |
 
 **🚪 Exit Gate P2:** 3 bài render đúng, code block có copy + highlight; sửa 1 field frontmatter sai → build fail đúng như mong đợi.
+
+> ✅ **Đã đạt (2026-09-14)**
+>
+> - 3 bài render đúng: syntax highlight 2 theme, số dòng, highlight dòng `{5-9}`, tiêu đề file, nút Copy, bảng GFM, Callout / Terminal / FileTree.
+> - Frontmatter sai → fail build, đã test 3 case: description quá ngắn · thiếu `publishedAt` · `category` ngoài enum. Thông báo chỉ đúng tên file và field.
+> - Đối chiếu tự động: **13/13 id trong TOC khớp id heading trong HTML** (dùng chung `github-slugger` với `rehype-slug`).
+> - Lighthouse trang bài viết: Performance **100** · Accessibility **100** · SEO **100**.
+
+#### ⚠️ Hai ràng buộc khi viết MDX (đã kiểm chứng bằng build thật)
+
+1. **Chỉ dùng prop chuỗi thường trong MDX.** `next-mdx-remote` (RSC) làm **mọi** prop dạng biểu thức `{...}` thành `undefined` — kể cả chuỗi, không riêng mảng/object. Viết `<FileTree tree="..." />`, không viết `tree={[...]}`.
+2. **Không dựa vào thụt lề trong attribute.** MDX chuẩn hoá khoảng trắng đầu dòng, nên `FileTree` nhận đường dẫn đầy đủ (`prisma/schema.prisma`) thay vì cây thụt lề.
 
 ---
 

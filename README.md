@@ -44,6 +44,31 @@ pnpm format:check && pnpm lint && pnpm typecheck && pnpm build
 - Nút dạng link: dùng `buttonStyles()` cho `<Link>`, **không** lồng `<a>` trong `<button>`.
 - Heading phải đúng thứ tự h1 → h2 → h3 (`<CardTitle as="h2">`), nếu không Lighthouse trừ điểm a11y.
 
+## Viết bài (MDX)
+
+```bash
+pnpm new:post "Tiêu đề bài" --category server --tags nginx,vps
+```
+
+Bài nằm trong `content/posts/YYYY-MM-<slug>.mdx`. Tên file bỏ tiền tố ngày sẽ thành URL.
+
+**Frontmatter được validate bằng Zod (`src/types/post.ts`) — sai là fail build**, cố ý như vậy để không publish bài thiếu meta. `description` bắt buộc 50–160 ký tự; `category` phải thuộc `server | lap-trinh | devops | database`.
+
+Cú pháp code block:
+
+| Viết                               | Kết quả          |
+| ---------------------------------- | ---------------- |
+| ` ```bash `                        | syntax highlight |
+| ` ```ts showLineNumbers `          | kèm số dòng      |
+| ` ```ts {3-5} `                    | tô sáng dòng 3–5 |
+| ` ```ts /useState/ `               | tô sáng chữ      |
+| ` ```ts title="src/app/page.tsx" ` | tiêu đề file     |
+| ` ```diff `                        | màu +/-          |
+
+Component dùng được trong MDX mà không cần import: `<Callout>`, `<Terminal>`, `<FileTree>`.
+
+> ⚠️ **Trong MDX chỉ truyền prop dạng chuỗi thường.** `next-mdx-remote` (RSC) biến mọi prop dạng biểu thức `{...}` thành `undefined` — kể cả chuỗi. Dùng `<FileTree tree="..." />`, không dùng `tree={[...]}`.
+
 ## Quy ước
 
 - **Biến môi trường:** khai báo trong `src/config/env.ts` (Zod). Không đọc thẳng `process.env` ở nơi khác. Thiếu/sai biến → app crash lúc khởi động, không chạy nửa vời.
@@ -56,7 +81,7 @@ pnpm format:check && pnpm lint && pnpm typecheck && pnpm build
 
 - [x] **P0** — Chuẩn bị & khởi tạo
 - [x] **P1** — Design System & Layout
-- [ ] P2 — MDX Engine
+- [x] **P2** — MDX Engine
 - [ ] P3 — Trang Blog & SEO
 - [ ] P4 — 🚩 Deploy lần đầu
 - [ ] P5–P11 — xem `docs/PLAN.md`

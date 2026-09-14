@@ -1,0 +1,74 @@
+---
+title: 'Dựng PostgreSQL cho môi trường dev bằng Docker Compose'
+description: 'Cách chạy PostgreSQL local bằng Docker Compose cho dự án Next.js và Prisma: volume dữ liệu, healthcheck, và lý do không nên cài Postgres trực tiếp lên máy.'
+publishedAt: '2026-09-08'
+category: 'devops'
+tags: ['docker', 'postgresql', 'prisma']
+---
+
+Cài Postgres thẳng lên máy dev nghe nhanh, nhưng đến dự án thứ ba cần phiên bản khác là bắt đầu phiền. Docker Compose giải quyết gọn hơn.
+
+## File compose tối thiểu
+
+```yaml title="docker-compose.yml" showLineNumbers
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: blog_user
+      POSTGRES_PASSWORD: blog_password
+      POSTGRES_DB: blog_db
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U blog_user -d blog_db']
+      interval: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
+```
+
+<Callout type="danger" title="Volume là ranh giới giữa có và mất dữ liệu">
+  Thiếu khai báo `volumes`, dữ liệu nằm trong lớp ghi của container. `docker compose down` một cái là
+  mất sạch.
+</Callout>
+
+## Healthcheck để làm gì
+
+Không có healthcheck, `docker compose up -d` trả về ngay khi container khởi động — nhưng Postgres chưa sẵn sàng nhận kết nối. Chạy `prisma migrate` ngay sau đó sẽ lỗi ngẫu nhiên, kiểu lỗi khó chịu nhất vì không lặp lại đều.
+
+<Terminal title="bash">
+
+```bash
+docker compose up -d
+docker compose ps
+pnpm prisma migrate dev
+```
+
+</Terminal>
+
+## Cấu trúc thư mục liên quan
+
+<FileTree
+  tree="
+    prisma/schema.prisma
+    prisma/migrations/   # commit vào git
+    prisma/seed.ts
+    docker-compose.yml   # chỉ dùng cho dev
+    .env                 # không commit
+  "
+/>
+
+## Chỉ dùng cho dev
+
+Compose này cố ý mở port 5432 ra host để công cụ GUI kết nối được. Trên production thì ngược lại: Postgres chỉ listen `127.0.0.1` và không bao giờ lộ ra internet.
+
+```diff
+- ports:
+-   - '5432:5432'
++ # production: không publish port ra ngoài
+```

@@ -1,7 +1,10 @@
 import { cn } from '@/lib/utils';
-import type { InputHTMLAttributes } from 'react';
+import type { InputHTMLAttributes, Ref } from 'react';
 
-export type InputProps = InputHTMLAttributes<HTMLInputElement>;
+// React 19: ref là prop thường của function component, chỉ cần khai báo kiểu.
+export type InputProps = InputHTMLAttributes<HTMLInputElement> & {
+  ref?: Ref<HTMLInputElement>;
+};
 
 export function Input({ className, type = 'text', ...props }: InputProps) {
   return (

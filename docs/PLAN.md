@@ -599,19 +599,38 @@ Không sang phase sau khi **Cổng ra (Exit Gate)** của phase hiện tại ch�
 
 | #     | Task                                                    | Ghi chú                     | Done |
 | ----- | ------------------------------------------------------- | --------------------------- | ---- |
-| P3-1  | `/blog` list + phân trang (SSG)                         |                             | [ ]  |
-| P3-2  | `/blog/[slug]` + `generateStaticParams`                 |                             | [ ]  |
-| P3-3  | `/tags/[tag]`, `/categories/[cat]`                      |                             | [ ]  |
-| P3-4  | TOC sticky + scroll-spy heading đang đọc                |                             | [ ]  |
-| P3-5  | Bài liên quan (theo tag trùng nhau)                     |                             | [ ]  |
-| P3-6  | `lib/seo.ts` + `generateMetadata` cho mọi route         | canonical, OG, Twitter card | [ ]  |
-| P3-7  | OG image động bằng `next/og`                            |                             | [ ]  |
-| P3-8  | `sitemap.ts`, `robots.ts`, `rss.xml/route.ts`           |                             | [ ]  |
-| P3-9  | JSON-LD `BlogPosting` + `BreadcrumbList` + `Person`     |                             | [ ]  |
-| P3-10 | Search client-side (Fuse.js trên index JSON build-time) | không cần server            | [ ]  |
-| P3-11 | Trang chủ: hero + bài mới + bài nổi bật                 |                             | [ ]  |
+| P3-1  | `/blog` list + phân trang (SSG)                         |                             | [x]  |
+| P3-2  | `/blog/[slug]` + `generateStaticParams`                 |                             | [x]  |
+| P3-3  | `/tags/[tag]`, `/categories/[cat]`                      |                             | [x]  |
+| P3-4  | TOC sticky + scroll-spy heading đang đọc                |                             | [x]  |
+| P3-5  | Bài liên quan (theo tag trùng nhau)                     |                             | [x]  |
+| P3-6  | `lib/seo.ts` + `generateMetadata` cho mọi route         | canonical, OG, Twitter card | [x]  |
+| P3-7  | OG image động bằng `next/og`                            |                             | [x]  |
+| P3-8  | `sitemap.ts`, `robots.ts`, `rss.xml/route.ts`           |                             | [x]  |
+| P3-9  | JSON-LD `BlogPosting` + `BreadcrumbList` + `Person`     |                             | [x]  |
+| P3-10 | Search client-side (Fuse.js trên index JSON build-time) | không cần server            | [x]  |
+| P3-11 | Trang chủ: hero + bài mới + bài nổi bật                 |                             | [x]  |
 
 **🚪 Exit Gate P3:** Lighthouse SEO 100, Performance ≥ 95 (mobile); sitemap + RSS validate hợp lệ; Rich Results Test pass.
+
+> ✅ **Đã đạt (2026-09-14)** — Lighthouse **mobile** (có throttling), bản production build:
+>
+> | Route                | Perf | A11y | SEO |
+> | -------------------- | ---- | ---- | --- |
+> | `/`                  | 97   | 100  | 100 |
+> | `/blog`              | 96   | 100  | 100 |
+> | `/blog/[slug]`       | 97   | 100  | 100 |
+> | `/tags/nginx`        | 98   | 100  | 100 |
+> | `/categories/server` | 96   | 100  | 100 |
+>
+> - `sitemap.xml`: parse bằng XML parser — hợp lệ, 17 URL.
+> - `rss.xml`: parse hợp lệ, 3 item, `pubDate` đúng RFC-822.
+> - JSON-LD: `BlogPosting` + `BreadcrumbList` parse được, **đủ toàn bộ field bắt buộc** của Rich Results (headline, datePublished, dateModified, author, publisher, image, mainEntityOfPage, description).
+> - OG image động: HTTP 200, `image/png`, đúng 1200×630, tiếng Việt có dấu render chuẩn.
+>
+> **Tối ưu đã thực hiện:** `fuse.js` ban đầu import tĩnh trong `SearchDialog` (nằm ở Header → vào chunk chung của **mọi** trang), làm TBT `/blog` lên 360 ms và Perf tụt còn 89. Chuyển sang `await import('fuse.js')` chỉ khi mở tìm kiếm → TBT **60 ms**, Perf **96–97**.
+>
+> ⚠️ **Chưa tự động kiểm được:** trạng thái tô sáng "đang đọc" của scroll-spy TOC (cần cuộn thật trong trình duyệt). TOC render đúng và id neo đã đối chiếu khớp ở P2.
 
 ---
 

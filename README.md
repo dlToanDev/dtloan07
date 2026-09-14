@@ -35,6 +35,21 @@ pnpm dev                # http://localhost:3000
 pnpm format:check && pnpm lint && pnpm typecheck && pnpm build
 ```
 
+## Route
+
+| Route                                              | Kiểu   | Ghi chú                                                      |
+| -------------------------------------------------- | ------ | ------------------------------------------------------------ |
+| `/`                                                | static | hero + chuyên mục + bài nổi bật + bài mới                    |
+| `/blog`                                            | static | trang 1, `POSTS_PER_PAGE` trong `src/config/blog.ts`         |
+| `/blog/page/[page]`                                | SSG    | từ trang 2 — trang 1 luôn là `/blog` để tránh trùng nội dung |
+| `/blog/[slug]`                                     | SSG    | TOC sticky, bài liên quan, JSON-LD                           |
+| `/tags/[tag]`, `/categories/[category]`            | SSG    | `dynamicParams = false`                                      |
+| `/sitemap.xml`, `/robots.txt`, `/rss.xml`          | static |                                                              |
+| `/search-index.json`                               | static | index cho search client-side                                 |
+| `/opengraph-image`, `/blog/[slug]/opengraph-image` | SSG    | ảnh OG 1200×630 sinh động                                    |
+
+**SEO:** mọi `generateMetadata` đi qua `buildMetadata()` trong `src/lib/seo.ts` — canonical là bắt buộc, không tự viết thẻ meta rời rạc.
+
 ## Design system
 
 - **Token màu** khai báo trong `src/app/globals.css` (`@theme` + biến `:root` / `.dark`). Tailwind 4 dùng CSS-first nên **không có `tailwind.config.ts`**.
@@ -82,6 +97,6 @@ Component dùng được trong MDX mà không cần import: `<Callout>`, `<Termi
 - [x] **P0** — Chuẩn bị & khởi tạo
 - [x] **P1** — Design System & Layout
 - [x] **P2** — MDX Engine
-- [ ] P3 — Trang Blog & SEO
-- [ ] P4 — 🚩 Deploy lần đầu
+- [x] **P3** — Trang Blog & SEO
+- [ ] **P4 — 🚩 Deploy lần đầu ← tiếp theo**
 - [ ] P5–P11 — xem `docs/PLAN.md`

@@ -127,3 +127,74 @@ export function extractToc(content: string): TocItem[] {
 
   return items;
 }
+
+export const CATEGORY_LABELS: Record<PostMeta['category'], string> = {
+  server: 'Quản trị server',
+  'lap-trinh': 'Lập trình',
+  devops: 'DevOps',
+  database: 'Database',
+};
+
+export async function getPostsByTag(tag: string): Promise<PostMeta[]> {
+  const posts = await getPostMetas();
+  return posts.filter((post) => post.tags.some((item) => item.toLowerCase() === tag.toLowerCase()));
+}
+
+export async function getPostsByCategory(category: string): Promise<PostMeta[]> {
+  const posts = await getPostMetas();
+  return posts.filter((post) => post.category === category);
+}
+
+export async function getAllCategories(): Promise<
+  { category: PostMeta['category']; count: number }[]
+> {
+  const posts = await getPostMetas();
+  const counts = new Map<PostMeta['category'], number>();
+
+  for (const post of posts) {
+    counts.set(post.category, (counts.get(post.category) ?? 0) + 1);
+  }
+
+  return [...counts.entries()]
+    .map(([category, count]) => ({ category, count }))
+    .sort((a, b) => b.count - a.count);
+}
+
+/**
+ * Bài liên quan: xếp theo số tag trùng, rồi tới cùng chuyên mục, rồi mới tới
+ * ngày đăng. Chỉ trả về bài thực sự có điểm chung — thà hiện 1 bài đúng còn
+ * hơn 3 bài ngẫu nhiên.
+ */
+export async function getRelatedPosts(slug: string, limit = 3): Promise<PostMeta[]> {
+  const posts = await getPostMetas();
+  const current = posts.find((post) => post.slug === slug);
+  if (!current) return [];
+
+  const currentTags = new Set(current.tags);
+
+  return posts
+    .filter((post) => post.slug !== slug)
+    .map((post) => ({
+      post,
+      score:
+        post.tags.filter((tag) => currentTags.has(tag)).length * 2 +
+        (post.category === current.category ? 1 : 0),
+    }))
+    .filter((item) => item.score > 0)
+    .sort((a, b) => b.score - a.score || b.post.publishedAt.localeCompare(a.post.publishedAt))
+    .slice(0, limit)
+    .map((item) => item.post);
+}
+
+/** Index cho search client-side. Cố ý không kèm nội dung bài để file nhẹ. */
+export async function getSearchIndex() {
+  const posts = await getPostMetas();
+  return posts.map((post) => ({
+    slug: post.slug,
+    title: post.title,
+    description: post.description,
+    tags: post.tags,
+    category: post.category,
+    publishedAt: post.publishedAt,
+  }));
+}

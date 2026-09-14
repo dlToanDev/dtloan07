@@ -1,3 +1,4 @@
+import { SearchDialog } from '@/components/blog/search-dialog';
 import { MobileNav } from '@/components/layout/mobile-nav';
 import { NavLink } from '@/components/layout/nav-link';
 import { ThemeToggle } from '@/components/layout/theme-toggle';
@@ -23,6 +24,7 @@ export function Header() {
         </nav>
 
         <div className="flex items-center gap-1">
+          <SearchDialog />
           <ThemeToggle />
           <MobileNav />
         </div>

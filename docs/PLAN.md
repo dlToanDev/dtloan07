@@ -523,20 +523,22 @@ Không sang phase sau khi **Cổng ra (Exit Gate)** của phase hiện tại ch�
 
 **Mục tiêu:** có repo chạy được + hạ tầng đã đăng ký. Chưa viết feature nào.
 
-| #     | Task                                                                | Lệnh / Ghi chú                                   | Done |
-| ----- | ------------------------------------------------------------------- | ------------------------------------------------ | ---- |
-| P0-1  | Mua domain, trỏ DNS `A` record về IP tĩnh                           | Làm SỚM NHẤT — chờ propagate 2–24h               | [ ]  |
-| P0-2  | Tạo GCP VM `e2-small` Ubuntu 24.04 + **reserve static IP**          | Bật Allow HTTP/HTTPS                             | [ ]  |
-| P0-3  | Đăng ký PayOS (sandbox), Cloudflare R2, Resend                      | Lưu key vào password manager                     | [ ]  |
-| P0-4  | `pnpm create next-app` (TS + Tailwind + App Router + ESLint)        |                                                  | [ ]  |
-| P0-5  | Cấu hình `tsconfig` strict, path alias `@/*`                        | `"strict": true`, `noUncheckedIndexedAccess`     | [ ]  |
-| P0-6  | Prettier + `prettier-plugin-tailwindcss` + Husky + lint-staged      |                                                  | [ ]  |
-| P0-7  | `src/config/env.ts` — validate biến môi trường bằng Zod (fail fast) | App phải crash khi thiếu env, không chạy nửa vời | [ ]  |
-| P0-8  | `.env.example`, `.gitignore`, `README.md`                           | **Không commit `.env`**                          | [ ]  |
-| P0-9  | Push GitHub, tạo branch `main` + `dev`, bật branch protection       |                                                  | [ ]  |
-| P0-10 | `.github/workflows/ci.yml`: lint + typecheck + build                |                                                  | [ ]  |
+| #     | Task                                                                                          | Lệnh / Ghi chú                                   | Done |
+| ----- | --------------------------------------------------------------------------------------------- | ------------------------------------------------ | ---- |
+| P0-1  | Mua domain, trỏ DNS `A` record về IP tĩnh                                                     | Làm SỚM NHẤT — chờ propagate 2–24h               | [ ]  |
+| P0-2  | Tạo GCP VM `e2-small` Ubuntu 24.04 + **reserve static IP**                                    | Bật Allow HTTP/HTTPS                             | [ ]  |
+| P0-3  | Đăng ký PayOS (sandbox), Cloudflare R2, Resend                                                | Lưu key vào password manager                     | [ ]  |
+| P0-4  | `pnpm create next-app` (TS + Tailwind + App Router + ESLint)                                  |                                                  | [x]  |
+| P0-5  | Cấu hình `tsconfig` strict, path alias `@/*`                                                  | `"strict": true`, `noUncheckedIndexedAccess`     | [x]  |
+| P0-6  | Prettier + `prettier-plugin-tailwindcss` + Husky + lint-staged                                |                                                  | [x]  |
+| P0-7  | `src/config/env.ts` — validate biến môi trường bằng Zod (fail fast)                           | App phải crash khi thiếu env, không chạy nửa vời | [x]  |
+| P0-8  | `.env.example`, `.gitignore`, `README.md`                                                     | **Không commit `.env`**                          | [x]  |
+| P0-9  | Git init + branch `main`/`dev` ✅ — **còn lại: tạo repo GitHub, push, bật branch protection** |                                                  | [ ]  |
+| P0-10 | `.github/workflows/ci.yml`: lint + typecheck + build                                          |                                                  | [x]  |
 
 **🚪 Exit Gate P0:** `pnpm lint && pnpm typecheck && pnpm build` xanh cả local lẫn CI.
+
+> ✅ **Đã đạt local (2026-09-14):** format ✅ · lint ✅ · typecheck ✅ · build ✅. CI sẽ xanh sau khi push lên GitHub (P0-9).
 
 ---
 

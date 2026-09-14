@@ -35,6 +35,15 @@ pnpm dev                # http://localhost:3000
 pnpm format:check && pnpm lint && pnpm typecheck && pnpm build
 ```
 
+## Design system
+
+- **Token màu** khai báo trong `src/app/globals.css` (`@theme` + biến `:root` / `.dark`). Tailwind 4 dùng CSS-first nên **không có `tailwind.config.ts`**.
+- Dùng **token ngữ nghĩa** (`bg-background`, `text-muted-foreground`, `border-border`), không dùng `bg-white` / `text-gray-500` — nếu không sẽ vỡ ở dark mode.
+- `cn()` trong `src/lib/utils.ts` để gộp class (twMerge khử class xung đột).
+- Component dùng chung: `src/components/ui/`. Layout: `src/components/layout/`.
+- Nút dạng link: dùng `buttonStyles()` cho `<Link>`, **không** lồng `<a>` trong `<button>`.
+- Heading phải đúng thứ tự h1 → h2 → h3 (`<CardTitle as="h2">`), nếu không Lighthouse trừ điểm a11y.
+
 ## Quy ước
 
 - **Biến môi trường:** khai báo trong `src/config/env.ts` (Zod). Không đọc thẳng `process.env` ở nơi khác. Thiếu/sai biến → app crash lúc khởi động, không chạy nửa vời.
@@ -46,7 +55,7 @@ pnpm format:check && pnpm lint && pnpm typecheck && pnpm build
 ## Trạng thái
 
 - [x] **P0** — Chuẩn bị & khởi tạo
-- [ ] P1 — Design System & Layout
+- [x] **P1** — Design System & Layout
 - [ ] P2 — MDX Engine
 - [ ] P3 — Trang Blog & SEO
 - [ ] P4 — 🚩 Deploy lần đầu

@@ -544,18 +544,23 @@ Không sang phase sau khi **Cổng ra (Exit Gate)** của phase hiện tại ch�
 
 **Mục tiêu:** khung giao diện dùng lại được cho mọi trang sau.
 
-| #    | Task                                                          | Ghi chú                                     | Done |
-| ---- | ------------------------------------------------------------- | ------------------------------------------- | ---- |
-| P1-1 | Design token trong `tailwind.config.ts`                       | màu, spacing, radius, `typography` override | [ ]  |
-| P1-2 | Font qua `next/font`: Inter (UI) + JetBrains Mono (code)      | self-host, tránh layout shift               | [ ]  |
-| P1-3 | `layout.tsx` gốc + Header / Footer / Container                |                                             | [ ]  |
-| P1-4 | Dark mode (`next-themes`, `class` strategy) + chống FOUC      | script chặn flash trong `<head>`            | [ ]  |
-| P1-5 | Component `ui/`: Button, Input, Card, Badge, Dialog, Skeleton |                                             | [ ]  |
-| P1-6 | MobileNav + ThemeToggle                                       |                                             | [ ]  |
-| P1-7 | `not-found.tsx`, `error.tsx`, `loading.tsx`                   |                                             | [ ]  |
-| P1-8 | `src/config/site.ts` (tên, url, nav, social)                  | 1 nguồn sự thật, không hardcode rải rác     | [ ]  |
+| #    | Task                                                                                                       | Ghi chú                                     | Done |
+| ---- | ---------------------------------------------------------------------------------------------------------- | ------------------------------------------- | ---- |
+| P1-1 | Design token trong `globals.css` (`@theme`) — **Tailwind 4 dùng CSS-first, không có `tailwind.config.ts`** | màu, spacing, radius, `typography` override | [x]  |
+| P1-2 | Font qua `next/font`: Inter (UI) + JetBrains Mono (code)                                                   | self-host, tránh layout shift               | [x]  |
+| P1-3 | `layout.tsx` gốc + Header / Footer / Container                                                             |                                             | [x]  |
+| P1-4 | Dark mode (`next-themes`, `class` strategy) + chống FOUC                                                   | script chặn flash trong `<head>`            | [x]  |
+| P1-5 | Component `ui/`: Button, Input, Card, Badge, Dialog, Skeleton                                              |                                             | [x]  |
+| P1-6 | MobileNav + ThemeToggle                                                                                    |                                             | [x]  |
+| P1-7 | `not-found.tsx`, `error.tsx`, `loading.tsx`                                                                |                                             | [x]  |
+| P1-8 | `src/config/site.ts` (tên, url, nav, social)                                                               | 1 nguồn sự thật, không hardcode rải rác     | [x]  |
 
 **🚪 Exit Gate P1:** Lighthouse Accessibility ≥ 95; chuyển dark/light không nháy; responsive 375px → 1440px không vỡ.
+
+> ✅ **Đã đạt (2026-09-14)** — Lighthouse desktop trên bản production build:
+> Performance **100** · Accessibility **100** · Best Practices **96** · SEO **100** (0 rule a11y fail).
+> Chống nháy: next-themes chèn script chặn render ở đầu `<body>`, chạy trước khi paint.
+> Responsive: chụp thật ở 375 / 414 / 768 / 1024 / 1440px — không tràn ngang, nav thu về hamburger ở < 768px.
 
 ---
 

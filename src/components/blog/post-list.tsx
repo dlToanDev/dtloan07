@@ -1,5 +1,5 @@
 import { Pagination } from '@/components/blog/pagination';
-import { PostCard } from '@/components/blog/post-card';
+import { PostListView } from '@/components/blog/post-list-view';
 import { POSTS_PER_PAGE } from '@/config/blog';
 import type { PostMeta } from '@/types/post';
 
@@ -29,11 +29,7 @@ export function PostList({
 
   return (
     <>
-      <div className="mt-8 flex flex-col gap-8">
-        {posts.map((post) => (
-          <PostCard key={post.slug} post={post} />
-        ))}
-      </div>
+      <PostListView posts={posts} />
       {page && totalPages ? <Pagination current={page} total={totalPages} /> : null}
     </>
   );

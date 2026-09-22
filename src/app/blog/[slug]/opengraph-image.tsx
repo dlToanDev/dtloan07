@@ -1,5 +1,5 @@
 import { siteConfig } from '@/config/site';
-import { CATEGORY_LABELS, getAllPosts, getPostBySlug } from '@/lib/mdx';
+import { getCategoryLabel, getAllPosts, getPostBySlug } from '@/lib/mdx';
 import { ImageResponse } from 'next/og';
 
 export const alt = 'Ảnh xem trước bài viết';
@@ -28,7 +28,7 @@ export default async function PostOgImage({ params }: { params: Promise<{ slug: 
       }}
     >
       <div style={{ display: 'flex', color: '#60a5fa', fontSize: 26 }}>
-        {post ? CATEGORY_LABELS[post.category] : siteConfig.shortName}
+        {post ? getCategoryLabel(post.category) : siteConfig.shortName}
       </div>
 
       <div

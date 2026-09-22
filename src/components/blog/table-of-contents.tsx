@@ -38,11 +38,8 @@ export function TableOfContents({ items }: { items: TocItem[] }) {
   if (items.length < 2) return null;
 
   return (
-    <nav
-      aria-label="Mục lục"
-      className="sticky top-24 hidden max-h-[calc(100dvh-8rem)] overflow-y-auto lg:block"
-    >
-      <p className="mb-3 text-sm font-semibold">Mục lục</p>
+    <nav aria-label="Mục lục" className="space-y-3">
+      <p className="text-sm font-semibold">Mục lục</p>
       <ul className="border-border flex flex-col gap-1 border-l">
         {items.map((item) => (
           <li key={item.id}>

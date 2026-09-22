@@ -1,7 +1,14 @@
-import { postFrontmatterSchema, type Post, type PostMeta, type TocItem } from '@/types/post';
+import {
+  postFrontmatterSchema,
+  calculateFeaturedScore,
+  type Post,
+  type PostMeta,
+  type TocItem,
+} from '@/types/post';
+export { CATEGORY_LABELS, getCategoryLabel } from '@/config/blog';
 import GithubSlugger from 'github-slugger';
 import matter from 'gray-matter';
-import { readFile, readdir } from 'node:fs/promises';
+import { readFile, readdir, stat } from 'node:fs/promises';
 import path from 'node:path';
 import readingTime from 'reading-time';
 import { cache } from 'react';
@@ -28,6 +35,7 @@ function parsePost(fileName: string, raw: string): Post {
   }
 
   const stats = readingTime(content);
+  const featuredScore = calculateFeaturedScore(parsed.data);
 
   return {
     ...parsed.data,
@@ -35,22 +43,47 @@ function parsePost(fileName: string, raw: string): Post {
     content,
     readingMinutes: Math.max(1, Math.round(stats.minutes)),
     wordCount: stats.words,
+    featuredScore,
   };
 }
 
+interface CacheEntry {
+  post: Post;
+  mtimeMs: number;
+}
+const modulePostsCache = new Map<string, CacheEntry>();
+
 /**
- * `cache()` của React dedupe trong cùng một lần render/build — nhiều trang
- * (list, tag, sitemap, rss) gọi chung mà chỉ đọc đĩa một lần.
+ * `cache()` của React dedupe trong cùng một lần render/build.
+ * `modulePostsCache` lưu RAM ở dev mode, kiểm tra `mtime` để không phải đọc đĩa lại liên tục
+ * nhưng vẫn hot-reload tức thì khi sửa file MDX.
  */
-export const getAllPosts = cache(async (): Promise<Post[]> => {
+const getAllPostsFromDisk = cache(async (): Promise<Post[]> => {
   const fileNames = (await readdir(POSTS_DIR)).filter((name) => name.endsWith('.mdx'));
 
   const posts = await Promise.all(
     fileNames.map(async (fileName) => {
-      const raw = await readFile(path.join(POSTS_DIR, fileName), 'utf8');
-      return parsePost(fileName, raw);
+      const fullPath = path.join(POSTS_DIR, fileName);
+      const fileStat = await stat(fullPath);
+      const cached = modulePostsCache.get(fileName);
+
+      if (cached && cached.mtimeMs === fileStat.mtimeMs) {
+        return cached.post;
+      }
+
+      const raw = await readFile(fullPath, 'utf8');
+      const parsed = parsePost(fileName, raw);
+      modulePostsCache.set(fileName, { post: parsed, mtimeMs: fileStat.mtimeMs });
+      return parsed;
     }),
   );
+
+  if (modulePostsCache.size > fileNames.length) {
+    const currentFiles = new Set(fileNames);
+    for (const key of modulePostsCache.keys()) {
+      if (!currentFiles.has(key)) modulePostsCache.delete(key);
+    }
+  }
 
   const slugs = new Set<string>();
   for (const post of posts) {
@@ -60,9 +93,12 @@ export const getAllPosts = cache(async (): Promise<Post[]> => {
     slugs.add(post.slug);
   }
 
-  return posts
-    .filter((post) => !post.draft || process.env.NODE_ENV === 'development')
-    .sort((a, b) => b.publishedAt.localeCompare(a.publishedAt));
+  return posts.sort((a, b) => b.publishedAt.localeCompare(a.publishedAt));
+});
+
+export const getAllPosts = cache(async (): Promise<Post[]> => {
+  const posts = await getAllPostsFromDisk();
+  return posts.filter((post) => !post.draft || process.env.NODE_ENV === 'development');
 });
 
 export const getPostBySlug = cache(async (slug: string): Promise<Post | null> => {
@@ -72,6 +108,16 @@ export const getPostBySlug = cache(async (slug: string): Promise<Post | null> =>
 
 export async function getPostMetas(): Promise<PostMeta[]> {
   const posts = await getAllPosts();
+  return posts.map((post) => {
+    const { content, ...meta } = post;
+    void content;
+    return meta;
+  });
+}
+
+/** Trang admin phải thấy cả draft; các trang public vẫn dùng `getPostMetas()`. */
+export async function getAdminPostMetas(): Promise<PostMeta[]> {
+  const posts = await getAllPostsFromDisk();
   return posts.map((post) => {
     const { content, ...meta } = post;
     void content;
@@ -128,13 +174,6 @@ export function extractToc(content: string): TocItem[] {
   return items;
 }
 
-export const CATEGORY_LABELS: Record<PostMeta['category'], string> = {
-  server: 'Quản trị server',
-  'lap-trinh': 'Lập trình',
-  devops: 'DevOps',
-  database: 'Database',
-};
-
 export async function getPostsByTag(tag: string): Promise<PostMeta[]> {
   const posts = await getPostMetas();
   return posts.filter((post) => post.tags.some((item) => item.toLowerCase() === tag.toLowerCase()));
@@ -142,17 +181,18 @@ export async function getPostsByTag(tag: string): Promise<PostMeta[]> {
 
 export async function getPostsByCategory(category: string): Promise<PostMeta[]> {
   const posts = await getPostMetas();
-  return posts.filter((post) => post.category === category);
+  return posts.filter((post) => post.categories?.includes(category) || post.category === category);
 }
 
-export async function getAllCategories(): Promise<
-  { category: PostMeta['category']; count: number }[]
-> {
+export async function getAllCategories(): Promise<{ category: string; count: number }[]> {
   const posts = await getPostMetas();
-  const counts = new Map<PostMeta['category'], number>();
+  const counts = new Map<string, number>();
 
   for (const post of posts) {
-    counts.set(post.category, (counts.get(post.category) ?? 0) + 1);
+    const cats = post.categories && post.categories.length > 0 ? post.categories : [post.category];
+    for (const cat of cats) {
+      counts.set(cat, (counts.get(cat) ?? 0) + 1);
+    }
   }
 
   return [...counts.entries()]
@@ -171,15 +211,19 @@ export async function getRelatedPosts(slug: string, limit = 3): Promise<PostMeta
   if (!current) return [];
 
   const currentTags = new Set(current.tags);
+  const currentCats = current.categories || [current.category];
 
   return posts
     .filter((post) => post.slug !== slug)
-    .map((post) => ({
-      post,
-      score:
-        post.tags.filter((tag) => currentTags.has(tag)).length * 2 +
-        (post.category === current.category ? 1 : 0),
-    }))
+    .map((post) => {
+      const postCats = post.categories || [post.category];
+      const sharedCats = postCats.filter((cat) => currentCats.includes(cat)).length;
+      const sharedTags = post.tags.filter((tag) => currentTags.has(tag)).length;
+      return {
+        post,
+        score: sharedTags * 2 + sharedCats,
+      };
+    })
     .filter((item) => item.score > 0)
     .sort((a, b) => b.score - a.score || b.post.publishedAt.localeCompare(a.post.publishedAt))
     .slice(0, limit)
@@ -197,4 +241,14 @@ export async function getSearchIndex() {
     category: post.category,
     publishedAt: post.publishedAt,
   }));
+}
+
+/**
+ * Lấy danh sách bài viết nổi bật:
+ * Tự động sắp xếp theo điểm nổi bật tính theo tương tác:
+ * Điểm = (lượt xem × 1) + (like × 2) + (comment × 3) + (share × 2)
+ */
+export async function getFeaturedPosts(limit = 2): Promise<PostMeta[]> {
+  const posts = await getPostMetas();
+  return [...posts].sort((a, b) => (b.featuredScore ?? 0) - (a.featuredScore ?? 0)).slice(0, limit);
 }

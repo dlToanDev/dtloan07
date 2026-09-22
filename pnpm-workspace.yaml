@@ -2,3 +2,9 @@ allowBuilds:
   unrs-resolver: true
   sharp: true
   '@tailwindcss/oxide': true
+  esbuild: true
+  msgpackr-extract: true
+  workerd: true
+  '@prisma/client': true
+  '@prisma/engines': true
+  prisma: true

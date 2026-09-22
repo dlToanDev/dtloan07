@@ -1,4 +1,4 @@
-# Blog Lập trình & Quản trị Server
+# dltoan Blog
 
 Blog MDX + cửa hàng sản phẩm số. Next.js (App Router) · TypeScript · Tailwind CSS · PostgreSQL/Prisma · tự deploy trên VPS Ubuntu (GCP) với Nginx + PM2.
 
@@ -98,5 +98,11 @@ Component dùng được trong MDX mà không cần import: `<Callout>`, `<Termi
 - [x] **P1** — Design System & Layout
 - [x] **P2** — MDX Engine
 - [x] **P3** — Trang Blog & SEO
-- [ ] **P4 — 🚩 Deploy lần đầu ← tiếp theo**
-- [ ] P5–P11 — xem `docs/PLAN.md`
+- [ ] **P4** — Deploy lần đầu (Đã chuẩn bị sẵn config Nginx, PM2, script deploy & backup)
+- [x] **P5** — Database & Prisma (Supabase PostgreSQL + Prisma 6 LTS)
+- [x] **P6** — Auth & Lead Magnet (Auth.js v5 + Magic Link + Double Opt-in Newsletter)
+- [x] **P7** — Catalog & Cart (Zustand Cart Store + CartDrawer + Pure Pricing Engine)
+- [x] **P8** — Checkout & Webhook (PayOS VietQR + HMAC SHA256 + Idempotent Webhook)
+- [x] **P9** — Digital Delivery & Account (Cloudflare R2 Signed URLs + Tra cứu đơn hàng)
+- [x] **P10** — Admin & Testing (Dashboard doanh thu, quản lý SP, đơn, license, subscribers + 33 Vitest tests)
+- [x] **P11** — Hardening & Launch (Security headers HSTS/CSP, Terms/Privacy, Runbook vận hành)

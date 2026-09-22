@@ -1,4 +1,4 @@
-import { PostList, paginate } from '@/components/blog/post-list';
+import { PostList } from '@/components/blog/post-list';
 import { Container } from '@/components/layout/container';
 import { getPostMetas } from '@/lib/mdx';
 import { buildMetadata } from '@/lib/seo';
@@ -16,7 +16,6 @@ export const metadata: Metadata = buildMetadata({
 
 export default async function BlogIndexPage() {
   const posts = await getPostMetas();
-  const { items, current, totalPages } = paginate(posts, 1);
 
   return (
     <Container className="py-12">
@@ -25,7 +24,7 @@ export default async function BlogIndexPage() {
         <p className="text-muted-foreground">{posts.length} bài viết</p>
       </header>
 
-      <PostList posts={items} page={current} totalPages={totalPages} />
+      <PostList posts={posts} />
     </Container>
   );
 }

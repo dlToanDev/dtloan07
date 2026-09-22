@@ -8,7 +8,7 @@ export default function robots(): MetadataRoute.Robots {
         userAgent: '*',
         allow: '/',
         // Khu vực riêng tư của khách và khu quản trị — không để lọt vào index.
-        disallow: ['/account/', '/admin/', '/api/'],
+        disallow: ['/account/', '/admin/', '/api/', '/go/'],
       },
     ],
     sitemap: absoluteUrl('/sitemap.xml'),

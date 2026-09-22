@@ -16,6 +16,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   return [
     { url: absoluteUrl('/'), lastModified: latest, changeFrequency: 'weekly', priority: 1 },
     { url: absoluteUrl('/blog'), lastModified: latest, changeFrequency: 'weekly', priority: 0.9 },
+    {
+      url: absoluteUrl('/products'),
+      lastModified: latest,
+      changeFrequency: 'weekly',
+      priority: 0.9,
+    },
+    {
+      url: absoluteUrl('/affiliate'),
+      lastModified: latest,
+      changeFrequency: 'weekly',
+      priority: 0.8,
+    },
 
     // Trang 2 trở đi — trang 1 chính là /blog nên không liệt kê lại.
     ...Array.from({ length: Math.max(0, totalPages - 1) }, (_, index) => ({

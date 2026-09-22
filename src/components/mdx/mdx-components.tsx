@@ -3,6 +3,7 @@ import { CodeBlock } from '@/components/mdx/code-block';
 import { FileTree } from '@/components/mdx/file-tree';
 import { MdxImage } from '@/components/mdx/mdx-image';
 import { Terminal } from '@/components/mdx/terminal';
+import { Video } from '@/components/mdx/video';
 import Link from 'next/link';
 import type { MDXComponents } from 'mdx/types';
 import type { AnchorHTMLAttributes } from 'react';
@@ -35,4 +36,5 @@ export const mdxComponents: MDXComponents = {
   Callout,
   FileTree,
   Terminal,
+  Video,
 };

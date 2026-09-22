@@ -1,6 +1,9 @@
 import { Footer } from '@/components/layout/footer';
 import { Header } from '@/components/layout/header';
 import { ThemeProvider } from '@/components/theme-provider';
+import { ProgressBar } from '@/components/layout/progress-bar';
+import { ExitIntentPopup } from '@/components/marketing/exit-intent-popup';
+import { CartDrawer } from '@/components/shop/cart-drawer';
 import { siteConfig } from '@/config/site';
 import { fontMono, fontSans } from '@/lib/fonts';
 import { cn } from '@/lib/utils';
@@ -42,6 +45,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             Bỏ qua, tới nội dung chính
           </a>
 
+          <ProgressBar />
           <div className="flex min-h-dvh flex-col">
             <Header />
             <main id="main" className="flex-1">
@@ -49,6 +53,8 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             </main>
             <Footer />
           </div>
+          <ExitIntentPopup />
+          <CartDrawer />
         </ThemeProvider>
       </body>
     </html>

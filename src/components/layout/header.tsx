@@ -2,8 +2,10 @@ import { SearchDialog } from '@/components/blog/search-dialog';
 import { MobileNav } from '@/components/layout/mobile-nav';
 import { NavLink } from '@/components/layout/nav-link';
 import { ThemeToggle } from '@/components/layout/theme-toggle';
+import { CartButton } from '@/components/shop/cart-button';
 import { siteConfig } from '@/config/site';
 import Link from 'next/link';
+import { User } from 'lucide-react';
 
 export function Header() {
   return (
@@ -26,6 +28,15 @@ export function Header() {
         <div className="flex items-center gap-1">
           <SearchDialog />
           <ThemeToggle />
+          <CartButton />
+          <Link
+            href="/account"
+            className="hover:bg-muted text-muted-foreground hover:text-foreground inline-flex size-9 items-center justify-center rounded-lg transition-colors"
+            title="Tài khoản"
+            aria-label="Tài khoản cá nhân"
+          >
+            <User className="size-4" />
+          </Link>
           <MobileNav />
         </div>
       </div>

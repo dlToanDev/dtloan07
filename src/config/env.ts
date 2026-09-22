@@ -24,12 +24,15 @@ const serverSchema = z.object({
 
   // P5 — Database
   DATABASE_URL: optional(z.string().url()),
+  DIRECT_URL: optional(z.string().url()),
 
   // P6 — Auth
   AUTH_SECRET: optional(z.string().min(32)),
   AUTH_URL: optional(z.string().url()),
   AUTH_GOOGLE_ID: optional(z.string()),
   AUTH_GOOGLE_SECRET: optional(z.string()),
+  AUTH_GITHUB_ID: optional(z.string()),
+  AUTH_GITHUB_SECRET: optional(z.string()),
 
   // P6 — Email
   RESEND_API_KEY: optional(z.string().startsWith('re_')),
@@ -45,6 +48,10 @@ const serverSchema = z.object({
   PAYOS_CLIENT_ID: optional(z.string()),
   PAYOS_API_KEY: optional(z.string()),
   PAYOS_CHECKSUM_KEY: optional(z.string()),
+
+  // Affiliate — Rút gọn link kiếm tiền (MegaURL, Ouo.io, Shorte.st, etc.)
+  SHORTENER_API_URL: optional(z.string().url()),
+  SHORTENER_API_KEY: optional(z.string()),
 });
 
 const clientSchema = z.object({
@@ -56,7 +63,7 @@ const clientSchema = z.object({
  * tĩnh đầy đủ, nên phải liệt kê tường minh — không destructure `process.env`.
  */
 const clientRuntime = {
-  NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000',
+  NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:5000',
 };
 
 function parse<T extends z.ZodTypeAny>(schema: T, source: unknown, label: string): z.infer<T> {

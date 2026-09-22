@@ -1,8 +1,7 @@
 import { PostList } from '@/components/blog/post-list';
 import { Container } from '@/components/layout/container';
-import { CATEGORY_LABELS, getAllCategories, getPostsByCategory } from '@/lib/mdx';
+import { getAllCategories, getCategoryLabel, getPostsByCategory } from '@/lib/mdx';
 import { buildMetadata } from '@/lib/seo';
-import type { PostMeta } from '@/types/post';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 
@@ -17,13 +16,9 @@ export async function generateStaticParams() {
   return categories.map(({ category }) => ({ category }));
 }
 
-function labelOf(category: string): string | undefined {
-  return CATEGORY_LABELS[category as PostMeta['category']];
-}
-
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { category } = await params;
-  const label = labelOf(category) ?? category;
+  const label = getCategoryLabel(category);
 
   return buildMetadata({
     title: label,
@@ -34,12 +29,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function CategoryPage({ params }: PageProps) {
   const { category } = await params;
-  const label = labelOf(category);
-
-  if (!label) notFound();
-
   const posts = await getPostsByCategory(category);
   if (posts.length === 0) notFound();
+
+  const label = getCategoryLabel(category);
 
   return (
     <Container className="py-12">

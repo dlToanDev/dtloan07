@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import type Fuse from 'fuse.js';
 import type { FuseResult } from 'fuse.js';
-import { Search } from 'lucide-react';
+import { Loader2, Search } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -118,7 +118,14 @@ export function SearchDialog() {
         />
 
         <div aria-live="polite" className="mt-4">
-          {query.trim().length >= 2 && results.length === 0 ? (
+          {!fuse && (
+            <div className="text-muted-foreground flex items-center justify-center gap-2 py-4 text-xs">
+              <Loader2 className="text-primary size-3.5 animate-spin" />
+              <span>Đang tải chỉ mục tìm kiếm...</span>
+            </div>
+          )}
+
+          {fuse && query.trim().length >= 2 && results.length === 0 ? (
             <p className="text-muted-foreground text-sm">Không tìm thấy bài nào khớp.</p>
           ) : null}
 

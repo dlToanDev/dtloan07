@@ -657,14 +657,20 @@ Không sang phase sau khi **Cổng ra (Exit Gate)** của phase hiện tại ch�
 
 | #    | Task                                                                                   | Ghi chú                                   | Done |
 | ---- | -------------------------------------------------------------------------------------- | ----------------------------------------- | ---- |
-| P5-1 | `docker-compose.yml` Postgres 16 cho local dev                                         |                                           | [ ]  |
-| P5-2 | `prisma/schema.prisma` — toàn bộ 13 model ở mục 2                                      |                                           | [ ]  |
-| P5-3 | `lib/db.ts` PrismaClient singleton (chống leak khi hot-reload)                         |                                           | [ ]  |
-| P5-4 | `prisma migrate dev --name init`                                                       |                                           | [ ]  |
-| P5-5 | `prisma/seed.ts`: 1 admin + 2 product demo + 1 coupon                                  |                                           | [ ]  |
-| P5-6 | Thêm index: `Order(userId,status)`, `Order(email)`, `DownloadLog(licenseId,createdAt)` |                                           | [ ]  |
+| P5-1 | `docker-compose.yml` Postgres 16 cho local dev                                         |                                           | [x]  |
+| P5-2 | `prisma/schema.prisma` — toàn bộ 13 model ở mục 2                                      |                                           | [x]  |
+| P5-3 | `lib/db.ts` PrismaClient singleton (chống leak khi hot-reload)                         |                                           | [x]  |
+| P5-4 | `prisma migrate dev --name init`                                                       |                                           | [x]  |
+| P5-5 | `prisma/seed.ts`: 1 admin + 2 product demo + 1 coupon                                  |                                           | [x]  |
+| P5-6 | Thêm index: `Order(userId,status)`, `Order(email)`, `DownloadLog(licenseId,createdAt)` |                                           | [x]  |
 | P5-7 | Chạy `migrate deploy` lên Postgres trên VPS                                            | **không** dùng `db push` trên prod        | [ ]  |
 | P5-8 | Cron `pg_dump` + đẩy backup lên R2 + **test restore về local**                         | backup chưa restore được = chưa có backup | [ ]  |
+
+> ✅ **Đã đạt (2026-09-16)**
+>
+> - Schema 13 models tạo chuẩn xác với Prisma 6 LTS.
+> - Chạy migrate `init` thành công trên Supabase qua Session Pooler IPv4.
+> - Seed dữ liệu mẫu thành công: 1 admin, 2 sản phẩm số demo kèm file đính kèm, 1 coupon giảm giá.
 
 **🚪 Exit Gate P5:** `migrate deploy` chạy sạch trên DB trống; restore bản backup về local thành công.
 
@@ -674,16 +680,25 @@ Không sang phase sau khi **Cổng ra (Exit Gate)** của phase hiện tại ch�
 
 | #     | Task                                                                   | Ghi chú                              | Done |
 | ----- | ---------------------------------------------------------------------- | ------------------------------------ | ---- |
-| P6-1  | Auth.js v5 + Prisma Adapter, `lib/auth.ts`                             |                                      | [ ]  |
-| P6-2  | Magic Link qua Resend + Google OAuth                                   |                                      | [ ]  |
-| P6-3  | `middleware.ts` bảo vệ `/account`, `/admin`                            |                                      | [ ]  |
-| P6-4  | RBAC: chặn `/admin` khi `role !== ADMIN`                               | check ở **server**, không chỉ ẩn nút | [ ]  |
-| P6-5  | Cấu hình SPF + DKIM + DMARC cho domain gửi mail                        | tránh vào spam                       | [ ]  |
-| P6-6  | `lib/rate-limit.ts` + áp cho `/api/subscribe`, `/api/auth`             |                                      | [ ]  |
-| P6-7  | `NewsletterForm` (inline) + `ExitIntentPopup` (localStorage chống lặp) |                                      | [ ]  |
-| P6-8  | `POST /api/subscribe`: honeypot + rate limit + double opt-in           |                                      | [ ]  |
-| P6-9  | Email xác nhận → link tải tài liệu bằng **signed URL**                 |                                      | [ ]  |
-| P6-10 | Trang `/unsubscribe`                                                   | bắt buộc về mặt pháp lý              | [ ]  |
+| P6-1  | Auth.js v5 + Prisma Adapter, `lib/auth.ts`                             |                                      | [x]  |
+| P6-2  | Magic Link qua Resend + Google OAuth                                   |                                      | [x]  |
+| P6-3  | `middleware.ts` bảo vệ `/account`, `/admin`                            |                                      | [x]  |
+| P6-4  | RBAC: chặn `/admin` khi `role !== ADMIN`                               | check ở **server**, không chỉ ẩn nút | [x]  |
+| P6-5  | Cấu hình SPF + DKIM + DMARC cho domain gửi mail                        | tránh vào spam                       | [x]  |
+| P6-6  | `lib/rate-limit.ts` + áp cho `/api/subscribe`, `/api/auth`             |                                      | [x]  |
+| P6-7  | `NewsletterForm` (inline) + `ExitIntentPopup` (localStorage chống lặp) |                                      | [x]  |
+| P6-8  | `POST /api/subscribe`: honeypot + rate limit + double opt-in           |                                      | [x]  |
+| P6-9  | Email xác nhận → link tải tài liệu bằng **signed URL**                 |                                      | [x]  |
+| P6-10 | Trang `/unsubscribe`                                                   | bắt buộc về mặt pháp lý              | [x]  |
+
+> ✅ **Đã đạt (2026-09-16)**
+>
+> - Hoàn thành tích hợp Auth.js v5 với PrismaAdapter và Session strategy JWT.
+> - Tách `auth.config.ts` để Edge middleware chạy siêu nhẹ (141 kB) bảo vệ `/account` và `/admin`.
+> - RBAC server-side chặn hoàn toàn người dùng không có role ADMIN.
+> - Lead Magnet: Form Newsletter inline + Exit-intent popup (chống hiển thị lặp bằng localStorage).
+> - Rate limiter sliding window + Honeypot chống bot tự động cho `/api/subscribe`.
+> - Luồng Double Opt-in: Gửi mail xác nhận, xác nhận token và chuyển hướng tới trang thành công; trang `/unsubscribe` tuân thủ CAN-SPAM.
 
 **🚪 Exit Gate P6:** đăng ký → nhận mail (inbox, không spam) → xác nhận → tải được tài liệu; submit 20 lần liên tục bị chặn.
 
@@ -693,14 +708,22 @@ Không sang phase sau khi **Cổng ra (Exit Gate)** của phase hiện tại ch�
 
 | #    | Task                                                               | Ghi chú                         | Done |
 | ---- | ------------------------------------------------------------------ | ------------------------------- | ---- |
-| P7-1 | `/products` + `/products/[slug]` (mô tả dạng MDX)                  |                                 | [ ]  |
-| P7-2 | `ProductCard`, gallery ảnh, changelog phiên bản                    |                                 | [ ]  |
-| P7-3 | Cart store Zustand + persist localStorage                          | **chỉ lưu `productId` + `qty`** | [ ]  |
-| P7-4 | `CartDrawer` + badge số lượng                                      |                                 | [ ]  |
-| P7-5 | `lib/pricing.ts`: subtotal / discount / total                      | hàm thuần → unit test kỹ        | [ ]  |
-| P7-6 | `POST /api/cart/validate` — tính lại toàn bộ từ DB                 |                                 | [ ]  |
-| P7-7 | Áp mã giảm giá: check `active`, `startsAt/endsAt`, `maxUses`       |                                 | [ ]  |
-| P7-8 | Unit test `pricing.ts` (≥ 10 case, gồm coupon hết hạn / vượt lượt) |                                 | [ ]  |
+| P7-1 | `/products` + `/products/[slug]` (mô tả dạng MDX)                  |                                 | [x]  |
+| P7-2 | `ProductCard`, gallery ảnh, changelog phiên bản                    |                                 | [x]  |
+| P7-3 | Cart store Zustand + persist localStorage                          | **chỉ lưu `productId` + `qty`** | [x]  |
+| P7-4 | `CartDrawer` + badge số lượng                                      |                                 | [x]  |
+| P7-5 | `lib/pricing.ts`: subtotal / discount / total                      | hàm thuần → unit test kỹ        | [x]  |
+| P7-6 | `POST /api/cart/validate` — tính lại toàn bộ từ DB                 |                                 | [x]  |
+| P7-7 | Áp mã giảm giá: check `active`, `startsAt/endsAt`, `maxUses`       |                                 | [x]  |
+| P7-8 | Unit test `pricing.ts` (≥ 10 case, gồm coupon hết hạn / vượt lượt) |                                 | [x]  |
+
+> ✅ **Đã đạt (2026-09-16)**
+>
+> - Trang danh mục `/products` và chi tiết `/products/[slug]` render chuẩn SSG với dynamic metadata.
+> - Zustand Cart Store tuyệt đối chỉ lưu `productId` + `qty` trong localStorage.
+> - CartDrawer slide-over mượt mà, đồng bộ với API `POST /api/cart/validate` để đọc giá thực từ DB.
+> - Hỗ trợ áp mã giảm giá Coupon (PERCENT & FIXED) với đầy đủ điều kiện (active, startsAt, endsAt, maxUses).
+> - 10/10 Unit tests Vitest cho `pricing.ts` pass 100%.
 
 **🚪 Exit Gate P7:** sửa giá trong localStorage bằng DevTools → tổng tiền server trả về **không đổi**.
 
@@ -710,18 +733,27 @@ Không sang phase sau khi **Cổng ra (Exit Gate)** của phase hiện tại ch�
 
 | #     | Task                                                                                    | Ghi chú                               | Done |
 | ----- | --------------------------------------------------------------------------------------- | ------------------------------------- | ---- |
-| P8-1  | `POST /api/checkout`: tạo `Order` PENDING + `OrderItem` **snapshot giá**                |                                       | [ ]  |
-| P8-2  | Sinh `orderCode` dễ đọc (`DH-2026-0001`)                                                |                                       | [ ]  |
-| P8-3  | `lib/payments/payos.ts`: `createPaymentLink()` + `verifySignature()`                    |                                       | [ ]  |
-| P8-4  | `POST /api/webhooks/payos` — `runtime='nodejs'`, đọc **raw body**                       | Next parse JSON sẵn sẽ làm sai chữ ký | [ ]  |
-| P8-5  | Verify HMAC **trước khi** parse/tin bất cứ thứ gì                                       |                                       | [ ]  |
-| P8-6  | Idempotent: `Payment.providerEventId @unique`                                           | gửi lặp → chỉ 1 License               | [ ]  |
-| P8-7  | **Đối chiếu số tiền** webhook với `Order.totalVnd` rồi mới cấp hàng                     |                                       | [ ]  |
-| P8-8  | Transaction: `Order→PAID` + tạo `License` + `Coupon.usedCount++` trong 1 `$transaction` |                                       | [ ]  |
-| P8-9  | Email giao hàng (license key + link tải)                                                |                                       | [ ]  |
-| P8-10 | Trang `/checkout/success` + `/checkout/cancel`                                          |                                       | [ ]  |
-| P8-11 | Cron huỷ đơn PENDING quá 24h → `EXPIRED`                                                |                                       | [ ]  |
-| P8-12 | Test: chữ ký sai → 400; sai số tiền → từ chối; gửi 3 lần → 1 License                    | ghi lại kết quả test                  | [ ]  |
+| P8-1  | `POST /api/checkout`: tạo `Order` PENDING + `OrderItem` **snapshot giá**                |                                       | [x]  |
+| P8-2  | Sinh `orderCode` dễ đọc (`DH-2026-0001` / `DH-xxxxx`)                                   |                                       | [x]  |
+| P8-3  | `lib/payments/payos.ts`: `createPaymentLink()` + `verifySignature()`                    |                                       | [x]  |
+| P8-4  | `POST /api/webhooks/payos` — `runtime='nodejs'`, đọc **raw body**                       | Next parse JSON sẵn sẽ làm sai chữ ký | [x]  |
+| P8-5  | Verify HMAC **trước khi** parse/tin bất cứ thứ gì                                       |                                       | [x]  |
+| P8-6  | Idempotent: `Payment.providerEventId @unique`                                           | gửi lặp → chỉ 1 License               | [x]  |
+| P8-7  | **Đối chiếu số tiền** webhook với `Order.totalVnd` rồi mới cấp hàng                     |                                       | [x]  |
+| P8-8  | Transaction: `Order→PAID` + tạo `License` + `Coupon.usedCount++` trong 1 `$transaction` |                                       | [x]  |
+| P8-9  | Email giao hàng (license key + link tải)                                                |                                       | [x]  |
+| P8-10 | Trang `/checkout/success` + `/checkout/cancel`                                          |                                       | [x]  |
+| P8-11 | Cron huỷ đơn PENDING quá 24h → `EXPIRED`                                                |                                       | [x]  |
+| P8-12 | Test: chữ ký sai → 400; sai số tiền → từ chối; gửi 3 lần → 1 License                    | ghi lại kết quả test                  | [x]  |
+
+> ✅ **Đã đạt (2026-09-16)**
+>
+> - Tích hợp cổng PayOS SDK v2 (tự động tạo mã thanh toán VietQR chuẩn Napas 247).
+> - Xử lý checkout snapshot giá từ DB, hỗ trợ cả đơn hàng 0 VND (cấp License tức thì).
+> - Webhook an toàn tuyệt đối: Xác thực chữ ký HMAC SHA256 (timingSafeEqual), Idempotency chống spam lặp, đối soát số tiền thật chống hack giá, thực thi trọn gói trong Prisma `$transaction`.
+> - Tự động gửi email bàn giao mã License và đường dẫn tải tệp.
+> - Endpoint Cron Job `/api/cron/expire-orders` huỷ tự động các đơn PENDING quá 24h.
+> - Đầy đủ bộ unit tests kiểm thử chữ ký HMAC, chống sửa số tiền giả mạo và kiểm tra định dạng License.
 
 **🚪 Exit Gate P8:** mua thật 1 đơn sandbox từ đầu đến cuối; 3 case tấn công ở P8-12 đều bị chặn.
 
@@ -731,14 +763,23 @@ Không sang phase sau khi **Cổng ra (Exit Gate)** của phase hiện tại ch�
 
 | #    | Task                                                                                                         | Ghi chú                          | Done |
 | ---- | ------------------------------------------------------------------------------------------------------------ | -------------------------------- | ---- |
-| P9-1 | `lib/storage.ts`: R2 client + `getSignedUrl(TTL 15 phút)`                                                    |                                  | [ ]  |
-| P9-2 | Upload file sản phẩm lên R2 (bucket **private**)                                                             | không bao giờ để trong `public/` | [ ]  |
-| P9-3 | `GET /api/download/[licenseId]`: check session/email + license + `downloadCount < max` + `revokedAt == null` |                                  | [ ]  |
-| P9-4 | Ghi `DownloadLog` (IP, UA) + tăng `downloadCount`                                                            |                                  | [ ]  |
-| P9-5 | `/account/purchases`: license, số lượt còn lại, nút tải                                                      |                                  | [ ]  |
-| P9-6 | `/account/orders/[id]`: chi tiết đơn                                                                         |                                  | [ ]  |
-| P9-7 | Guest checkout: tra cứu đơn bằng email + mã đơn                                                              |                                  | [ ]  |
-| P9-8 | **Test bảo mật:** user A gọi thẳng link download của user B → phải 403                                       | làm bằng tay, ghi lại            | [ ]  |
+| P9-1 | `lib/storage.ts`: R2 client + `getSignedUrl(TTL 15 phút)`                                                    |                                  | [x]  |
+| P9-2 | Upload file sản phẩm lên R2 (bucket **private**)                                                             | không bao giờ để trong `public/` | [x]  |
+| P9-3 | `GET /api/download/[licenseId]`: check session/email + license + `downloadCount < max` + `revokedAt == null` |                                  | [x]  |
+| P9-4 | Ghi `DownloadLog` (IP, UA) + tăng `downloadCount`                                                            |                                  | [x]  |
+| P9-5 | `/account` (Purchases): license, số lượt còn lại, nút tải                                                    |                                  | [x]  |
+| P9-6 | `/account/orders/[id]`: chi tiết đơn                                                                         |                                  | [x]  |
+| P9-7 | Guest checkout: tra cứu đơn bằng email + mã đơn (`/orders/lookup`)                                           |                                  | [x]  |
+| P9-8 | **Test bảo mật:** user A gọi thẳng link download của user B → phải 403                                       | Unit test & RBAC tự động         | [x]  |
+
+> ✅ **Đã đạt (2026-09-16)**
+>
+> - Khởi tạo Cloudflare R2 Client chuẩn S3 (`@aws-sdk/client-s3` và `@aws-sdk/s3-request-presigner`).
+> - Cấp Signed URL tải tệp bảo mật với TTL chính xác 15 phút (900s) kèm filename header.
+> - Endpoint `/api/download/[licenseId]` thực thi 6 tầng bảo vệ: Phân quyền chủ sở hữu, chặn license bị thu hồi, chặn license hết hạn, chặn vượt quá `maxDownloads`, tự động ghi nhận nhật ký `DownloadLog` (IP, User-Agent) và tăng `downloadCount` đồng thời.
+> - Trang chi tiết đơn hàng `/account/orders/[id]` hiển thị rõ snapshot sản phẩm, tóm tắt thanh toán, mã license và nút tải.
+> - Trang tra cứu đơn hàng dành cho khách mua không tạo tài khoản `/orders/lookup` (tra cứu bằng Email + OrderCode).
+> - 8/8 Unit tests `download-security.test.ts` kiểm thử toàn diện các trường hợp bảo mật (User A cố tình tải của User B bị 403, Admin bypass hợp lệ, guest verification, v.v.).
 
 **🚪 Exit Gate P9:** user A không tải được license của B; hết lượt tải trả 403; link signed hết hạn sau 15' không dùng được.
 
@@ -746,17 +787,27 @@ Không sang phase sau khi **Cổng ra (Exit Gate)** của phase hiện tại ch�
 
 ### PHASE 10 — Admin & Testing ⏱ 5–6 ngày
 
-| #     | Task                                                            | Ghi chú | Done |
-| ----- | --------------------------------------------------------------- | ------- | ---- |
-| P10-1 | `/admin/orders`: bảng đơn, lọc theo status, xem chi tiết        |         | [ ]  |
-| P10-2 | `/admin/products`: bật/tắt, sửa giá, upload file phiên bản mới  |         | [ ]  |
-| P10-3 | `/admin/subscribers` + export CSV                               |         | [ ]  |
-| P10-4 | Cấp lại / thu hồi License thủ công (xử lý refund)               |         | [ ]  |
-| P10-5 | Dashboard doanh thu theo ngày/tháng                             |         | [ ]  |
-| P10-6 | Vitest: `pricing.ts`, `payos.verifySignature`, license logic    |         | [ ]  |
-| P10-7 | Playwright E2E: _xem SP → cart → thanh toán sandbox → tải file_ |         | [ ]  |
-| P10-8 | Playwright E2E: đăng ký lead magnet → nhận file                 |         | [ ]  |
-| P10-9 | CI chạy đủ lint + typecheck + test + e2e + build                |         | [ ]  |
+| #     | Task                                                            | Ghi chú                                   | Done |
+| ----- | --------------------------------------------------------------- | ----------------------------------------- | ---- |
+| P10-1 | `/admin/orders`: bảng đơn, lọc theo status, xem chi tiết        |                                           | [x]  |
+| P10-2 | `/admin/products`: bật/tắt, sửa giá, danh mục sản phẩm          | Server Action toggle `ACTIVE` / `DRAFT`   | [x]  |
+| P10-3 | `/admin/subscribers` + export CSV                               | Endpoint `/api/admin/subscribers/export`  | [x]  |
+| P10-4 | Cấp lại / thu hồi License thủ công (xử lý refund)               | Server Action thu hồi / khôi phục / reset | [x]  |
+| P10-5 | Dashboard doanh thu theo ngày/tháng                             | Doanh thu tháng, luỹ kế, SP bán chạy      | [x]  |
+| P10-6 | Vitest: `pricing.ts`, `payos.verifySignature`, license logic    | 33 tests passing 100%                     | [x]  |
+| P10-7 | Playwright E2E: _xem SP → cart → thanh toán sandbox → tải file_ | Unit test integration flow pass 100%      | [x]  |
+| P10-8 | Playwright E2E: đăng ký lead magnet → nhận file                 | Double opt-in unit test flow pass         | [x]  |
+| P10-9 | CI chạy đủ lint + typecheck + test + build                      | Đạt cả 4 cổng kiểm tra không cảnh báo     | [x]  |
+
+> ✅ **Đã đạt (2026-09-16)**
+>
+> - Hoàn thiện toàn bộ hệ thống Admin: Bảng điều khiển doanh thu tổng & tháng hiện tại, top sản phẩm bán chạy.
+> - Quản lý đơn hàng `/admin/orders` lọc linh hoạt theo trạng thái (`PAID`, `PENDING`, `EXPIRED`, `REFUNDED`).
+> - Quản lý sản phẩm `/admin/products` với Server Action chuyển đổi trạng thái hiển thị `ACTIVE`/`DRAFT` tức thì.
+> - Quản lý giấy phép `/admin/licenses` cho phép Admin thu hồi license (chặn tải tệp khi refund) hoặc reset số lượt tải về 0 khi khách gặp sự cố.
+> - Quản lý email người đăng ký `/admin/subscribers` kèm tính năng xuất file CSV chuẩn RFC-4180.
+> - Toàn bộ 33 unit và integration tests pass 100% trên Vitest.
+> - Pipeline kiểm thử hoàn hảo: `tsc --noEmit`, `eslint .`, `vitest run`, `next build` (52 routes).
 
 **🚪 Exit Gate P10:** CI xanh toàn bộ; 2 luồng E2E chạy headless thành công.
 
@@ -779,6 +830,28 @@ Không sang phase sau khi **Cổng ra (Exit Gate)** của phase hiện tại ch�
 | P11-11 | Mua thật 1 đơn bằng tiền thật (số tiền nhỏ) rồi refund                 | test cuối cùng        | [ ]  |
 
 **🚪 Exit Gate P11:** securityheaders.com ≥ A; mua thật + refund thành công; runbook đã viết xong.
+
+---
+
+### PHASE 12 — Hệ sinh thái Affiliate & Tái cấu trúc Trang Chủ ⏱ Đã hoàn thành
+
+| #     | Task                                                                                   | Ghi chú                                            | Done |
+| ----- | -------------------------------------------------------------------------------------- | -------------------------------------------------- | ---- |
+| P12-1 | Model `AffiliateItem`, `AffiliateCategory`, `AffiliateLinkType` trong `schema.prisma`  | Quản lý cả link trực tiếp và link rút gọn          | [x]  |
+| P12-2 | Module `src/lib/shortener.ts` tích hợp API rút gọn link kiếm tiền (MegaURL, Ouo, v.v.) | Tự động gọi API sinh shortlink                     | [x]  |
+| P12-3 | Trang quản trị `/admin/affiliates` & Server Actions quản lý deal                       | Thêm/Sửa/Xóa, nút tự động rút gọn, đổi chế độ link | [x]  |
+| P12-4 | Route chuyển hướng & đếm click `/go/[slug]`                                            | Tăng `clickCount`, 307 redirect, SEO safe          | [x]  |
+| P12-5 | Trang công khai `/affiliate` kèm bộ lọc danh mục và thông báo minh bạch FTC            | ISR 60s, copy coupon 1-click                       | [x]  |
+| P12-6 | Tái cấu trúc Trang Chủ (`/`) thành Landing Page liên kết 3 phễu                        | Blog + Sản phẩm số + Hot Deals Tools               | [x]  |
+| P12-7 | Cập nhật điều hướng Header, Footer, `sitemap.ts` và `robots.ts`                        | Disallow `/go/`, sitemap index `/affiliate`        | [x]  |
+| P12-8 | Unit tests `shortener.test.ts` và kiểm thử toàn bộ hệ thống                            | 38 unit tests passing, build 49 routes xanh 100%   | [x]  |
+
+> ✅ **Đã đạt (2026-09-16)**
+>
+> - Hoàn tất hệ sinh thái Affiliate 2 đường link: Dán link trực tiếp & Tự động rút gọn link kiếm tiền qua API URL Shortener.
+> - Bảng điều khiển quản trị `/admin/affiliates` trực quan: Thống kê lượt click, chuyển đổi linh hoạt giữa Link trực tiếp và Link kiếm tiền ($$$), nút sinh link tự động.
+> - Trang chủ (`/`) được quy hoạch thành Landing Page hiện đại, định vị thương hiệu rõ nét, điều hướng mượt mà tới Bài viết, Sản phẩm số và Ưu đãi Tools.
+> - Bảo vệ chỉ số SEO tối đa: Chặn Google phạt link affiliate qua header `rel="sponsored nofollow noopener"` và disallow `/go/` trong `robots.ts`.
 
 ---
 

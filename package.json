@@ -7,35 +7,48 @@
     "node": ">=22"
   },
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --turbo -p 5000",
+    "dev:webpack": "next dev -p 5000",
     "build": "next build",
-    "start": "next start",
+    "start": "next start -p 5000",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "prepare": "husky",
     "lint:fix": "eslint . --fix",
+    "test": "vitest run",
     "new:post": "node --experimental-strip-types scripts/new-post.ts"
   },
   "dependencies": {
+    "@auth/prisma-adapter": "^2.11.3",
+    "@aws-sdk/client-s3": "^3.1132.0",
+    "@aws-sdk/s3-request-presigner": "^3.1132.0",
+    "@payos/node": "^2.0.5",
+    "@prisma/client": "^6.19.3",
+    "@react-email/render": "^2.1.0",
+    "bcryptjs": "^3.0.3",
     "clsx": "^2.1.1",
     "fuse.js": "^7.5.0",
     "gray-matter": "^4.0.3",
     "lucide-react": "^1.45.0",
     "next": "^15.5.0",
+    "next-auth": "5.0.0-beta.32",
     "next-mdx-remote": "^6.0.0",
     "next-themes": "^0.4.6",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "reading-time": "^1.5.0",
+    "resend": "^6.28.0",
     "tailwind-merge": "^3.7.0",
-    "zod": "^3.25.0"
+    "zod": "^3.25.0",
+    "zustand": "^5.0.15"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.0",
     "@tailwindcss/postcss": "^4.1.0",
     "@tailwindcss/typography": "^0.5.16",
+    "@types/bcryptjs": "^3.0.0",
     "@types/mdx": "^2.0.14",
     "@types/node": "^22.15.0",
     "@types/react": "^19.1.0",
@@ -48,14 +61,20 @@
     "lint-staged": "^16.1.0",
     "prettier": "^3.5.0",
     "prettier-plugin-tailwindcss": "^0.6.11",
+    "prisma": "^6.19.3",
     "rehype-autolink-headings": "^7.1.0",
     "rehype-pretty-code": "^0.14.5",
     "rehype-slug": "^6.0.0",
     "remark-gfm": "^4.0.1",
     "shiki": "^4.4.3",
     "tailwindcss": "^4.1.0",
+    "tsx": "^4.23.13",
     "typescript": "^5.8.0",
-    "unified": "^11.0.5"
+    "unified": "^11.0.5",
+    "vitest": "^5.0.0"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
   },
   "lint-staged": {
     "*.{ts,tsx,js,jsx}": [

@@ -5,8 +5,8 @@ import { clientEnv } from '@/config/env';
  * Không hardcode tên/URL rải rác trong component.
  */
 export const siteConfig = {
-  name: 'Blog Lập trình & Quản trị Server',
-  shortName: 'DevOps Blog',
+  name: 'dltoan Blog',
+  shortName: 'dltoan Blog',
   description:
     'Blog chuyên sâu về lập trình, quản trị server Linux, Nginx, Docker và bán sản phẩm số cho lập trình viên.',
   url: clientEnv.NEXT_PUBLIC_SITE_URL,
@@ -24,6 +24,7 @@ export const siteConfig = {
   nav: [
     { label: 'Bài viết', href: '/blog' },
     { label: 'Sản phẩm', href: '/products' },
+    { label: 'Ưu đãi & Tools', href: '/affiliate' },
     { label: 'Giới thiệu', href: '/about' },
   ],
 } as const;

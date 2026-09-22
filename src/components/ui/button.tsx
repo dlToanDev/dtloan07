@@ -1,5 +1,6 @@
 import { cn } from '@/lib/utils';
-import type { ButtonHTMLAttributes } from 'react';
+import { Loader2 } from 'lucide-react';
+import type { ButtonHTMLAttributes, ReactNode } from 'react';
 
 const variants = {
   primary: 'bg-primary text-primary-foreground hover:opacity-90',
@@ -22,6 +23,8 @@ export type ButtonSize = keyof typeof sizes;
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant;
   size?: ButtonSize;
+  loading?: boolean;
+  loadingText?: ReactNode;
 }
 
 /** Dùng khi cần style nút cho thẻ khác (ví dụ <Link>), tránh lồng <a> trong <button>. */
@@ -31,7 +34,7 @@ export function buttonStyles({
   className,
 }: { variant?: ButtonVariant; size?: ButtonSize; className?: string } = {}) {
   return cn(
-    'inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-colors',
+    'inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-colors cursor-pointer',
     'disabled:pointer-events-none disabled:opacity-50',
     variants[variant],
     sizes[size],
@@ -44,7 +47,22 @@ export function Button({
   variant = 'primary',
   size = 'md',
   type = 'button',
+  loading = false,
+  loadingText,
+  disabled,
+  children,
   ...props
 }: ButtonProps) {
-  return <button type={type} className={buttonStyles({ variant, size, className })} {...props} />;
+  return (
+    <button
+      type={type}
+      className={buttonStyles({ variant, size, className })}
+      disabled={disabled || loading}
+      aria-busy={loading ? 'true' : undefined}
+      {...props}
+    >
+      {loading && <Loader2 className="size-4 shrink-0 animate-spin" />}
+      {loading && loadingText ? loadingText : children}
+    </button>
+  );
 }

@@ -8,7 +8,7 @@
 import { writeFile, access, mkdir } from 'node:fs/promises';
 import path from 'node:path';
 
-const CATEGORIES = ['server', 'lap-trinh', 'devops', 'database'] as const;
+const DEFAULT_CATEGORIES = ['lap-trinh', 'server', 'devops', 'database'] as const;
 
 function slugify(input: string): string {
   return input
@@ -34,10 +34,10 @@ async function main() {
     process.exit(1);
   }
 
-  const category = getFlag('category') ?? 'lap-trinh';
-  if (!CATEGORIES.includes(category as (typeof CATEGORIES)[number])) {
+  const category = (getFlag('category') ?? 'lap-trinh').toLowerCase().trim();
+  if (!/^[a-z0-9-]+$/.test(category)) {
     console.error(
-      `❌ category không hợp lệ: "${category}". Chọn một trong: ${CATEGORIES.join(', ')}`,
+      `❌ category không hợp lệ: "${category}". Chuyên mục chỉ gồm chữ thường không dấu, số và dấu gạch ngang (gợi ý: ${DEFAULT_CATEGORIES.join(', ')}).`,
     );
     process.exit(1);
   }

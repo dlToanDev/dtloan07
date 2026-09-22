@@ -2,7 +2,9 @@ import { siteConfig } from '@/config/site';
 import Link from 'next/link';
 
 const footerLinks = [
+  { label: 'Ưu đãi & Tools', href: '/affiliate' },
   { label: 'Giới thiệu', href: '/about' },
+  { label: 'Tra cứu đơn', href: '/orders/lookup' },
   { label: 'Điều khoản', href: '/terms' },
   { label: 'Bảo mật', href: '/privacy' },
   { label: 'RSS', href: '/rss.xml' },

@@ -4,6 +4,7 @@ import { JsonLd } from '@/components/json-ld';
 import { Container } from '@/components/layout/container';
 import { mdxComponents } from '@/components/mdx/mdx-components';
 import { Badge } from '@/components/ui/badge';
+import { DEFAULT_POST_COVER } from '@/config/blog';
 import {
   extractToc,
   getAllPosts,
@@ -57,7 +58,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     type: 'article',
     publishedTime: post.publishedAt,
     modifiedTime: post.updatedAt,
-    ogImage: post.cover,
+    ogImage: post.cover || DEFAULT_POST_COVER,
     tags: post.tags,
     noIndex: post.draft,
   });
@@ -86,8 +87,8 @@ export default async function PostPage({ params }: PageProps) {
         ])}
       />
 
-      {/* Nút quay lại danh sách bài viết (Căn giữa) */}
-      <div className="mb-6 flex items-center justify-center">
+      {/* Nút quay lại danh sách bài viết (Căn trái) */}
+      <div className="mb-6 flex items-center justify-start">
         <Link
           href="/blog"
           className="border-border/70 bg-card/50 text-muted-foreground hover:bg-muted hover:text-foreground inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-xs font-medium shadow-2xs backdrop-blur-xs transition-colors"
@@ -204,18 +205,16 @@ export default async function PostPage({ params }: PageProps) {
           </div>
 
           {/* Ảnh Cover Banner căn giữa */}
-          {post.cover ? (
-            <figure className="border-border/80 bg-muted relative mt-8 aspect-[16/9] w-full overflow-hidden rounded-2xl border shadow-md">
-              <Image
-                src={post.cover}
-                alt={post.title}
-                fill
-                priority
-                sizes="(max-width: 1024px) 100vw, 896px"
-                className="object-cover"
-              />
-            </figure>
-          ) : null}
+          <figure className="border-border/80 bg-muted relative mt-8 aspect-[16/9] w-full overflow-hidden rounded-2xl border shadow-md">
+            <Image
+              src={post.cover || DEFAULT_POST_COVER}
+              alt={post.cover ? post.title : `Ảnh bìa mặc định cho ${post.title}`}
+              fill
+              priority
+              sizes="(max-width: 1024px) 100vw, 896px"
+              className="object-cover"
+            />
+          </figure>
         </header>
 
         {/* Nội dung bài viết: Căn giữa với bề rộng đọc chuẩn typography */}

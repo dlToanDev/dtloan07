@@ -133,7 +133,7 @@ export default function CheckoutPage() {
             </CardDescription>
           </CardHeader>
           <CardFooter className="flex justify-center pt-4">
-            <Link href="/products" className={buttonStyles()}>
+            <Link href="/shop" className={buttonStyles()}>
               Khám phá sản phẩm
             </Link>
           </CardFooter>

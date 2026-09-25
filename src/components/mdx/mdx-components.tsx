@@ -1,3 +1,4 @@
+import { Audio } from '@/components/mdx/audio';
 import { Callout } from '@/components/mdx/callout';
 import { CodeBlock } from '@/components/mdx/code-block';
 import { FileTree } from '@/components/mdx/file-tree';
@@ -37,4 +38,5 @@ export const mdxComponents: MDXComponents = {
   FileTree,
   Terminal,
   Video,
+  Audio,
 };

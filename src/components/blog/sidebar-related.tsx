@@ -1,4 +1,4 @@
-import { getCategoryLabel } from '@/config/blog';
+import { DEFAULT_POST_COVER, getCategoryLabel } from '@/config/blog';
 import type { PostMeta } from '@/types/post';
 import { Clock, Heart, MessageSquare } from 'lucide-react';
 import Image from 'next/image';
@@ -24,20 +24,18 @@ export function SidebarRelated({ posts }: { posts: PostMeta[] }) {
             key={post.slug}
             className="group hover:bg-muted/50 hover:border-border/60 flex items-start gap-3 rounded-lg border border-transparent p-2 transition-all"
           >
-            {post.cover ? (
-              <Link
-                href={`/blog/${post.slug}`}
-                className="bg-muted border-border/50 relative block aspect-[16/9] w-20 shrink-0 overflow-hidden rounded-md border"
-              >
-                <Image
-                  src={post.cover}
-                  alt={post.title}
-                  fill
-                  sizes="80px"
-                  className="object-cover transition-transform duration-300 group-hover:scale-105"
-                />
-              </Link>
-            ) : null}
+            <Link
+              href={`/blog/${post.slug}`}
+              className="bg-muted border-border/50 relative block aspect-[16/9] w-20 shrink-0 overflow-hidden rounded-md border"
+            >
+              <Image
+                src={post.cover || DEFAULT_POST_COVER}
+                alt={post.cover ? post.title : `Ảnh bìa mặc định cho ${post.title}`}
+                fill
+                sizes="80px"
+                className="object-cover transition-transform duration-300 group-hover:scale-105"
+              />
+            </Link>
 
             <div className="min-w-0 flex-1 space-y-1">
               <Link

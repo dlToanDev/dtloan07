@@ -85,17 +85,30 @@ enum ProductStatus {
   ARCHIVED
 }
 
+enum ProductKind {
+  SOURCE_CODE
+  SHOP
+}
+
+enum ProductSaleMode {
+  FREE
+  CONTACT
+  PAID
+}
+
 model Product {
   id           String        @id @default(cuid())
   slug         String        @unique
   name         String
   shortDesc    String
   description  String        @db.Text
+  saleMode     ProductSaleMode @default(PAID)
   priceVnd     Int           // Lưu số nguyên đồng (VND), không dùng Float
   compareAtVnd Int?          // Giá gạch ngang (nếu có khuyến mãi)
   currency     String        @default("VND")
   coverUrl     String
   status       ProductStatus @default(DRAFT)
+  kind         ProductKind   @default(SOURCE_CODE)
   version      String        // Ví dụ "1.0.0"
   maxDownloads Int           @default(5)
   createdAt    DateTime      @default(now())
@@ -104,12 +117,15 @@ model Product {
   files      ProductFile[]
   orderItems OrderItem[]
   licenses   License[]
+
+  @@index([kind, status])
 }
 
 model ProductFile {
   id        String   @id @default(cuid())
   productId String
   label     String   // Ví dụ "Full Source Code (.zip)", "Ebook PDF"
+  filename   String?
   storageKey String  // Key trên Cloudflare R2, KHÔNG phải URL public
   sizeBytes BigInt
   checksum  String?

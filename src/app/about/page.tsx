@@ -31,7 +31,7 @@ export default function AboutPage() {
           trực tiếp vào công việc hàng ngày mà không mất hàng giờ gỡ lỗi.
         </p>
 
-        <h2>Tác giả</h2>
+        <h2 id="lien-he">Tác giả & Liên hệ</h2>
         <p>
           Xin chào, mình là <strong>{siteConfig.author.name}</strong>, một kỹ sư phần mềm đam mê tối
           ưu hoá hệ thống, hạ tầng đám mây và công nghệ Web hiện đại.

@@ -185,7 +185,7 @@ export function ToolManager({ initialTools }: ToolManagerProps) {
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h3 className="text-foreground flex items-center gap-2 font-semibold">
-            <Wrench className="size-5 text-blue-500" /> Quản lý Tool Code & Tiện ích Dev
+            <Wrench className="size-5 text-blue-500" /> Quản lý công cụ Affiliate
           </h3>
           <p className="text-muted-foreground text-xs">
             Quản lý các công cụ lập trình, SaaS AI (Cursor, Claude, Copilot, Coolify, Docker
@@ -193,7 +193,7 @@ export function ToolManager({ initialTools }: ToolManagerProps) {
           </p>
         </div>
         <Button onClick={openCreate} className="gap-2 bg-blue-600 text-white hover:bg-blue-700">
-          <Plus className="size-4" /> Thêm Tool Code Mới
+          <Plus className="size-4" /> Thêm công cụ Affiliate
         </Button>
       </div>
 
@@ -215,7 +215,7 @@ export function ToolManager({ initialTools }: ToolManagerProps) {
               {tools.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="text-muted-foreground py-10 text-center">
-                    Chưa có tool code nào. Hãy bấm &quot;Thêm Tool Code Mới&quot; để thêm.
+                    Chưa có tool code nào. Hãy bấm &quot;Thêm công cụ Affiliate&quot; để thêm.
                   </td>
                 </tr>
               ) : (
@@ -357,7 +357,7 @@ export function ToolManager({ initialTools }: ToolManagerProps) {
           setIsCreateOpen(false);
           setEditingTool(null);
         }}
-        title={editingTool ? `Chỉnh sửa: ${editingTool.name}` : 'Thêm Tool Code Mới'}
+        title={editingTool ? `Chỉnh sửa: ${editingTool.name}` : 'Thêm công cụ Affiliate'}
         description="Điền thông tin công cụ, logo và link tải/đăng ký"
         className="max-w-lg"
       >
@@ -540,7 +540,7 @@ export function ToolManager({ initialTools }: ToolManagerProps) {
                   <Loader2 className="mr-2 size-4 animate-spin" /> Đang lưu...
                 </>
               ) : (
-                'Lưu Tool Code'
+                'Lưu công cụ Affiliate'
               )}
             </Button>
           </div>

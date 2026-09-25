@@ -13,8 +13,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   }
 
   return (
-    <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
-      <div className="flex flex-col items-start gap-6 lg:flex-row xl:gap-8">
+    <div className="w-full px-4 py-6 sm:px-6 sm:py-8 lg:pr-8 lg:pl-72 xl:pl-80">
+      <div className="flex flex-col items-start gap-6">
         {/* Thanh Navbar bên tay trái (Admin Sidebar) */}
         <AdminSidebar userEmail={session.user.email ?? ''} />
 

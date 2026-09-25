@@ -283,3 +283,84 @@ h4:hover > .heading-anchor,
 :where(h2, h3, h4)[id] {
   scroll-margin-top: 5rem;
 }
+
+/* ============================================================
+   TIPTAP WORD-LIKE WYSIWYG EDITOR STYLES
+   ============================================================ */
+.tiptap {
+  outline: none;
+}
+
+.tiptap:focus {
+  outline: none;
+}
+
+/* Table */
+.tiptap table {
+  border-collapse: collapse;
+  margin: 1.5rem 0;
+  width: 100%;
+  table-layout: fixed;
+  overflow: hidden;
+  border-radius: 0.5rem;
+  border: 1px solid var(--color-border);
+}
+
+.tiptap table td,
+.tiptap table th {
+  border: 1px solid var(--color-border);
+  padding: 0.6rem 0.8rem;
+  vertical-align: top;
+  box-sizing: border-box;
+  position: relative;
+  min-width: 1em;
+}
+
+.tiptap table th {
+  font-weight: 600;
+  text-align: left;
+  background-color: var(--color-muted);
+}
+
+.tiptap table .selectedCell {
+  background-color: color-mix(in oklch, var(--color-primary) 15%, transparent);
+}
+
+/* Task List */
+.tiptap ul[data-type='taskList'] {
+  list-style: none;
+  padding: 0;
+  margin: 1rem 0;
+}
+
+.tiptap ul[data-type='taskList'] li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  margin-bottom: 0.35rem;
+}
+
+.tiptap ul[data-type='taskList'] li > label {
+  user-select: none;
+  margin-top: 0.2rem;
+  cursor: pointer;
+}
+
+.tiptap ul[data-type='taskList'] li > label input[type='checkbox'] {
+  accent-color: var(--color-primary);
+  width: 1rem;
+  height: 1rem;
+  cursor: pointer;
+}
+
+.tiptap ul[data-type='taskList'] li > div {
+  flex: 1 1 auto;
+}
+
+/* Callout inner content */
+.callout-inner-content > *:first-child {
+  margin-top: 0;
+}
+.callout-inner-content > *:last-child {
+  margin-bottom: 0;
+}

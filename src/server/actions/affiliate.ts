@@ -41,6 +41,7 @@ export async function createAffiliateItem(formData: FormData) {
   const activeUrlType = (formData.get('activeUrlType') as AffiliateLinkType) || 'DIRECT';
   const logoUrl = (formData.get('logoUrl') as string) || null;
   const featured = formData.get('featured') === 'true';
+  const active = formData.get('active') !== 'false';
 
   if (!name || !directUrl) {
     throw new Error('Vui lòng nhập đầy đủ tên dịch vụ và link affiliate gốc.');
@@ -69,7 +70,7 @@ export async function createAffiliateItem(formData: FormData) {
       activeUrlType,
       logoUrl,
       featured,
-      active: true,
+      active,
     },
   });
 
@@ -95,6 +96,7 @@ export async function updateAffiliateItem(id: string, formData: FormData) {
   const activeUrlType = (formData.get('activeUrlType') as AffiliateLinkType) || 'DIRECT';
   const logoUrl = (formData.get('logoUrl') as string) || null;
   const featured = formData.get('featured') === 'true';
+  const activeValue = formData.get('active');
 
   await db.affiliateItem.update({
     where: { id },
@@ -110,6 +112,7 @@ export async function updateAffiliateItem(id: string, formData: FormData) {
       activeUrlType,
       logoUrl,
       featured,
+      ...(activeValue !== null && { active: activeValue === 'true' }),
     },
   });
 

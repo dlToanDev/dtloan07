@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600" role="img" aria-labelledby="title description">
+  <title id="title">Ảnh sản phẩm mặc định</title>
+  <desc id="description">Minh họa túi mua sắm màu xanh trên nền sáng.</desc>
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f8fafc"/>
+      <stop offset="1" stop-color="#e2e8f0"/>
+    </linearGradient>
+    <linearGradient id="bag" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#60a5fa"/>
+      <stop offset="1" stop-color="#2563eb"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="600" fill="url(#background)"/>
+  <circle cx="400" cy="300" r="176" fill="#ffffff" opacity=".82"/>
+  <path d="M286 255c0-63 51-114 114-114s114 51 114 114" fill="none" stroke="#1d4ed8" stroke-width="24" stroke-linecap="round"/>
+  <path d="M247 246h306l-25 232c-3 29-28 51-57 51H329c-29 0-54-22-57-51l-25-232Z" fill="url(#bag)"/>
+  <circle cx="329" cy="301" r="13" fill="#fff"/>
+  <circle cx="471" cy="301" r="13" fill="#fff"/>
+  <path d="M342 388c33 31 83 31 116 0" fill="none" stroke="#fff" stroke-width="18" stroke-linecap="round"/>
+  <circle cx="161" cy="154" r="10" fill="#93c5fd"/>
+  <circle cx="650" cy="423" r="14" fill="#bfdbfe"/>
+  <path d="m624 157 9 24 24 9-24 9-9 24-9-24-24-9 24-9 9-24Z" fill="#60a5fa"/>
+</svg>

@@ -8,15 +8,19 @@ import {
   createPost,
   importPostFile,
   uploadCoverImage,
+  uploadPostAudio,
   uploadPostImage,
 } from '@/server/actions/post';
 import {
   ArrowLeft,
   Check,
   CheckCircle2,
+  Code,
   FileText,
   FileUp,
   Globe,
+  Headphones,
+  Eye,
   Loader2,
   ImagePlus,
   Plus,
@@ -29,6 +33,7 @@ import {
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useRef, useState } from 'react';
+import { RichTextEditor } from '@/components/admin/rich-text-editor';
 
 type Category = string;
 
@@ -126,9 +131,11 @@ export function PostEditor() {
   const fileRef = useRef<HTMLInputElement>(null);
   const contentFileRef = useRef<HTMLInputElement>(null);
   const contentTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const contentSectionRef = useRef<HTMLElement>(null);
   const contentSelectionRef = useRef({ start: 0, end: 0 });
   const [post, setPost] = useState<EditorState>(initialState);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [editorMode, setEditorMode] = useState<'wysiwyg' | 'markdown' | 'preview'>('wysiwyg');
   const [isImporting, setIsImporting] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingCover, setIsUploadingCover] = useState(false);
@@ -136,6 +143,12 @@ export function PostEditor() {
   const [isAddingVideo, setIsAddingVideo] = useState(false);
   const [videoUrl, setVideoUrl] = useState('');
   const [videoTitle, setVideoTitle] = useState('');
+  const [isAddingAudio, setIsAddingAudio] = useState(false);
+  const [audioUrl, setAudioUrl] = useState('');
+  const [audioTitle, setAudioTitle] = useState('');
+  const [audioDesc, setAudioDesc] = useState('');
+  const [isUploadingAudio, setIsUploadingAudio] = useState(false);
+  const contentAudioFileRef = useRef<HTMLInputElement>(null);
   const coverFileRef = useRef<HTMLInputElement>(null);
   const [availableCategories, setAvailableCategories] = useState<Record<string, string>>({
     ...CATEGORY_LABELS,
@@ -277,8 +290,76 @@ export function PostEditor() {
     setNotice(`Đã chèn video “${title}” vào nội dung.`);
   };
 
+  const handleInsertAudio = () => {
+    const source = audioUrl.trim();
+    const title = audioTitle.trim() || 'Bản ghi âm / Podcast';
+    const desc = audioDesc.trim();
+
+    if (!source) {
+      setError('Vui lòng nhập đường dẫn audio.');
+      return;
+    }
+
+    let markdown = `\n\n<Audio src={${JSON.stringify(source)}} title={${JSON.stringify(title)}}`;
+    if (desc) {
+      markdown += ` description={${JSON.stringify(desc)}}`;
+    }
+    markdown += ' />\n\n';
+
+    insertAtContentSelection(markdown);
+    setAudioUrl('');
+    setAudioTitle('');
+    setAudioDesc('');
+    setIsAddingAudio(false);
+    setError('');
+    setNotice(`Đã chèn audio “${title}” vào nội dung.`);
+  };
+
+  const handleContentAudioUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingAudio(true);
+    setError('');
+    setNotice('');
+
+    try {
+      const formData = new FormData();
+      formData.set('file', file);
+      const result = await uploadPostAudio(formData);
+
+      if (!result.success || !result.url) {
+        setError(result.error || 'Không thể tải file âm thanh lên.');
+        return;
+      }
+
+      setAudioUrl(result.url);
+      if (!audioTitle) {
+        setAudioTitle(
+          file.name
+            .replace(/\.[^.]+$/, '')
+            .replace(/[-_]+/g, ' ')
+            .trim(),
+        );
+      }
+      setNotice(`Đã tải audio “${file.name}”. Hãy bấm “Chèn” để hoàn tất.`);
+    } catch {
+      setError('Lỗi kết nối khi tải audio lên.');
+    } finally {
+      setIsUploadingAudio(false);
+      if (contentAudioFileRef.current) contentAudioFileRef.current.value = '';
+    }
+  };
+
   const update = <Key extends keyof EditorState>(key: Key, value: EditorState[Key]) => {
     setPost((current) => ({ ...current, [key]: value }));
+  };
+
+  const openPreview = () => {
+    setEditorMode('preview');
+    requestAnimationFrame(() => {
+      contentSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
   };
 
   const toggleCategory = (slug: string) => {
@@ -394,8 +475,8 @@ export function PostEditor() {
       return;
     }
 
-    if (!post.content.trim()) {
-      setError('Vui lòng nhập nội dung bài viết.');
+    if (!post.content.trim() || post.content.trim().length < 20) {
+      setError('Vui lòng nhập nội dung bài viết (tối thiểu 20 ký tự).');
       return;
     }
 
@@ -453,7 +534,11 @@ export function PostEditor() {
             Soạn trực tiếp hoặc nhập nội dung từ Markdown và Word.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <Button type="button" variant="outline" onClick={openPreview}>
+            <Eye className="size-4" />
+            Xem trước
+          </Button>
           <Button
             type="button"
             variant="outline"
@@ -801,15 +886,6 @@ export function PostEditor() {
               <label className="flex cursor-pointer items-center gap-2 text-sm">
                 <input
                   type="checkbox"
-                  checked={post.draft}
-                  onChange={(event) => update('draft', event.target.checked)}
-                  className="accent-primary size-4"
-                />
-                Lưu dưới dạng bản nháp (nếu tick, bài viết sẽ tạm ẩn khỏi blog)
-              </label>
-              <label className="flex cursor-pointer items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
                   checked={post.featured}
                   onChange={(event) => update('featured', event.target.checked)}
                   className="accent-primary size-4"
@@ -820,148 +896,394 @@ export function PostEditor() {
           </div>
         </section>
 
-        <section className="border-border bg-card rounded-xl border p-5 shadow-xs">
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <section
+          ref={contentSectionRef}
+          className="border-border bg-card scroll-mt-20 rounded-xl border p-5 shadow-xs"
+        >
+          {/* Header với Tabs chuyển đổi chế độ Word / Markdown / Xem trước */}
+          <div className="border-border mb-4 flex flex-col gap-3 border-b pb-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h2 className="font-semibold">Nội dung Markdown/MDX</h2>
+              <div className="flex items-center gap-2">
+                <h2 className="text-base font-semibold">Nội dung bài viết</h2>
+                <span className="text-muted-foreground text-xs">
+                  ({post.content.trim().split(/\s+/).filter(Boolean).length} từ)
+                </span>
+              </div>
+              <p className="text-muted-foreground mt-0.5 text-xs">
+                {editorMode === 'wysiwyg'
+                  ? 'Soạn thảo trực quan kiểu Word: định dạng chữ, màu sắc, canh lề, chèn ảnh, video, audio.'
+                  : editorMode === 'markdown'
+                    ? 'Soạn thảo mã nguồn Markdown / MDX: hỗ trợ thẻ Markdown và MDX components.'
+                    : 'Xem bài viết ở chế độ chỉ đọc trước khi lưu hoặc xuất bản.'}
+              </p>
+            </div>
+
+            <div className="border-border bg-muted/60 grid grid-cols-3 rounded-lg border p-1">
+              <button
+                type="button"
+                onClick={() => setEditorMode('wysiwyg')}
+                className={cn(
+                  'flex min-h-9 cursor-pointer items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-center text-xs font-semibold transition-all',
+                  editorMode === 'wysiwyg'
+                    ? 'bg-background text-foreground shadow-xs'
+                    : 'text-muted-foreground hover:text-foreground',
+                )}
+              >
+                <FileText className="text-primary size-3.5" />
+                <span>Soạn thảo</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setEditorMode('markdown')}
+                className={cn(
+                  'flex min-h-9 cursor-pointer items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-center text-xs font-semibold transition-all',
+                  editorMode === 'markdown'
+                    ? 'bg-background text-foreground shadow-xs'
+                    : 'text-muted-foreground hover:text-foreground',
+                )}
+              >
+                <Code className="size-3.5" />
+                <span>Markdown</span>
+              </button>
+              <button
+                type="button"
+                onClick={openPreview}
+                className={cn(
+                  'flex min-h-9 cursor-pointer items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-center text-xs font-semibold transition-all',
+                  editorMode === 'preview'
+                    ? 'bg-background text-foreground shadow-xs'
+                    : 'text-muted-foreground hover:text-foreground',
+                )}
+              >
+                <Eye className="text-primary size-3.5" />
+                <span>Xem trước</span>
+              </button>
+            </div>
+          </div>
+
+          {/* CHẾ ĐỘ 1: VĂN BẢN TRỰC QUAN WORD (WYSIWYG) */}
+          <div className={editorMode === 'wysiwyg' ? 'space-y-2' : 'hidden'}>
+            <RichTextEditor
+              value={post.content}
+              onChange={(val) => update('content', val)}
+              onError={(err) => setError(err)}
+            />
+          </div>
+
+          {/* CHẾ ĐỘ 2: MÃ NGUỒN MARKDOWN / MDX */}
+          <div className={editorMode === 'markdown' ? 'block' : 'hidden'}>
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
               <p className="text-muted-foreground text-xs">
                 Dùng ## cho đề mục, ``` cho code block và có thể dùng component MDX của blog.
               </p>
-            </div>
-            <div className="flex flex-wrap items-center justify-end gap-2">
-              <span className="text-muted-foreground text-xs">
-                {post.content.trim().split(/\s+/).filter(Boolean).length} từ
-              </span>
-              <input
-                ref={contentFileRef}
-                type="file"
-                accept="image/png,image/jpeg,image/webp,image/svg+xml,image/gif,image/avif"
-                onChange={handleContentImageUpload}
-                className="hidden"
-              />
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                loading={isUploadingContentImage}
-                loadingText="Đang tải…"
-                onMouseDown={rememberContentSelection}
-                onClick={() => contentFileRef.current?.click()}
-              >
-                <ImagePlus className="size-4" />
-                Chèn ảnh
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onMouseDown={rememberContentSelection}
-                onClick={() => setIsAddingVideo((current) => !current)}
-              >
-                <VideoIcon className="size-4" />
-                Chèn video
-              </Button>
-            </div>
-          </div>
-          {isAddingVideo ? (
-            <div className="border-border bg-muted/30 mb-3 rounded-lg border p-3">
-              <div className="mb-2 flex items-center justify-between gap-3">
-                <div>
-                  <h3 className="text-sm font-semibold">Chèn video vào bài viết</h3>
-                  <p className="text-muted-foreground text-xs">
-                    Hỗ trợ YouTube, Vimeo, link MP4/WebM hoặc đường dẫn video nội bộ.
-                  </p>
-                </div>
-                <button
+              <div className="flex flex-wrap items-center justify-end gap-2">
+                <input
+                  ref={contentFileRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,image/svg+xml,image/gif,image/avif"
+                  onChange={handleContentImageUpload}
+                  className="hidden"
+                />
+                <Button
                   type="button"
-                  onClick={() => setIsAddingVideo(false)}
-                  className="text-muted-foreground hover:text-foreground rounded p-1 transition-colors"
-                  aria-label="Đóng phần chèn video"
+                  variant="outline"
+                  size="sm"
+                  loading={isUploadingContentImage}
+                  loadingText="Đang tải…"
+                  onMouseDown={rememberContentSelection}
+                  onClick={() => contentFileRef.current?.click()}
                 >
-                  <X className="size-4" />
-                </button>
-              </div>
-              <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,0.65fr)_auto]">
-                <Input
-                  type="url"
-                  value={videoUrl}
-                  onChange={(event) => setVideoUrl(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter') {
-                      event.preventDefault();
-                      handleInsertVideo();
-                    }
+                  <ImagePlus className="size-4" />
+                  Chèn ảnh
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onMouseDown={rememberContentSelection}
+                  onClick={() => {
+                    setIsAddingVideo((current) => !current);
+                    setIsAddingAudio(false);
                   }}
-                  placeholder="https://youtube.com/watch?v=..."
-                  className="font-mono text-xs"
-                  autoFocus
-                />
-                <Input
-                  value={videoTitle}
-                  onChange={(event) => setVideoTitle(event.target.value)}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter') {
-                      event.preventDefault();
-                      handleInsertVideo();
-                    }
+                >
+                  <VideoIcon className="size-4" />
+                  Chèn video
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onMouseDown={rememberContentSelection}
+                  onClick={() => {
+                    setIsAddingAudio((current) => !current);
+                    setIsAddingVideo(false);
                   }}
-                  placeholder="Tiêu đề/chú thích video"
-                />
-                <Button type="button" size="sm" onClick={handleInsertVideo}>
-                  <VideoIcon className="size-4" /> Chèn
+                >
+                  <Headphones className="size-4" />
+                  Chèn audio
                 </Button>
               </div>
             </div>
-          ) : null}
-          <div className="border-primary/20 bg-primary/5 text-muted-foreground mb-3 flex items-start gap-2 rounded-lg border px-3 py-2 text-xs">
-            <ImagePlus className="text-primary mt-0.5 size-4 shrink-0" />
-            <span>
-              Đặt con trỏ tại vị trí cần chèn rồi bấm <strong>Chèn ảnh</strong>. Bạn cũng có thể dán
-              ảnh từ clipboard hoặc kéo ảnh thả trực tiếp vào ô nội dung. Video là tùy chọn và có
-              thể chèn bằng link khi bài viết cần minh họa.
-            </span>
-          </div>
-          <textarea
-            ref={contentTextareaRef}
-            value={post.content}
-            onChange={(event) => {
-              update('content', event.target.value);
-              rememberContentSelection();
-            }}
-            onSelect={rememberContentSelection}
-            onClick={rememberContentSelection}
-            onKeyUp={rememberContentSelection}
-            onPaste={(event) => {
-              const image = Array.from(event.clipboardData.files).find((file) =>
-                file.type.startsWith('image/'),
-              );
-              if (!image) return;
-              event.preventDefault();
-              rememberContentSelection();
-              void insertContentImage(image);
-            }}
-            onDragOver={(event) => {
-              if (event.dataTransfer.types.includes('Files')) event.preventDefault();
-            }}
-            onDrop={(event) => {
-              const image = Array.from(event.dataTransfer.files).find((file) =>
-                file.type.startsWith('image/'),
-              );
-              if (!image) return;
-              event.preventDefault();
-              rememberContentSelection();
-              void insertContentImage(image);
-            }}
-            required
-            minLength={20}
-            rows={24}
-            spellCheck
-            placeholder={'Mở bài…\n\n## Bối cảnh\n\nNội dung bài viết…'}
-            className={cn(
-              'border-input bg-background placeholder:text-muted-foreground focus-visible:ring-ring min-h-[32rem] w-full resize-y rounded-lg border px-4 py-3 font-mono text-sm leading-6 focus-visible:ring-2 focus-visible:outline-none',
-              isUploadingContentImage && 'border-primary/50',
+
+            {/* Form chèn video cho Markdown mode */}
+            {isAddingVideo && (
+              <div className="border-border bg-muted/30 mb-3 rounded-lg border p-3">
+                <div className="mb-2 flex items-center justify-between gap-3">
+                  <div>
+                    <h3 className="text-sm font-semibold">Chèn video vào bài viết</h3>
+                    <p className="text-muted-foreground text-xs">
+                      Hỗ trợ YouTube, Vimeo, link MP4/WebM hoặc đường dẫn video nội bộ.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsAddingVideo(false)}
+                    className="text-muted-foreground hover:text-foreground rounded p-1 transition-colors"
+                    aria-label="Đóng phần chèn video"
+                  >
+                    <X className="size-4" />
+                  </button>
+                </div>
+                <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,0.65fr)_auto]">
+                  <Input
+                    type="url"
+                    value={videoUrl}
+                    onChange={(event) => setVideoUrl(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') {
+                        event.preventDefault();
+                        handleInsertVideo();
+                      }
+                    }}
+                    placeholder="https://youtube.com/watch?v=..."
+                    className="font-mono text-xs"
+                    autoFocus
+                  />
+                  <Input
+                    value={videoTitle}
+                    onChange={(event) => setVideoTitle(event.target.value)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') {
+                        event.preventDefault();
+                        handleInsertVideo();
+                      }
+                    }}
+                    placeholder="Tiêu đề/chú thích video"
+                  />
+                  <Button type="button" size="sm" onClick={handleInsertVideo}>
+                    <VideoIcon className="size-4" /> Chèn
+                  </Button>
+                </div>
+              </div>
             )}
-          />
+
+            {/* Form chèn audio cho Markdown mode */}
+            {isAddingAudio && (
+              <div className="border-border bg-muted/30 mb-3 rounded-lg border p-3">
+                <div className="mb-2 flex items-center justify-between gap-3">
+                  <div>
+                    <h3 className="text-sm font-semibold">Chèn audio / podcast vào bài viết</h3>
+                    <p className="text-muted-foreground text-xs">
+                      Tải tệp âm thanh từ máy tính hoặc nhập đường dẫn file audio.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsAddingAudio(false)}
+                    className="text-muted-foreground hover:text-foreground rounded p-1 transition-colors"
+                    aria-label="Đóng phần chèn audio"
+                  >
+                    <X className="size-4" />
+                  </button>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex gap-2">
+                    <Input
+                      value={audioUrl}
+                      onChange={(event) => setAudioUrl(event.target.value)}
+                      placeholder="/audio/... hoặc https://..."
+                      className="flex-1 font-mono text-xs"
+                    />
+                    <input
+                      ref={contentAudioFileRef}
+                      type="file"
+                      accept="audio/*,.mp3,.wav,.ogg,.m4a"
+                      onChange={handleContentAudioUpload}
+                      className="hidden"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      loading={isUploadingAudio}
+                      onClick={() => contentAudioFileRef.current?.click()}
+                      className="shrink-0"
+                    >
+                      <Upload className="size-3.5" /> Tải từ máy
+                    </Button>
+                  </div>
+                  <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
+                    <Input
+                      value={audioTitle}
+                      onChange={(event) => setAudioTitle(event.target.value)}
+                      placeholder="Tiêu đề podcast / audio"
+                      className="text-xs"
+                    />
+                    <Input
+                      value={audioDesc}
+                      onChange={(event) => setAudioDesc(event.target.value)}
+                      placeholder="Mô tả audio (tùy chọn)"
+                      className="text-xs"
+                    />
+                    <Button type="button" size="sm" onClick={handleInsertAudio}>
+                      <Headphones className="size-4" /> Chèn
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="border-primary/20 bg-primary/5 text-muted-foreground mb-3 flex items-start gap-2 rounded-lg border px-3 py-2 text-xs">
+              <ImagePlus className="text-primary mt-0.5 size-4 shrink-0" />
+              <span>
+                Đặt con trỏ tại vị trí cần chèn rồi bấm <strong>Chèn ảnh</strong> hoặc{' '}
+                <strong>Chèn video/audio</strong>. Bạn cũng có thể dán ảnh từ clipboard hoặc kéo ảnh
+                thả trực tiếp vào ô nội dung.
+              </span>
+            </div>
+
+            <textarea
+              ref={contentTextareaRef}
+              value={post.content}
+              onChange={(event) => {
+                update('content', event.target.value);
+                rememberContentSelection();
+              }}
+              onSelect={rememberContentSelection}
+              onClick={rememberContentSelection}
+              onKeyUp={rememberContentSelection}
+              onPaste={(event) => {
+                const image = Array.from(event.clipboardData.files).find((file) =>
+                  file.type.startsWith('image/'),
+                );
+                if (!image) return;
+                event.preventDefault();
+                rememberContentSelection();
+                void insertContentImage(image);
+              }}
+              onDragOver={(event) => {
+                if (event.dataTransfer.types.includes('Files')) event.preventDefault();
+              }}
+              onDrop={(event) => {
+                const image = Array.from(event.dataTransfer.files).find((file) =>
+                  file.type.startsWith('image/'),
+                );
+                if (!image) return;
+                event.preventDefault();
+                rememberContentSelection();
+                void insertContentImage(image);
+              }}
+              rows={24}
+              spellCheck
+              placeholder={'Mở bài…\n\n## Bối cảnh\n\nNội dung bài viết…'}
+              className={cn(
+                'border-input bg-background placeholder:text-muted-foreground focus-visible:ring-ring min-h-[32rem] w-full resize-y rounded-lg border px-4 py-3 font-mono text-sm leading-6 focus-visible:ring-2 focus-visible:outline-none',
+                isUploadingContentImage && 'border-primary/50',
+              )}
+            />
+          </div>
+
+          {/* CHẾ ĐỘ 3: XEM TRƯỚC BÀI VIẾT */}
+          {editorMode === 'preview' && (
+            <div className="bg-background border-border rounded-lg border px-4 py-8 sm:px-8 lg:px-12">
+              <article className="mx-auto max-w-4xl">
+                <header className="flex flex-col items-center text-center">
+                  <div className="flex flex-wrap items-center justify-center gap-2">
+                    {post.categories.map((category) => (
+                      <span
+                        key={category}
+                        className="bg-secondary text-secondary-foreground rounded-md px-2.5 py-1 text-[11px] font-semibold uppercase"
+                      >
+                        {availableCategories[category] || getCategoryLabel(category)}
+                      </span>
+                    ))}
+                    {post.featured && (
+                      <span className="rounded-md border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-[11px] font-semibold text-amber-600 dark:text-amber-400">
+                        Bài viết nổi bật
+                      </span>
+                    )}
+                  </div>
+
+                  <h1
+                    className={cn(
+                      'mt-4 max-w-3xl text-3xl font-extrabold tracking-tight text-balance sm:text-4xl',
+                      !post.title.trim() && 'text-muted-foreground',
+                    )}
+                  >
+                    {post.title.trim() || 'Tiêu đề bài viết sẽ hiển thị tại đây'}
+                  </h1>
+
+                  <p
+                    className={cn(
+                      'mt-4 max-w-2xl text-base leading-relaxed text-pretty sm:text-lg',
+                      post.description.trim()
+                        ? 'text-muted-foreground'
+                        : 'text-muted-foreground/60',
+                    )}
+                  >
+                    {post.description.trim() || 'Mô tả tóm tắt của bài viết sẽ hiển thị tại đây.'}
+                  </p>
+
+                  <div className="text-muted-foreground mt-5 flex flex-wrap items-center justify-center gap-2 text-xs">
+                    <span>
+                      {post.publishedAt
+                        ? new Date(`${post.publishedAt}T00:00:00`).toLocaleDateString('vi-VN')
+                        : 'Chưa chọn ngày đăng'}
+                    </span>
+                    <span aria-hidden="true">•</span>
+                    <span>{post.content.trim().split(/\s+/).filter(Boolean).length} từ</span>
+                  </div>
+
+                  {post.tags.trim() && (
+                    <div className="border-border/60 mt-5 flex w-full flex-wrap items-center justify-center gap-2 border-y py-3">
+                      {post.tags
+                        .split(',')
+                        .map((tag) => tag.trim())
+                        .filter(Boolean)
+                        .map((tag) => (
+                          <span
+                            key={tag}
+                            className="border-border text-muted-foreground rounded-md border px-2 py-0.5 text-xs"
+                          >
+                            #{tag}
+                          </span>
+                        ))}
+                    </div>
+                  )}
+
+                  {post.cover && (
+                    <figure className="border-border bg-muted relative mt-8 aspect-video w-full overflow-hidden rounded-lg border shadow-sm">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={post.cover}
+                        alt={post.title || 'Ảnh cover bài viết'}
+                        className="size-full object-cover"
+                      />
+                    </figure>
+                  )}
+                </header>
+
+                <div className="border-border/60 mx-auto mt-10 max-w-3xl border-t pt-8">
+                  <RichTextEditor
+                    readOnly
+                    value={post.content}
+                    onChange={() => undefined}
+                    onError={(err) => setError(err)}
+                  />
+                </div>
+              </article>
+            </div>
+          )}
         </section>
 
         <div className="border-border bg-background/95 sticky bottom-3 z-10 flex flex-col-reverse gap-2 rounded-xl border p-3 shadow-lg backdrop-blur sm:flex-row sm:items-center sm:justify-between">

@@ -2,7 +2,10 @@ import { siteConfig } from '@/config/site';
 import Link from 'next/link';
 
 const footerLinks = [
-  { label: 'Ưu đãi & Tools', href: '/affiliate' },
+  { label: 'Affiliate', href: '/affiliate' },
+  { label: 'Khóa học', href: '/courses' },
+  { label: 'Source Code', href: '/source-code' },
+  { label: 'Shop', href: '/shop' },
   { label: 'Giới thiệu', href: '/about' },
   { label: 'Tra cứu đơn', href: '/orders/lookup' },
   { label: 'Điều khoản', href: '/terms' },

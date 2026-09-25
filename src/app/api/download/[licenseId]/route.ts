@@ -153,7 +153,9 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
     ]);
 
     // 9. TẠO SIGNED URL VỚI THỜI HẠN 15 PHÚT (TTL 900 giây)
-    const downloadFilename = `${license.product.slug}-v${targetFile.version || license.product.version || '1.0.0'}.zip`;
+    const downloadFilename =
+      targetFile.filename ||
+      `${license.product.slug}-v${targetFile.version || license.product.version || '1.0.0'}.zip`;
     const signedUrl = await getSignedDownloadUrl({
       storageKey: targetFile.storageKey,
       filename: downloadFilename,

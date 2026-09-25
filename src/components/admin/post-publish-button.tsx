@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { togglePostPublish } from '@/server/actions/post';
-import { CheckCircle2, FileEdit, Send } from 'lucide-react';
+import { CheckCircle2, Send } from 'lucide-react';
 
 interface PostPublishButtonProps {
   slug: string;

@@ -142,7 +142,7 @@ export function CartDrawer() {
                 Hãy lựa chọn các template và giải pháp hạ tầng server để thêm vào giỏ hàng.
               </p>
               <Link
-                href="/products"
+                href="/shop"
                 onClick={closeCart}
                 className={buttonStyles({ variant: 'outline', className: 'mt-5 text-xs' })}
               >

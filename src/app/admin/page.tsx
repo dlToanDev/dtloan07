@@ -178,10 +178,13 @@ export default async function AdminDashboardPage() {
               <CardDescription>Xếp theo số lượng giấy phép bản quyền đã cấp</CardDescription>
             </div>
             <Link
-              href="/admin/products"
+              href="/admin/source-code"
               className={buttonStyles({ variant: 'ghost', size: 'sm', className: 'text-xs' })}
             >
-              Quản lý <ArrowRight className="ml-1 h-3 w-3" />
+              Source Code <ArrowRight className="ml-1 h-3 w-3" />
+            </Link>
+            <Link href="/admin/shop" className={buttonStyles({ variant: 'ghost', size: 'sm' })}>
+              Shop
             </Link>
           </CardHeader>
           <CardContent>

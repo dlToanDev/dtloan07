@@ -119,7 +119,7 @@ export default async function CheckoutSuccessPage({ searchParams }: Props) {
             Xem trong Tài khoản của tôi
             <ArrowRight className="ml-2 h-4 w-4" />
           </Link>
-          <Link href="/products" className={buttonStyles({ variant: 'outline' })}>
+          <Link href="/shop" className={buttonStyles({ variant: 'outline' })}>
             Tiếp tục xem sản phẩm
           </Link>
         </CardFooter>

@@ -3,7 +3,7 @@ import { ToolManager } from '@/components/admin/tool-manager';
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Quản lý Tool Code & Tiện ích - Admin',
+  title: 'Quản lý công cụ Affiliate - Admin',
 };
 
 export const dynamic = 'force-dynamic';

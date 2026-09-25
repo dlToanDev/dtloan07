@@ -43,10 +43,11 @@ export async function POST(req: NextRequest) {
       where: {
         id: { in: productIds },
         status: 'ACTIVE',
+        saleMode: 'PAID',
       },
     });
 
-    if (dbProducts.length === 0) {
+    if (dbProducts.length !== new Set(productIds).size) {
       return NextResponse.json(
         { error: 'Không tìm thấy sản phẩm hợp lệ trong giỏ hàng.' },
         { status: 400 },

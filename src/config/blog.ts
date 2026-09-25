@@ -1,6 +1,9 @@
 /** Số bài mỗi trang. Đổi ở đây là đổi cả /blog lẫn /blog/page/[page]. */
 export const POSTS_PER_PAGE = 6;
 
+/** Ảnh bìa dùng chung khi bài viết chưa khai báo cover trong frontmatter. */
+export const DEFAULT_POST_COVER = '/images/posts/default-cover.svg';
+
 /**
  * Danh sách chuyên mục và nhãn hiển thị tiếng Việt.
  * Muốn thêm chuyên mục mới, chỉ cần thêm 1 dòng vào đây:

@@ -25,7 +25,7 @@ export default function CheckoutCancelPage() {
             <ArrowLeft className="mr-2 h-4 w-4" />
             Thử thanh toán lại
           </Link>
-          <Link href="/products" className={buttonStyles({ variant: 'outline' })}>
+          <Link href="/shop" className={buttonStyles({ variant: 'outline' })}>
             Quay lại cửa hàng
           </Link>
         </CardFooter>

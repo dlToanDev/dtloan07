@@ -37,8 +37,19 @@ function parsePost(fileName: string, raw: string): Post {
   const stats = readingTime(content);
   const featuredScore = calculateFeaturedScore(parsed.data);
 
+  // Chuẩn hóa tags: tách nếu nhập chuỗi hashtag cách nhau bởi dấu cách, bỏ dấu #
+  const cleanedTags = Array.from(
+    new Set(
+      parsed.data.tags
+        .flatMap((t) => t.split(/\s+/))
+        .map((t) => t.replace(/^#+/, '').trim().toLowerCase())
+        .filter((t) => t.length > 0 && t.length <= 50),
+    ),
+  );
+
   return {
     ...parsed.data,
+    tags: cleanedTags.length > 0 ? cleanedTags : parsed.data.tags,
     slug: fileNameToSlug(fileName),
     content,
     readingMinutes: Math.max(1, Math.round(stats.minutes)),

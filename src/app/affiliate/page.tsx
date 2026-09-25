@@ -6,9 +6,9 @@ import type { Metadata } from 'next';
 import { Info, Sparkles, ShieldCheck, HeartHandshake } from 'lucide-react';
 
 export const metadata: Metadata = buildMetadata({
-  title: 'Ưu đãi & Công cụ khuyên dùng (Affiliate Deals)',
+  title: 'Sản phẩm Affiliate chọn lọc',
   description:
-    'Danh sách mã giảm giá, voucher và ưu đãi máy chủ VPS, Cloud, tên miền, công cụ lập trình AI được chọn lọc và kiểm chứng thực tế.',
+    'Tìm kiếm sản phẩm Affiliate từ Shopee, TikTok Shop và các nền tảng khác, được dltoan07 chọn lọc.',
   pathname: '/affiliate',
 });
 
@@ -31,14 +31,14 @@ export default async function AffiliatePage() {
       <div className="max-w-2xl space-y-3">
         <div className="bg-primary/10 text-primary inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold">
           <Sparkles className="size-3.5" />
-          <span>Tiết kiệm chi phí & Công cụ chuẩn DevOps</span>
+          <span>Shopee • TikTok Shop • Công cụ & Dịch vụ</span>
         </div>
         <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl">
-          Ưu đãi & Công cụ khuyên dùng
+          Sản phẩm Affiliate chọn lọc
         </h1>
         <p className="text-muted-foreground text-base leading-relaxed sm:text-lg">
-          Tập hợp các dịch vụ hạ tầng Cloud VPS, tên miền, và công cụ lập trình mà tôi đã trực tiếp
-          sử dụng, đánh giá cao và đàm phán được các mã giảm giá/credit tốt nhất cho bạn.
+          Tìm nhanh sản phẩm theo sàn, nền tảng hoặc từ khóa. Bấm trực tiếp vào sản phẩm để xem
+          thông tin trên trang bán hàng.
         </p>
       </div>
 
@@ -49,11 +49,9 @@ export default async function AffiliatePage() {
           <p className="text-foreground font-semibold">Cam kết minh bạch & Trải nghiệm độc giả:</p>
           <p className="leading-relaxed">
             Một số liên kết trên trang này là liên kết tiếp thị (affiliate links hoặc link rút gọn).
-            Nếu bạn đăng ký hoặc mua qua liên kết, blog có thể nhận được một khoản hoa hồng nhỏ để
-            trang trải chi phí máy chủ mà bạn{' '}
-            <strong>không phải trả thêm bất kỳ chi phí nào</strong> (nhiều liên kết còn tặng thêm
-            credit và mã giảm giá độc quyền cho bạn). Tôi chỉ giới thiệu những dịch vụ bản thân đã
-            kiểm nghiệm chất lượng.
+            Nếu bạn đăng ký hoặc mua qua liên kết, dltoan07 có thể nhận một khoản hoa hồng nhỏ,
+            nhưng bạn <strong>không phải trả thêm bất kỳ chi phí nào</strong>. Sản phẩm được trình
+            bày ngắn gọn để bạn dễ tìm và so sánh.
           </p>
         </div>
       </div>
@@ -70,7 +68,7 @@ export default async function AffiliatePage() {
           <div>
             <h4 className="text-sm font-semibold">Đã kiểm chứng thực tế</h4>
             <p className="text-muted-foreground mt-1 text-xs">
-              Mọi công cụ và nhà cung cấp VPS đều đang vận hành hệ thống thật của blog.
+              Mọi công cụ và nhà cung cấp VPS đều đã được kiểm tra trong quá trình sử dụng thực tế.
             </p>
           </div>
         </div>
@@ -94,8 +92,8 @@ export default async function AffiliatePage() {
           <div>
             <h4 className="text-sm font-semibold">Ủng hộ cộng đồng</h4>
             <p className="text-muted-foreground mt-1 text-xs">
-              Mỗi lượt đăng ký qua link giúp blog duy trì máy chủ và chia sẻ thêm nhiều bài viết
-              miễn phí.
+              Mỗi lượt đăng ký qua link giúp dltoan07 duy trì máy chủ và tiếp tục chia sẻ nội dung
+              miễn phí cho cộng đồng.
             </p>
           </div>
         </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -30,9 +30,13 @@ import {
 
 interface ShoppingAffiliateManagerProps {
   initialItems: AffiliateItem[];
+  shortenerConfigured: boolean;
 }
 
-export function ShoppingAffiliateManager({ initialItems }: ShoppingAffiliateManagerProps) {
+export function ShoppingAffiliateManager({
+  initialItems,
+  shortenerConfigured,
+}: ShoppingAffiliateManagerProps) {
   const [items, setItems] = useState<AffiliateItem[]>(initialItems);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<AffiliateItem | null>(null);
@@ -56,8 +60,10 @@ export function ShoppingAffiliateManager({ initialItems }: ShoppingAffiliateMana
     text: string;
   } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const shortenRequestId = useRef(0);
 
   const resetForm = () => {
+    shortenRequestId.current += 1;
     setName('');
     setSlug('');
     setCategory('SHOPEE');
@@ -95,17 +101,28 @@ export function ShoppingAffiliateManager({ initialItems }: ShoppingAffiliateMana
     setShortenMessage(null);
   };
 
-  const handleGenerateShortUrl = async () => {
-    if (!directUrl || !directUrl.startsWith('http')) {
+  const handleGenerateShortUrl = async (urlToShorten = directUrl) => {
+    const normalizedUrl = urlToShorten.trim();
+    if (!normalizedUrl || !/^https?:\/\//i.test(normalizedUrl)) {
       setShortenMessage({ type: 'error', text: 'Vui lòng dán link Shopee/TikTok hợp lệ trước.' });
       return;
     }
 
+    if (!shortenerConfigured) {
+      setShortenMessage({
+        type: 'error',
+        text: 'Chưa cấu hình dịch vụ rút gọn. Hãy thêm SHORTENER_API_URL và SHORTENER_API_KEY vào file .env.',
+      });
+      return;
+    }
+
+    const requestId = ++shortenRequestId.current;
     setIsShortening(true);
     setShortenMessage(null);
 
     try {
-      const res = await generateShortUrlAction(directUrl);
+      const res = await generateShortUrlAction(normalizedUrl);
+      if (requestId !== shortenRequestId.current) return;
       if (res.success && res.shortenedUrl) {
         setShortenedUrl(res.shortenedUrl);
         setActiveUrlType('SHORTENED');
@@ -117,14 +134,34 @@ export function ShoppingAffiliateManager({ initialItems }: ShoppingAffiliateMana
         });
       }
     } catch {
+      if (requestId !== shortenRequestId.current) return;
       setShortenMessage({ type: 'error', text: 'Lỗi khi gọi máy chủ rút gọn link.' });
     } finally {
-      setIsShortening(false);
+      if (requestId === shortenRequestId.current) setIsShortening(false);
     }
   };
 
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleDirectUrlChange = (value: string) => {
+    shortenRequestId.current += 1;
+    setDirectUrl(value);
+    setShortenedUrl('');
+    setActiveUrlType('DIRECT');
+    setShortenMessage(null);
+    setIsShortening(false);
+  };
+
+  const handleDirectUrlPaste = (event: React.ClipboardEvent<HTMLInputElement>) => {
+    const pastedUrl = event.clipboardData.getData('text').trim();
+    if (!/^https?:\/\//i.test(pastedUrl)) return;
+
+    event.preventDefault();
+    setDirectUrl(pastedUrl);
+    setShortenedUrl('');
+    setActiveUrlType('DIRECT');
+    void handleGenerateShortUrl(pastedUrl);
+  };
+
+  const handleSave = async (publish: boolean) => {
     setIsSubmitting(true);
 
     const formData = new FormData();
@@ -140,6 +177,7 @@ export function ShoppingAffiliateManager({ initialItems }: ShoppingAffiliateMana
     formData.append('activeUrlType', activeUrlType);
     formData.append('logoUrl', logoUrl);
     formData.append('featured', featured ? 'true' : 'false');
+    formData.append('active', publish ? 'true' : 'false');
 
     try {
       if (editingItem) {
@@ -316,7 +354,7 @@ export function ShoppingAffiliateManager({ initialItems }: ShoppingAffiliateMana
                             : 'bg-muted text-muted-foreground border-border'
                         }`}
                       >
-                        {item.active ? 'Bật' : 'Tắt'}
+                        {item.active ? 'Đã đăng' : 'Nháp'}
                       </button>
                     </td>
 
@@ -358,87 +396,142 @@ export function ShoppingAffiliateManager({ initialItems }: ShoppingAffiliateMana
           setEditingItem(null);
         }}
         title={editingItem ? `Chỉnh sửa: ${editingItem.name}` : 'Thêm Sản Phẩm Shopee / TikTok'}
-        description="Nhập link sản phẩm và cấu hình link rút gọn kiếm tiền"
-        className="max-w-lg"
+        description="Nhập thông tin sản phẩm, sau đó dán link Affiliate để hệ thống tự rút gọn."
+        className="max-h-[calc(100dvh-2rem)] max-w-3xl overflow-y-auto"
       >
-        <form onSubmit={handleSave} className="space-y-4">
-          <div className="grid gap-3 sm:grid-cols-2">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            void handleSave(editingItem?.active ?? false);
+          }}
+          className="space-y-5"
+        >
+          <section className="border-border bg-muted/20 space-y-4 rounded-2xl border p-4 sm:p-5">
+            <div className="flex items-start gap-3">
+              <div className="bg-primary/10 text-primary flex size-9 shrink-0 items-center justify-center rounded-lg">
+                <ShoppingBag className="size-4" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold">1. Thông tin hiển thị</h3>
+                <p className="text-muted-foreground mt-0.5 text-xs">
+                  Đây là nội dung khách hàng sẽ thấy trên card sản phẩm.
+                </p>
+              </div>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <label className="text-xs font-semibold">Tên sản phẩm *</label>
+                <Input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="VD: Bàn phím cơ Aula F75"
+                  required
+                  className="mt-1 text-sm"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-semibold">Loại sàn</label>
+                <select
+                  value={category}
+                  onChange={(e) => {
+                    const nextCategory = e.target.value as AffiliateCategory;
+                    setCategory(nextCategory);
+                    setPlatform(
+                      nextCategory === 'TIKTOK'
+                        ? 'TikTok Shop'
+                        : nextCategory === 'SHOPEE'
+                          ? 'Shopee'
+                          : 'Sàn khác',
+                    );
+                  }}
+                  className="border-border bg-background mt-1 h-9 w-full rounded-md border px-3 text-sm"
+                >
+                  <option value="SHOPEE">Shopee</option>
+                  <option value="TIKTOK">TikTok Shop</option>
+                  <option value="SHOPPING">Khác (Lazada, Tiki...)</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <label className="text-xs font-semibold">Ảnh sản phẩm (URL)</label>
+                <Input
+                  value={logoUrl}
+                  onChange={(e) => setLogoUrl(e.target.value)}
+                  placeholder="https://cf.shopee.vn/..."
+                  className="mt-1 text-sm"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-semibold">Tên nền tảng *</label>
+                <Input
+                  value={platform}
+                  onChange={(e) => setPlatform(e.target.value)}
+                  placeholder="Shopee, TikTok Shop, Lazada..."
+                  required
+                  className="mt-1 text-sm"
+                />
+              </div>
+            </div>
+
             <div>
-              <label className="text-xs font-semibold">Tên sản phẩm *</label>
-              <Input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="VD: Bàn phím cơ Aula F75"
+              <label className="text-xs font-semibold">Mô tả ngắn *</label>
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Mô tả ngắn gọn đặc điểm chính của sản phẩm..."
                 required
-                className="mt-1 text-sm"
+                rows={3}
+                maxLength={220}
+                className="border-border bg-background mt-1 w-full resize-none rounded-md border px-3 py-2 text-sm outline-none focus-visible:ring-2"
               />
+              <p className="text-muted-foreground mt-1 text-right text-[11px]">
+                {description.length}/220 ký tự
+              </p>
             </div>
-            <div>
-              <label className="text-xs font-semibold">Nền tảng</label>
-              <select
-                value={category}
-                onChange={(e) => setCategory(e.target.value as AffiliateCategory)}
-                className="border-border bg-background mt-1 h-9 w-full rounded-md border px-3 text-sm"
-              >
-                <option value="SHOPEE">Shopee</option>
-                <option value="TIKTOK">TikTok Shop</option>
-                <option value="SHOPPING">Khác (Lazada, Tiki...)</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div>
-              <label className="text-xs font-semibold">Ảnh sản phẩm (URL)</label>
-              <Input
-                value={logoUrl}
-                onChange={(e) => setLogoUrl(e.target.value)}
-                placeholder="https://cf.shopee.vn/..."
-                className="mt-1 text-sm"
-              />
-            </div>
-            <div>
-              <label className="text-xs font-semibold">Ưu đãi / Flash Sale</label>
-              <Input
-                value={perks}
-                onChange={(e) => setPerks(e.target.value)}
-                placeholder="VD: Giảm 40% + Freeship"
-                className="mt-1 text-sm"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="text-xs font-semibold">Mã Voucher giảm giá (nếu có)</label>
-            <Input
-              value={couponCode}
-              onChange={(e) => setCouponCode(e.target.value)}
-              placeholder="VD: SHOPEE20K"
-              className="mt-1 text-sm"
-            />
-          </div>
+          </section>
 
           {/* 2 ĐƯỜNG LINK */}
-          <div className="border-border bg-muted/40 space-y-3 rounded-xl border p-4">
-            <h4 className="text-foreground flex items-center gap-1.5 text-xs font-bold tracking-wider uppercase">
-              <Zap className="size-4 text-amber-500" /> Cấu hình Link Affiliate
-            </h4>
+          <section className="space-y-4 rounded-2xl border border-blue-500/30 bg-blue-500/5 p-4 sm:p-5">
+            <div className="flex items-start gap-3">
+              <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-blue-500/15 text-blue-500">
+                <Zap className="size-4" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold">2. Link Affiliate</h3>
+                <p className="text-muted-foreground mt-0.5 text-xs">
+                  Chỉ cần dán link gốc, hệ thống sẽ tự động rút gọn và chọn link mới.
+                </p>
+              </div>
+            </div>
+
+            {!shortenerConfigured && (
+              <div className="flex items-start gap-2 rounded-lg border border-amber-500/25 bg-amber-500/10 p-3 text-xs text-amber-700 dark:text-amber-300">
+                <AlertCircle className="mt-0.5 size-4 shrink-0" />
+                <span>
+                  Chưa cấu hình API rút gọn. Bạn vẫn có thể dán link gốc và lưu sản phẩm, hoặc cấu
+                  hình hai biến SHORTENER_API_URL và SHORTENER_API_KEY để bật tự động.
+                </span>
+              </div>
+            )}
 
             <div>
-              <label className="text-xs font-medium">
-                1. Link Affiliate Shopee/TikTok (Bạn dán vào) *
+              <label className="text-sm font-semibold">
+                Dán link Affiliate gốc <span className="text-rose-500">*</span>
               </label>
               <div className="mt-1 flex gap-2">
                 <Input
                   value={directUrl}
-                  onChange={(e) => setDirectUrl(e.target.value)}
+                  onChange={(e) => handleDirectUrlChange(e.target.value)}
+                  onPaste={handleDirectUrlPaste}
                   placeholder="https://shope.ee/..."
                   required
                   className="text-sm"
                 />
                 <Button
                   type="button"
-                  onClick={handleGenerateShortUrl}
+                  onClick={() => void handleGenerateShortUrl()}
                   disabled={isShortening || !directUrl}
                   variant="outline"
                   className="bg-card shrink-0 gap-1.5 text-xs"
@@ -455,6 +548,13 @@ export function ShoppingAffiliateManager({ initialItems }: ShoppingAffiliateMana
                 </Button>
               </div>
             </div>
+
+            {isShortening && (
+              <div className="flex items-center gap-2 rounded-lg border border-blue-500/20 bg-blue-500/10 p-3 text-xs font-medium text-blue-600 dark:text-blue-400">
+                <Loader2 className="size-4 shrink-0 animate-spin" />
+                <span>Đang tự động rút gọn link vừa dán...</span>
+              </div>
+            )}
 
             {shortenMessage && (
               <div
@@ -474,9 +574,7 @@ export function ShoppingAffiliateManager({ initialItems }: ShoppingAffiliateMana
             )}
 
             <div>
-              <label className="text-xs font-medium">
-                2. Link Rút Gọn Kiếm Tiền (Tự sinh hoặc dán tay)
-              </label>
+              <label className="text-sm font-semibold">Link rút gọn tự động</label>
               <Input
                 value={shortenedUrl}
                 onChange={(e) => setShortenedUrl(e.target.value)}
@@ -502,6 +600,7 @@ export function ShoppingAffiliateManager({ initialItems }: ShoppingAffiliateMana
                   <input
                     type="radio"
                     name="activeUrlType"
+                    disabled={!shortenedUrl}
                     value="SHORTENED"
                     checked={activeUrlType === 'SHORTENED'}
                     onChange={() => setActiveUrlType('SHORTENED')}
@@ -510,9 +609,9 @@ export function ShoppingAffiliateManager({ initialItems }: ShoppingAffiliateMana
                 </label>
               </div>
             </div>
-          </div>
+          </section>
 
-          <div className="border-border flex justify-end gap-2 border-t pt-3">
+          <div className="border-border bg-card/95 sticky bottom-0 z-10 flex justify-end gap-2 border-t py-3 backdrop-blur">
             <Button
               type="button"
               variant="outline"
@@ -524,13 +623,28 @@ export function ShoppingAffiliateManager({ initialItems }: ShoppingAffiliateMana
             >
               Hủy
             </Button>
-            <Button type="submit" disabled={isSubmitting}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => handleSave(false)}
+              disabled={isSubmitting || isShortening}
+            >
+              {editingItem?.active ? 'Chuyển về nháp' : 'Lưu nháp'}
+            </Button>
+            <Button
+              type="button"
+              className="bg-emerald-600 text-white hover:bg-emerald-700"
+              onClick={() => handleSave(true)}
+              disabled={isSubmitting || isShortening}
+            >
               {isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 size-4 animate-spin" /> Đang lưu...
                 </>
+              ) : editingItem?.active ? (
+                'Cập nhật'
               ) : (
-                'Lưu Sản Phẩm'
+                'Đăng'
               )}
             </Button>
           </div>

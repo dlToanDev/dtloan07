@@ -264,6 +264,51 @@ export async function uploadPostImage(formData: FormData): Promise<CoverUploadRe
   return savePostImage(formData, 'image');
 }
 
+const AUDIO_DIR = path.join(process.cwd(), 'public', 'audio');
+const ALLOWED_AUDIO_EXTS = new Set(['.mp3', '.wav', '.ogg', '.m4a', '.aac', '.flac']);
+
+/** Upload file âm thanh/podcast và trả URL để chèn vào bài viết. */
+export async function uploadPostAudio(formData: FormData): Promise<CoverUploadResult> {
+  await requireAdmin();
+
+  const file = formData.get('file');
+  if (!(file instanceof File) || file.size === 0) {
+    return { success: false, error: 'Vui lòng chọn một tệp âm thanh để tải lên.' };
+  }
+
+  // Giới hạn tệp audio 50 MB
+  if (file.size > 50 * 1024 * 1024) {
+    return { success: false, error: 'Tệp âm thanh vượt quá dung lượng tối đa (50 MB).' };
+  }
+
+  const ext = path.extname(file.name).toLowerCase();
+  if (!ALLOWED_AUDIO_EXTS.has(ext)) {
+    return {
+      success: false,
+      error: 'Chỉ chấp nhận các định dạng âm thanh: MP3, WAV, OGG, M4A, AAC, FLAC.',
+    };
+  }
+
+  const rawBaseName = path.basename(file.name, ext);
+  const cleanName = slugifyPostTitle(rawBaseName) || 'audio';
+  const fileName = `${cleanName}-${randomUUID().slice(0, 8)}${ext}`;
+  const targetPath = path.join(AUDIO_DIR, fileName);
+
+  try {
+    await mkdir(AUDIO_DIR, { recursive: true });
+    const buffer = Buffer.from(await file.arrayBuffer());
+    await writeFile(targetPath, buffer);
+    return { success: true, url: `/audio/${fileName}` };
+  } catch (err) {
+    console.error('Lỗi lưu tệp âm thanh:', err);
+    return {
+      success: false,
+      error:
+        'Không thể lưu tệp âm thanh lên máy chủ. Vui lòng kiểm tra quyền thư mục public/audio.',
+    };
+  }
+}
+
 /**
  * Đảo trạng thái Xuất bản <-> Bản nháp cho bài viết
  */

@@ -46,6 +46,7 @@ export async function POST(req: NextRequest) {
       where: {
         id: { in: productIds },
         status: 'ACTIVE',
+        saleMode: 'PAID',
       },
     });
 

@@ -106,18 +106,25 @@ const navGroups: NavGroup[] = [
         iconBg: 'bg-amber-500/10',
       },
       {
-        title: 'Tool Code',
+        title: 'Công cụ Affiliate',
         href: '/admin/tools',
         icon: Wrench,
         iconColor: 'text-sky-500',
         iconBg: 'bg-sky-500/10',
       },
       {
-        title: 'Sản phẩm Code',
-        href: '/admin/products',
+        title: 'Source Code / App / Tool',
+        href: '/admin/source-code',
         icon: Code2,
         iconColor: 'text-emerald-500',
         iconBg: 'bg-emerald-500/10',
+      },
+      {
+        title: 'Shop',
+        href: '/admin/shop',
+        icon: ShoppingBag,
+        iconColor: 'text-amber-500',
+        iconBg: 'bg-amber-500/10',
       },
     ],
   },
@@ -297,8 +304,8 @@ export function AdminSidebar({ userEmail }: { userEmail: string }) {
       {/* ============================================================
           DESKTOP SIDEBAR NAVBAR (>= lg)
           ============================================================ */}
-      <aside className="hidden w-64 shrink-0 lg:block xl:w-72">
-        <div className="border-border bg-card sticky top-20 flex max-h-[calc(100vh-6rem)] flex-col justify-between overflow-y-auto rounded-2xl border p-4 shadow-xs">
+      <aside className="fixed top-16 bottom-0 left-0 z-30 hidden w-64 lg:block xl:w-72">
+        <div className="border-border bg-card flex h-full flex-col justify-between overflow-y-auto border-r p-4 shadow-xs">
           {/* Header Sidebar */}
           <div className="space-y-4">
             <div className="border-border flex items-center gap-3 border-b px-1 pb-4">

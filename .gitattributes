@@ -1,0 +1,17 @@
+# Giữ LF trong thư mục làm việc trên mọi hệ điều hành.
+# Không có dòng này, git trên Windows đổi file sang CRLF và `pnpm format:check`
+# (lệnh CI dùng) luôn báo lỗi định dạng dù nội dung không đổi.
+* text=auto eol=lf
+
+# File nhị phân không được đụng vào
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.avif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.zip binary
+*.pdf binary

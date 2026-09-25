@@ -104,11 +104,18 @@ describe('resolveCartLines', () => {
     expect(errors).toHaveLength(1);
   });
 
-  it('từ chối loại hàng chưa mở bán (PHYSICAL ở giai đoạn 1)', () => {
-    const shirt = product({ id: 'p3', type: 'PHYSICAL' });
-    const { lines, errors } = resolveCartLines([{ productId: 'p3', qty: 1 }], [shirt]);
+  it('từ chối loại hàng chưa mở bán (ACCOUNT ở giai đoạn 2)', () => {
+    const netflix = product({ id: 'p3', type: 'ACCOUNT' });
+    const { lines, errors } = resolveCartLines([{ productId: 'p3', qty: 1 }], [netflix]);
     expect(lines).toHaveLength(0);
     expect(errors[0]?.message).toContain('Sắp mở bán');
+  });
+
+  it('cho mua hàng vật lý từ giai đoạn 2', () => {
+    const shirt = product({ id: 'p4', type: 'PHYSICAL' });
+    const { lines, errors } = resolveCartLines([{ productId: 'p4', qty: 1 }], [shirt]);
+    expect(errors).toEqual([]);
+    expect(lines).toHaveLength(1);
   });
 
   it('chuẩn hóa qty về số nguyên >= 1', () => {

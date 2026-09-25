@@ -3,78 +3,149 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { buttonStyles } from '@/components/ui/button';
 import Link from 'next/link';
+import type { Prisma } from '@prisma/client';
 
 interface AdminOrdersPageProps {
   searchParams: Promise<{
     status?: string;
+    fulfillment?: string;
   }>;
 }
 
 export const dynamic = 'force-dynamic';
 
-export default async function AdminOrdersPage({ searchParams }: AdminOrdersPageProps) {
-  const { status } = await searchParams;
+const PAYMENT_STATUSES = ['PENDING', 'PAID', 'FAILED', 'REFUNDED', 'EXPIRED'] as const;
+const FULFILLMENT_STATUSES = [
+  'PENDING',
+  'CONFIRMED',
+  'SHIPPING',
+  'DELIVERED',
+  'CANCELLED',
+] as const;
+const FULFILLMENT_LABEL: Record<string, string> = {
+  PENDING: 'Chờ xác nhận',
+  CONFIRMED: 'Đã xác nhận',
+  SHIPPING: 'Đang giao',
+  DELIVERED: 'Đã giao',
+  CANCELLED: 'Đã hủy',
+};
 
-  const validStatus =
-    status && ['PENDING', 'PAID', 'FAILED', 'REFUNDED', 'EXPIRED'].includes(status)
-      ? (status as 'PENDING' | 'PAID' | 'FAILED' | 'REFUNDED' | 'EXPIRED')
-      : undefined;
+export default async function AdminOrdersPage({ searchParams }: AdminOrdersPageProps) {
+  const { status, fulfillment } = await searchParams;
+
+  const validStatus = PAYMENT_STATUSES.find((value) => value === status);
+  const validFulfillment = FULFILLMENT_STATUSES.find((value) => value === fulfillment);
+
+  const where: Prisma.OrderWhereInput = {
+    ...(validStatus && { status: validStatus }),
+    ...(validFulfillment && { fulfillmentStatus: validFulfillment }),
+  };
 
   let orders: Awaited<
-    ReturnType<
-      typeof db.order.findMany<{
-        include: {
-          items: true;
-          coupon: true;
-        };
-      }>
-    >
+    ReturnType<typeof db.order.findMany<{ include: { items: true; coupon: true } }>>
   > = [];
+  let todoCount = 0;
 
   try {
-    orders = await db.order.findMany({
-      where: validStatus ? { status: validStatus } : undefined,
-      include: {
-        items: true,
-        coupon: true,
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+    [orders, todoCount] = await Promise.all([
+      db.order.findMany({
+        where,
+        include: { items: true, coupon: true },
+        orderBy: { createdAt: 'desc' },
+      }),
+      // "Cần xử lý": đơn đã trả tiền hoặc đơn COD đang chờ đóng gói / giao.
+      db.order.count({
+        where: {
+          fulfillmentStatus: { in: ['PENDING', 'CONFIRMED'] },
+          OR: [{ status: 'PAID' }, { paymentMethod: 'COD' }],
+        },
+      }),
+    ]);
   } catch (err) {
     console.warn('Lỗi tải đơn hàng trong admin:', err);
   }
 
-  const statuses = ['ALL', 'PAID', 'PENDING', 'FAILED', 'REFUNDED', 'EXPIRED'];
+  const filterHref = (patch: { status?: string; fulfillment?: string }) => {
+    const params = new URLSearchParams();
+    const nextStatus = patch.status ?? (validStatus || '');
+    const nextFulfillment = patch.fulfillment ?? (validFulfillment || '');
+    if (nextStatus) params.set('status', nextStatus);
+    if (nextFulfillment) params.set('fulfillment', nextFulfillment);
+    const query = params.toString();
+    return query ? `/admin/orders?${query}` : '/admin/orders';
+  };
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h2 className="text-xl font-bold">Danh sách đơn hàng ({orders.length})</h2>
+          <h2 className="flex items-center gap-2 text-xl font-bold">
+            Danh sách đơn hàng ({orders.length})
+            {todoCount > 0 && (
+              <Link href={filterHref({ status: '', fulfillment: 'PENDING' })}>
+                <Badge variant="destructive">Cần xử lý: {todoCount}</Badge>
+              </Link>
+            )}
+          </h2>
           <p className="text-muted-foreground text-sm">
-            Quản lý toàn bộ lịch sử đơn hàng và thanh toán trên hệ thống.
+            Quản lý toàn bộ lịch sử đơn hàng, thanh toán và giao hàng trên hệ thống.
           </p>
         </div>
 
-        {/* Bộ lọc trạng thái */}
-        <div className="flex flex-wrap gap-1">
-          {statuses.map((s) => {
-            const isActive = (!validStatus && s === 'ALL') || validStatus === s;
-            const href = s === 'ALL' ? '/admin/orders' : `/admin/orders?status=${s}`;
-            return (
+        <div className="space-y-2">
+          {/* Lọc theo thanh toán */}
+          <div className="flex flex-wrap justify-end gap-1">
+            <Link
+              href={filterHref({ status: '' })}
+              className={buttonStyles({
+                variant: !validStatus ? 'primary' : 'outline',
+                size: 'sm',
+                className: 'text-xs',
+              })}
+            >
+              Mọi thanh toán
+            </Link>
+            {PAYMENT_STATUSES.map((value) => (
               <Link
-                key={s}
-                href={href}
+                key={value}
+                href={filterHref({ status: value })}
                 className={buttonStyles({
-                  variant: isActive ? 'primary' : 'outline',
+                  variant: validStatus === value ? 'primary' : 'outline',
                   size: 'sm',
                   className: 'text-xs',
                 })}
               >
-                {s}
+                {value}
               </Link>
-            );
-          })}
+            ))}
+          </div>
+
+          {/* Lọc theo giao hàng */}
+          <div className="flex flex-wrap justify-end gap-1">
+            <Link
+              href={filterHref({ fulfillment: '' })}
+              className={buttonStyles({
+                variant: !validFulfillment ? 'primary' : 'outline',
+                size: 'sm',
+                className: 'text-xs',
+              })}
+            >
+              Mọi trạng thái giao
+            </Link>
+            {FULFILLMENT_STATUSES.map((value) => (
+              <Link
+                key={value}
+                href={filterHref({ fulfillment: value })}
+                className={buttonStyles({
+                  variant: validFulfillment === value ? 'primary' : 'outline',
+                  size: 'sm',
+                  className: 'text-xs',
+                })}
+              >
+                {FULFILLMENT_LABEL[value]}
+              </Link>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -82,7 +153,11 @@ export default async function AdminOrdersPage({ searchParams }: AdminOrdersPageP
         <CardHeader className="pb-3">
           <CardTitle>Chi tiết giao dịch</CardTitle>
           <CardDescription>
-            {validStatus ? `Đang lọc theo trạng thái: ${validStatus}` : 'Hiển thị tất cả đơn hàng'}
+            {validStatus || validFulfillment
+              ? `Đang lọc: ${[validStatus, validFulfillment && FULFILLMENT_LABEL[validFulfillment]]
+                  .filter(Boolean)
+                  .join(' · ')}`
+              : 'Hiển thị tất cả đơn hàng'}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -99,7 +174,8 @@ export default async function AdminOrdersPage({ searchParams }: AdminOrdersPageP
                     <th className="px-2 py-3">Khách hàng</th>
                     <th className="px-2 py-3">Sản phẩm</th>
                     <th className="px-2 py-3 text-right">Tổng tiền</th>
-                    <th className="px-2 py-3 text-center">Trạng thái</th>
+                    <th className="px-2 py-3 text-center">Thanh toán</th>
+                    <th className="px-2 py-3 text-center">Giao hàng</th>
                     <th className="px-2 py-3">Thời gian</th>
                     <th className="px-2 py-3 text-right">Thao tác</th>
                   </tr>
@@ -109,13 +185,21 @@ export default async function AdminOrdersPage({ searchParams }: AdminOrdersPageP
                     <tr key={o.id} className="hover:bg-muted/30">
                       <td className="px-2 py-3 font-mono font-medium">{o.orderCode}</td>
                       <td className="px-2 py-3">
-                        <div className="text-foreground font-medium">{o.email}</div>
-                        <div className="text-muted-foreground text-xs">Cổng: {o.provider}</div>
+                        <div className="text-foreground font-medium">
+                          {o.customerName || o.email}
+                        </div>
+                        <div className="text-muted-foreground text-xs">
+                          {o.phone ? `${o.phone} · ` : ''}
+                          {o.paymentMethod === 'COD' ? 'COD' : 'PayOS'}
+                        </div>
                       </td>
                       <td className="px-2 py-3">
                         {o.items.map((i) => (
                           <div key={i.id} className="text-xs">
-                            {i.productNameSnapshot} &times; {i.qty}
+                            {i.productNameSnapshot}
+                            {i.variantNameSnapshot
+                              ? ` (${i.variantNameSnapshot})`
+                              : ''} &times; {i.qty}
                           </div>
                         ))}
                       </td>
@@ -130,12 +214,21 @@ export default async function AdminOrdersPage({ searchParams }: AdminOrdersPageP
                           {o.status}
                         </Badge>
                       </td>
+                      <td className="px-2 py-3 text-center">
+                        {o.fulfillmentStatus ? (
+                          <Badge variant="secondary" className="text-xs">
+                            {FULFILLMENT_LABEL[o.fulfillmentStatus]}
+                          </Badge>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">—</span>
+                        )}
+                      </td>
                       <td className="text-muted-foreground px-2 py-3 text-xs">
                         {new Date(o.createdAt).toLocaleString('vi-VN')}
                       </td>
                       <td className="px-2 py-3 text-right">
                         <Link
-                          href={`/account/orders/${o.id}`}
+                          href={`/admin/orders/${o.id}`}
                           className={buttonStyles({
                             variant: 'outline',
                             size: 'sm',

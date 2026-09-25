@@ -180,3 +180,122 @@ export async function sendOrderLicenseEmail({
     text: `Đơn hàng ${orderCode} đã thanh toán thành công. Vui lòng kiểm tra email dạng HTML hoặc truy cập ${siteConfig.url}/account để nhận mã bản quyền.`,
   });
 }
+
+// ============================================================
+// Đơn hàng vật lý: xác nhận, đổi trạng thái giao hàng, báo admin
+// ============================================================
+
+const FULFILLMENT_LABEL: Record<string, string> = {
+  PENDING: 'Chờ xác nhận',
+  CONFIRMED: 'Đã xác nhận, đang chuẩn bị hàng',
+  SHIPPING: 'Đang giao hàng',
+  DELIVERED: 'Đã giao thành công',
+  CANCELLED: 'Đã hủy',
+};
+
+function orderEmailShell(title: string, bodyHtml: string) {
+  return `
+    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #e5e7eb; border-radius: 8px;">
+      <h2 style="color: #111827; margin-bottom: 8px;">${title}</h2>
+      ${bodyHtml}
+      <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;" />
+      <p style="color: #9ca3af; font-size: 12px;">
+        ${siteConfig.name} &bull; Hỗ trợ: <a href="mailto:${siteConfig.author.email}" style="color: #9ca3af;">${siteConfig.author.email}</a>
+      </p>
+    </div>
+  `;
+}
+
+/** Xác nhận đã nhận đơn — dùng cho đơn COD (đơn PayOS đã có email sau khi thanh toán). */
+export async function sendOrderReceivedEmail({
+  to,
+  orderCode,
+  totalVnd,
+  paymentMethod,
+}: {
+  to: string;
+  orderCode: string;
+  totalVnd: number;
+  paymentMethod: 'PAYOS' | 'COD';
+}) {
+  const subject = `[Đã nhận đơn ${orderCode}] ${siteConfig.name}`;
+  const payLine =
+    paymentMethod === 'COD'
+      ? `Bạn thanh toán <strong>${totalVnd.toLocaleString('vi-VN')} đ</strong> cho đơn vị vận chuyển khi nhận hàng.`
+      : `Tổng thanh toán: <strong>${totalVnd.toLocaleString('vi-VN')} đ</strong>.`;
+
+  return sendEmail({
+    to,
+    subject,
+    html: orderEmailShell(
+      'Đã nhận đơn hàng của bạn',
+      `<p style="color: #4b5563; font-size: 15px;">Mã đơn <strong>${orderCode}</strong> đã được ghi nhận. ${payLine}</p>
+       <p style="color: #4b5563; font-size: 15px;">Chúng tôi sẽ liên hệ xác nhận trước khi giao. Bạn có thể tra cứu đơn tại
+       <a href="${siteConfig.url}/orders/lookup" style="color: #2563eb;">trang tra cứu đơn hàng</a>.</p>`,
+    ),
+    text: `Đã nhận đơn ${orderCode}. Tổng tiền ${totalVnd.toLocaleString('vi-VN')} đ.`,
+  });
+}
+
+/** Báo khách khi trạng thái giao hàng đổi. */
+export async function sendOrderStatusEmail({
+  to,
+  orderCode,
+  status,
+  trackingCode,
+}: {
+  to: string;
+  orderCode: string;
+  status: keyof typeof FULFILLMENT_LABEL | string;
+  trackingCode?: string | null;
+}) {
+  const label = FULFILLMENT_LABEL[status] ?? status;
+  const subject = `[${label}] Đơn hàng ${orderCode}`;
+  const trackingHtml = trackingCode
+    ? `<p style="color: #4b5563; font-size: 15px;">Mã vận đơn: <code style="background-color:#e5e7eb;padding:2px 6px;border-radius:4px;">${trackingCode}</code></p>`
+    : '';
+
+  return sendEmail({
+    to,
+    subject,
+    html: orderEmailShell(
+      label,
+      `<p style="color: #4b5563; font-size: 15px;">Đơn hàng <strong>${orderCode}</strong> của bạn: ${label}.</p>${trackingHtml}`,
+    ),
+    text: `Đơn hàng ${orderCode}: ${label}.${trackingCode ? ` Mã vận đơn: ${trackingCode}.` : ''}`,
+  });
+}
+
+/** Báo admin có đơn cần xử lý. Bỏ qua im lặng nếu chưa cấu hình ADMIN_NOTIFY_EMAIL. */
+export async function sendAdminNewOrderEmail({
+  orderCode,
+  totalVnd,
+  customerName,
+  phone,
+  paymentMethod,
+}: {
+  orderCode: string;
+  totalVnd: number;
+  customerName: string;
+  phone: string;
+  paymentMethod: 'PAYOS' | 'COD';
+}) {
+  const to = process.env.ADMIN_NOTIFY_EMAIL;
+  if (!to) return { success: true, skipped: true };
+
+  return sendEmail({
+    to,
+    subject: `[Đơn mới ${paymentMethod}] ${orderCode} — ${totalVnd.toLocaleString('vi-VN')} đ`,
+    html: orderEmailShell(
+      'Có đơn hàng mới cần xử lý',
+      `<p style="color: #4b5563; font-size: 15px;">
+         Mã đơn: <strong>${orderCode}</strong><br />
+         Khách: ${customerName} — ${phone}<br />
+         Thanh toán: ${paymentMethod === 'COD' ? 'COD khi nhận hàng' : 'PayOS'}<br />
+         Tổng tiền: <strong>${totalVnd.toLocaleString('vi-VN')} đ</strong>
+       </p>
+       <p><a href="${siteConfig.url}/admin/orders" style="color: #2563eb;">Mở trang quản lý đơn hàng</a></p>`,
+    ),
+    text: `Đơn mới ${orderCode} (${paymentMethod}) — ${totalVnd.toLocaleString('vi-VN')} đ từ ${customerName} ${phone}.`,
+  });
+}

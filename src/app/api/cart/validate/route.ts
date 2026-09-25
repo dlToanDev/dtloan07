@@ -72,6 +72,7 @@ export async function POST(req: NextRequest) {
         ...item,
         variantId: line?.variantId ?? '',
         variantName: line?.variant.name ?? '',
+        type: line?.product.type ?? 'DOWNLOAD',
         hasMultipleVariants: (line?.product.variants.filter((v) => v.active).length ?? 0) > 1,
         stockLeft: line?.variant.stock ?? null,
         name: line?.product.name ?? 'Sản phẩm',

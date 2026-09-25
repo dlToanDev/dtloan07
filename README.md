@@ -28,6 +28,16 @@ pnpm dev                # http://localhost:3000
 | `pnpm typecheck`    | `tsc --noEmit`                       |
 | `pnpm format`       | Prettier ghi đè                      |
 | `pnpm format:check` | Prettier kiểm tra (CI dùng lệnh này) |
+| `pnpm test`         | Unit test (không cần database)       |
+| `pnpm test:int`     | Test tích hợp — cần PostgreSQL thật  |
+
+**Database khi phát triển:**
+
+```bash
+docker compose up -d postgres   # PostgreSQL 16 ở localhost:5432
+pnpm prisma migrate deploy      # tạo bảng
+pnpm prisma db seed             # admin@hvpgroup.vn / Admin@123456 + dữ liệu mẫu
+```
 
 **Cổng chất lượng** — phải xanh trước khi commit/push:
 

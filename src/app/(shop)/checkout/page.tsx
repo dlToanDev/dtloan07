@@ -1,7 +1,7 @@
 'use client';
 
 import { useCart } from '@/hooks/use-cart';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Container } from '@/components/layout/container';
 import {
   Card,
@@ -13,14 +13,24 @@ import {
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button, buttonStyles } from '@/components/ui/button';
-import { QrCode, ShieldCheck, ArrowRight, Loader2, ShoppingBag } from 'lucide-react';
+import {
+  QrCode,
+  ShieldCheck,
+  ArrowRight,
+  Loader2,
+  ShoppingBag,
+  Truck,
+  Banknote,
+} from 'lucide-react';
 import Link from 'next/link';
+import { PROVINCES } from '@/config/provinces';
 
 interface ValidatedCartItem {
   productId: string;
   variantId: string;
   variantName: string;
   hasMultipleVariants: boolean;
+  type: 'DOWNLOAD' | 'PHYSICAL' | 'ACCOUNT';
   name: string;
   slug: string;
   unitPriceVnd: number;
@@ -42,6 +52,15 @@ interface ValidatedCartData {
   errors?: string[];
 }
 
+interface ShippingQuote {
+  feeVnd: number;
+  zoneName: string | null;
+  freeShip: boolean;
+}
+
+const fieldLabel = 'text-foreground text-sm font-medium';
+const selectClass = 'border-border bg-background w-full rounded-lg border px-3 py-2.5 text-sm';
+
 export default function CheckoutPage() {
   const { items, couponCode, clearCart } = useCart();
   const [cartData, setCartData] = useState<ValidatedCartData | null>(null);
@@ -51,6 +70,24 @@ export default function CheckoutPage() {
 
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [province, setProvince] = useState('');
+  const [address, setAddress] = useState('');
+  const [note, setNote] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState<'PAYOS' | 'COD'>('PAYOS');
+  const [shippingQuote, setShippingQuote] = useState<ShippingQuote | null>(null);
+  const [quoting, setQuoting] = useState(false);
+
+  const hasPhysical = useMemo(
+    () => (cartData?.items ?? []).some((item) => item.type === 'PHYSICAL'),
+    [cartData],
+  );
+  const allPhysical = useMemo(
+    () =>
+      (cartData?.items ?? []).length > 0 &&
+      (cartData?.items ?? []).every((item) => item.type === 'PHYSICAL'),
+    [cartData],
+  );
 
   // Lấy giá trị thực tế của giỏ hàng từ server
   useEffect(() => {
@@ -74,6 +111,38 @@ export default function CheckoutPage() {
       .finally(() => setLoading(false));
   }, [items, couponCode]);
 
+  // COD chỉ dùng được khi mọi món đều là hàng vật lý
+  useEffect(() => {
+    if (!allPhysical && paymentMethod === 'COD') setPaymentMethod('PAYOS');
+  }, [allPhysical, paymentMethod]);
+
+  // Chọn tỉnh xong thì hỏi server phí ship
+  useEffect(() => {
+    if (!hasPhysical || !province) {
+      setShippingQuote(null);
+      return;
+    }
+    let subscribed = true;
+    setQuoting(true);
+    fetch('/api/shipping/quote', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ items, province, couponCode }),
+    })
+      .then((res) => res.json())
+      .then((res) => {
+        if (subscribed && res.success) setShippingQuote(res.data);
+      })
+      .catch((err) => console.error('Lỗi tính phí ship:', err))
+      .finally(() => subscribed && setQuoting(false));
+    return () => {
+      subscribed = false;
+    };
+  }, [hasPhysical, province, items, couponCode]);
+
+  const shippingFeeVnd = hasPhysical ? (shippingQuote?.feeVnd ?? 0) : 0;
+  const grandTotalVnd = (cartData?.totalVnd ?? 0) + shippingFeeVnd;
+
   async function handleCheckout(e: React.FormEvent) {
     e.preventDefault();
     if (!email) return;
@@ -88,8 +157,11 @@ export default function CheckoutPage() {
         body: JSON.stringify({
           email,
           name,
+          phone,
           items,
           couponCode,
+          paymentMethod,
+          ...(hasPhysical && { shipping: { province, address, note } }),
         }),
       });
 
@@ -104,7 +176,7 @@ export default function CheckoutPage() {
       // Xoá giỏ hàng sau khi tạo đơn thành công
       clearCart();
 
-      // Chuyển hướng tới cổng thanh toán VietQR PayOS
+      // Chuyển hướng tới cổng thanh toán VietQR PayOS (hoặc trang cảm ơn với COD)
       if (data.checkoutUrl) {
         window.location.href = data.checkoutUrl;
       }
@@ -133,7 +205,7 @@ export default function CheckoutPage() {
             <ShoppingBag className="text-muted-foreground/50 mb-2 h-12 w-12" />
             <CardTitle className="text-xl">Giỏ hàng của bạn đang trống</CardTitle>
             <CardDescription>
-              Vui lòng chọn ít nhất một sản phẩm số để tiến hành thanh toán.
+              Vui lòng chọn ít nhất một sản phẩm để tiến hành thanh toán.
             </CardDescription>
           </CardHeader>
           <CardFooter className="flex justify-center pt-4">
@@ -152,7 +224,9 @@ export default function CheckoutPage() {
         <div>
           <h1 className="text-3xl font-extrabold tracking-tight">Thanh toán đơn hàng</h1>
           <p className="text-muted-foreground mt-1">
-            Nhập email nhận hàng và quét mã VietQR tự động để nhận mã bản quyền ngay lập tức.
+            {hasPhysical
+              ? 'Nhập thông tin nhận hàng, chọn hình thức thanh toán và hoàn tất đơn.'
+              : 'Nhập email nhận hàng và quét mã VietQR tự động để nhận mã bản quyền ngay lập tức.'}
           </p>
         </div>
 
@@ -161,14 +235,16 @@ export default function CheckoutPage() {
           <div className="space-y-6 lg:col-span-7">
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg font-bold">Thông tin nhận sản phẩm</CardTitle>
+                <CardTitle className="text-lg font-bold">Thông tin người nhận</CardTitle>
                 <CardDescription>
-                  Mã bản quyền License và liên kết tải file sẽ được gửi trực tiếp đến email này.
+                  {hasPhysical
+                    ? 'Chúng tôi dùng số điện thoại này để liên hệ trước khi giao hàng.'
+                    : 'Mã bản quyền License và liên kết tải file sẽ được gửi tới email này.'}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <label htmlFor="email" className="text-foreground text-sm font-medium">
+                  <label htmlFor="email" className={fieldLabel}>
                     Địa chỉ Email <span className="text-rose-500">*</span>
                   </label>
                   <Input
@@ -180,26 +256,113 @@ export default function CheckoutPage() {
                     required
                     disabled={submitting}
                   />
-                  <p className="text-muted-foreground text-xs">
-                    Hãy đảm bảo email chính xác để không bị thất lạc mã License.
-                  </p>
                 </div>
 
-                <div className="space-y-2">
-                  <label htmlFor="name" className="text-foreground text-sm font-medium">
-                    Họ và tên (tuỳ chọn)
-                  </label>
-                  <Input
-                    id="name"
-                    type="text"
-                    placeholder="Nguyễn Văn A"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    disabled={submitting}
-                  />
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <label htmlFor="name" className={fieldLabel}>
+                      Họ và tên <span className="text-rose-500">*</span>
+                    </label>
+                    <Input
+                      id="name"
+                      type="text"
+                      placeholder="Nguyễn Văn A"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      required
+                      disabled={submitting}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label htmlFor="phone" className={fieldLabel}>
+                      Số điện thoại <span className="text-rose-500">*</span>
+                    </label>
+                    <Input
+                      id="phone"
+                      type="tel"
+                      inputMode="tel"
+                      placeholder="0912345678"
+                      pattern="(0|\+84)[0-9]{9}"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      required
+                      disabled={submitting}
+                    />
+                  </div>
                 </div>
               </CardContent>
             </Card>
+
+            {hasPhysical && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-lg font-bold">
+                    <Truck className="text-primary h-5 w-5" />
+                    Địa chỉ nhận hàng
+                  </CardTitle>
+                  <CardDescription>
+                    Phí vận chuyển được tính theo tỉnh/thành bạn chọn.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <label htmlFor="province" className={fieldLabel}>
+                      Tỉnh / Thành phố <span className="text-rose-500">*</span>
+                    </label>
+                    <select
+                      id="province"
+                      className={selectClass}
+                      value={province}
+                      onChange={(e) => setProvince(e.target.value)}
+                      required
+                      disabled={submitting}
+                    >
+                      <option value="">— Chọn tỉnh/thành —</option>
+                      {PROVINCES.map((item) => (
+                        <option key={item.code} value={item.code}>
+                          {item.name}
+                        </option>
+                      ))}
+                    </select>
+                    {shippingQuote?.zoneName && (
+                      <p className="text-muted-foreground text-xs">
+                        Khu vực: {shippingQuote.zoneName}
+                        {shippingQuote.freeShip ? ' — đủ điều kiện miễn phí ship' : ''}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <label htmlFor="address" className={fieldLabel}>
+                      Địa chỉ chi tiết <span className="text-rose-500">*</span>
+                    </label>
+                    <Input
+                      id="address"
+                      type="text"
+                      placeholder="Số nhà, đường, phường/xã"
+                      value={address}
+                      onChange={(e) => setAddress(e.target.value)}
+                      required
+                      disabled={submitting}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label htmlFor="note" className={fieldLabel}>
+                      Ghi chú (tuỳ chọn)
+                    </label>
+                    <Input
+                      id="note"
+                      type="text"
+                      placeholder="Giao giờ hành chính, gọi trước khi tới…"
+                      value={note}
+                      onChange={(e) => setNote(e.target.value)}
+                      disabled={submitting}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Phương thức thanh toán */}
             <Card className="border-primary/30">
@@ -208,22 +371,59 @@ export default function CheckoutPage() {
                   <QrCode className="text-primary h-5 w-5" />
                   Phương thức thanh toán
                 </CardTitle>
-                <CardDescription>
-                  Chuyển khoản VietQR tự động 24/7 qua cổng PayOS (hỗ trợ mọi ngân hàng)
-                </CardDescription>
               </CardHeader>
-              <CardContent>
-                <div className="border-primary/20 bg-primary/5 space-y-2 rounded-lg border p-4 text-sm">
-                  <div className="text-foreground flex items-center gap-2 font-semibold">
-                    <ShieldCheck className="h-4 w-4 text-emerald-500" />
-                    Xác nhận tức thì qua Webhook VietQR
-                  </div>
-                  <p className="text-muted-foreground text-xs leading-relaxed">
-                    Sau khi bấm nút bên dưới, bạn sẽ được chuyển tới giao diện mã VietQR động. Chỉ
-                    cần mở app ngân hàng bất kỳ (VCB, MB, Techcombank, VPBank...) quét mã, tiền vào
-                    là nhận file ngay.
-                  </p>
-                </div>
+              <CardContent className="space-y-3">
+                <label
+                  className={`flex cursor-pointer items-start gap-3 rounded-lg border p-4 transition ${
+                    paymentMethod === 'PAYOS' ? 'border-primary bg-primary/5' : 'border-border'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="paymentMethod"
+                    value="PAYOS"
+                    checked={paymentMethod === 'PAYOS'}
+                    onChange={() => setPaymentMethod('PAYOS')}
+                    className="accent-primary mt-1 size-4"
+                    disabled={submitting}
+                  />
+                  <span className="text-sm">
+                    <span className="text-foreground flex items-center gap-2 font-semibold">
+                      <ShieldCheck className="h-4 w-4 text-emerald-500" />
+                      Chuyển khoản / QR (PayOS)
+                    </span>
+                    <span className="text-muted-foreground mt-1 block text-xs leading-relaxed">
+                      Quét VietQR bằng app ngân hàng bất kỳ, hệ thống xác nhận tự động 24/7.
+                    </span>
+                  </span>
+                </label>
+
+                {allPhysical && (
+                  <label
+                    className={`flex cursor-pointer items-start gap-3 rounded-lg border p-4 transition ${
+                      paymentMethod === 'COD' ? 'border-primary bg-primary/5' : 'border-border'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="paymentMethod"
+                      value="COD"
+                      checked={paymentMethod === 'COD'}
+                      onChange={() => setPaymentMethod('COD')}
+                      className="accent-primary mt-1 size-4"
+                      disabled={submitting}
+                    />
+                    <span className="text-sm">
+                      <span className="text-foreground flex items-center gap-2 font-semibold">
+                        <Banknote className="h-4 w-4 text-emerald-500" />
+                        Thanh toán khi nhận hàng (COD)
+                      </span>
+                      <span className="text-muted-foreground mt-1 block text-xs leading-relaxed">
+                        Trả tiền mặt cho đơn vị vận chuyển. Chỉ áp dụng cho đơn toàn hàng vật lý.
+                      </span>
+                    </span>
+                  </label>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -272,11 +472,26 @@ export default function CheckoutPage() {
                     </div>
                   )}
 
+                  {hasPhysical && (
+                    <div className="text-muted-foreground flex justify-between text-xs">
+                      <span>Phí vận chuyển:</span>
+                      <span>
+                        {quoting ? (
+                          <Loader2 className="inline h-3 w-3 animate-spin" />
+                        ) : !province ? (
+                          'Chọn tỉnh để tính'
+                        ) : shippingFeeVnd === 0 ? (
+                          'Miễn phí'
+                        ) : (
+                          `${shippingFeeVnd.toLocaleString('vi-VN')} đ`
+                        )}
+                      </span>
+                    </div>
+                  )}
+
                   <div className="text-foreground border-border flex justify-between border-t pt-2 text-lg font-extrabold">
                     <span>Tổng thanh toán:</span>
-                    <span className="text-primary">
-                      {cartData.totalVnd.toLocaleString('vi-VN')} đ
-                    </span>
+                    <span className="text-primary">{grandTotalVnd.toLocaleString('vi-VN')} đ</span>
                   </div>
                 </div>
 
@@ -306,11 +521,11 @@ export default function CheckoutPage() {
                   {submitting ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Đang tạo mã VietQR...
+                      Đang xử lý đơn hàng...
                     </>
                   ) : (
                     <>
-                      Thanh toán với VietQR
+                      {paymentMethod === 'COD' ? 'Đặt hàng (COD)' : 'Thanh toán với VietQR'}
                       <ArrowRight className="ml-2 h-4 w-4" />
                     </>
                   )}

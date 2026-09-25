@@ -94,6 +94,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Đơn có hàng phải giao thì chuyển sang "đã xác nhận" để admin đóng gói;
+    // đơn chỉ gồm file tải về coi như giao xong ngay khi cấp license.
+    const hasPhysical = order.items.some((item) => item.productTypeSnapshot === 'PHYSICAL');
+    const nextFulfillment = hasPhysical
+      ? ('CONFIRMED' as const)
+      : order.fulfillmentStatus
+        ? ('DELIVERED' as const)
+        : null;
+
     // 5. Giao dịch Database đồng nhất: Cập nhật Order, Payment, License và Coupon
     const result = await db.$transaction(async (tx) => {
       // a. Cập nhật Order -> PAID
@@ -102,6 +111,7 @@ export async function POST(req: NextRequest) {
         data: {
           status: 'PAID',
           paidAt: new Date(),
+          fulfillmentStatus: nextFulfillment,
         },
       });
 
@@ -131,6 +141,9 @@ export async function POST(req: NextRequest) {
       const createdLicenses = [];
 
       for (const item of order.items) {
+        // Chỉ hàng file tải về mới có license; hàng vật lý được giao thủ công.
+        if (item.productTypeSnapshot !== 'DOWNLOAD') continue;
+
         // Kiểm tra xem đã có license cho item này chưa (1-1)
         const existingLicense = await tx.license.findUnique({
           where: { orderItemId: item.id },

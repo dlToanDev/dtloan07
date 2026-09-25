@@ -5,13 +5,27 @@ import { auth } from '@/lib/auth';
 import { calculatePricing } from '@/lib/pricing';
 import { buildPriceMap, loadCartProducts } from '@/lib/shop/cart-products';
 import { lineKey, resolveCartLines, type ResolvedCartLine } from '@/lib/shop/variants';
+import { reserveVariantStock } from '@/lib/shop/inventory';
+import {
+  canUseCOD,
+  quoteShipping,
+  splitCartTotals,
+  VN_PHONE_RE,
+  type CartLineType,
+} from '@/lib/shop/shipping';
+import { isValidProvince } from '@/config/provinces';
 import { createPayOSPaymentLink, generateLicenseKey } from '@/lib/payments/payos';
-import { sendOrderLicenseEmail } from '@/lib/mail';
+import { sendAdminNewOrderEmail, sendOrderLicenseEmail, sendOrderReceivedEmail } from '@/lib/mail';
 import { siteConfig } from '@/config/site';
+
+/** Đơn có giữ chỗ tồn kho phải thanh toán nhanh để không giam hàng của khách khác. */
+const RESERVED_STOCK_TTL_MS = 30 * 60 * 1000;
+const DIGITAL_ORDER_TTL_MS = 24 * 60 * 60 * 1000;
 
 const checkoutSchema = z.object({
   email: z.string().email('Địa chỉ email nhận hàng không hợp lệ.'),
-  name: z.string().optional(),
+  name: z.string().trim().min(1, 'Vui lòng nhập họ tên người nhận.').max(120),
+  phone: z.string().trim().regex(VN_PHONE_RE, 'Số điện thoại không hợp lệ (ví dụ 0912345678).'),
   items: z
     .array(
       z.object({
@@ -22,6 +36,14 @@ const checkoutSchema = z.object({
     )
     .min(1, 'Giỏ hàng không được để trống.'),
   couponCode: z.string().optional().nullable(),
+  paymentMethod: z.enum(['PAYOS', 'COD']).default('PAYOS'),
+  shipping: z
+    .object({
+      province: z.string().trim().max(64).optional().default(''),
+      address: z.string().trim().max(300).optional().default(''),
+      note: z.string().trim().max(500).optional().default(''),
+    })
+    .optional(),
 });
 
 /** Dữ liệu OrderItem kèm snapshot biến thể và loại hàng tại thời điểm đặt. */
@@ -54,7 +76,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { email, items, couponCode } = parseResult.data;
+    const { email, name, phone, items, couponCode, paymentMethod, shipping } = parseResult.data;
     const userId = session?.user?.id;
 
     // 1. Đọc sản phẩm + biến thể từ Database và chuẩn hóa dòng giỏ hàng
@@ -68,16 +90,34 @@ export async function POST(req: NextRequest) {
     }
     const productsMap = buildPriceMap(lines);
     const lineMap = new Map(lines.map((line) => [lineKey(line.productId, line.variantId), line]));
+    const cartLines: CartLineType[] = lines.map((line) => ({
+      productId: line.productId,
+      variantId: line.variantId,
+      qty: line.qty,
+      type: line.product.type,
+    }));
+    const hasPhysical = cartLines.some((line) => line.type === 'PHYSICAL');
 
-    // 2. Tìm coupon nếu có
-    let coupon = null;
-    if (couponCode && couponCode.trim() !== '') {
-      coupon = await db.coupon.findUnique({
-        where: { code: couponCode.trim().toUpperCase() },
-      });
+    // 2. Luật giao hàng và thanh toán
+    if (hasPhysical) {
+      if (!isValidProvince(shipping?.province))
+        return NextResponse.json({ error: 'Vui lòng chọn tỉnh/thành nhận hàng.' }, { status: 400 });
+      if (!shipping?.address)
+        return NextResponse.json({ error: 'Vui lòng nhập địa chỉ nhận hàng.' }, { status: 400 });
+    }
+    if (paymentMethod === 'COD' && !canUseCOD(cartLines)) {
+      return NextResponse.json(
+        { error: 'Thanh toán khi nhận hàng chỉ áp dụng cho đơn chỉ gồm hàng vật lý.' },
+        { status: 400 },
+      );
     }
 
-    // 3. Tính toán giá tiền chính xác từ server
+    // 3. Coupon và giá tiền (server tự tính, không tin client)
+    let coupon = null;
+    if (couponCode && couponCode.trim() !== '') {
+      coupon = await db.coupon.findUnique({ where: { code: couponCode.trim().toUpperCase() } });
+    }
+
     const pricing = calculatePricing({
       items: lines.map(({ productId, variantId, qty }) => ({ productId, variantId, qty })),
       productsMap,
@@ -91,31 +131,109 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 4. Sinh mã đơn hàng số nguyên cho PayOS (PayOS yêu cầu orderCode dạng số nguyên dương)
-    // Dùng timestamp (giây) + 2 số ngẫu nhiên để không trùng lặp và không vượt quá Number.MAX_SAFE_INTEGER
+    // 4. Phí ship theo khu vực, tính trên tạm tính hàng vật lý sau giảm giá
+    let shippingFeeVnd = 0;
+    if (hasPhysical) {
+      const zones = await db.shippingZone.findMany();
+      const totals = splitCartTotals({
+        lines: cartLines,
+        pricingItems: pricing.items,
+        discountVnd: pricing.discountVnd,
+      });
+      shippingFeeVnd = quoteShipping({
+        zones,
+        provinceCode: shipping?.province,
+        physicalSubtotalVnd: totals.physicalAfterDiscountVnd,
+      }).feeVnd;
+    }
+
+    const totalVnd = Math.max(0, pricing.totalVnd + shippingFeeVnd);
+
+    // 5. Mã đơn cho PayOS (yêu cầu số nguyên dương)
     const numericOrderCode = Number(
       `${Math.floor(Date.now() / 1000)}${Math.floor(10 + Math.random() * 90)}`,
     );
     const formattedOrderCode = `DH-${numericOrderCode}`;
 
-    // 5. Nếu đơn hàng 0 VND (Ví dụ miễn phí hoặc giảm 100%): Cấp License ngay lập tức
-    if (pricing.totalVnd <= 0) {
+    const needsFulfillment = hasPhysical;
+    const orderBase = {
+      orderCode: formattedOrderCode,
+      userId: userId || null,
+      email,
+      customerName: name,
+      phone,
+      subtotalVnd: pricing.subtotalVnd,
+      discountVnd: pricing.discountVnd,
+      shippingFeeVnd,
+      totalVnd,
+      couponId: coupon?.id || null,
+      provider: 'PAYOS' as const,
+      paymentMethod,
+      fulfillmentStatus: needsFulfillment ? ('PENDING' as const) : null,
+      shipProvince: hasPhysical ? (shipping?.province ?? null) : null,
+      shipAddress: hasPhysical ? (shipping?.address ?? null) : null,
+      shipNote: hasPhysical ? shipping?.note || null : null,
+      items: { create: pricing.items.map((item) => orderItemData(item, lineMap)) },
+    };
+
+    const reserveLines = lines.map((line) => ({
+      variantId: line.variantId,
+      qty: line.qty,
+      label: `${line.product.name} – ${line.variant.name}`,
+    }));
+
+    // 6. Đơn COD: không qua cổng thanh toán, chốt đơn ngay
+    if (paymentMethod === 'COD') {
+      const created = await db.$transaction(async (tx) => {
+        const reserve = await reserveVariantStock(tx, reserveLines);
+        if (!reserve.ok) throw new Error(`STOCK:${reserve.error}`);
+        const order = await tx.order.create({
+          data: { ...orderBase, status: 'PENDING', expiresAt: null },
+        });
+        if (coupon) {
+          await tx.coupon.update({
+            where: { id: coupon.id },
+            data: { usedCount: { increment: 1 } },
+          });
+        }
+        return order;
+      });
+
+      await sendOrderReceivedEmail({
+        to: email,
+        orderCode: formattedOrderCode,
+        totalVnd,
+        paymentMethod: 'COD',
+      }).catch((e) => console.error('Lỗi gửi mail xác nhận đơn COD:', e));
+      await sendAdminNewOrderEmail({
+        orderCode: formattedOrderCode,
+        totalVnd,
+        customerName: name,
+        phone,
+        paymentMethod: 'COD',
+      }).catch((e) => console.error('Lỗi gửi mail báo admin:', e));
+
+      return NextResponse.json({
+        success: true,
+        orderCode: formattedOrderCode,
+        orderId: created.id,
+        checkoutUrl: `${siteConfig.url}/checkout/success?orderCode=${numericOrderCode}&cod=1`,
+        isCOD: true,
+      });
+    }
+
+    // 7. Đơn 0 đ (miễn phí hoặc giảm 100%): cấp license ngay
+    if (totalVnd <= 0) {
       const order = await db.$transaction(async (tx) => {
+        const reserve = await reserveVariantStock(tx, reserveLines);
+        if (!reserve.ok) throw new Error(`STOCK:${reserve.error}`);
+
         const newOrder = await tx.order.create({
           data: {
-            orderCode: formattedOrderCode,
-            userId: userId || null,
-            email,
+            ...orderBase,
             status: 'PAID',
-            subtotalVnd: pricing.subtotalVnd,
-            discountVnd: pricing.discountVnd,
-            totalVnd: 0,
-            couponId: coupon?.id || null,
-            provider: 'PAYOS',
             paidAt: new Date(),
-            items: {
-              create: pricing.items.map((item) => orderItemData(item, lineMap)),
-            },
+            fulfillmentStatus: needsFulfillment ? 'CONFIRMED' : null,
           },
           include: { items: true },
         });
@@ -127,9 +245,9 @@ export async function POST(req: NextRequest) {
           });
         }
 
-        // Tạo License
         const licensesToDeliver = [];
         for (const orderItem of newOrder.items) {
+          if (orderItem.productTypeSnapshot !== 'DOWNLOAD') continue;
           const maxDownloads =
             (
               await tx.product.findUnique({
@@ -137,10 +255,9 @@ export async function POST(req: NextRequest) {
                 select: { maxDownloads: true },
               })
             )?.maxDownloads ?? 5;
-          const licenseKey = generateLicenseKey();
           const license = await tx.license.create({
             data: {
-              key: licenseKey,
+              key: generateLicenseKey(),
               userId: userId || null,
               email,
               orderItemId: orderItem.id,
@@ -159,12 +276,13 @@ export async function POST(req: NextRequest) {
         return { newOrder, licensesToDeliver };
       });
 
-      // Gửi email xác nhận kèm License
-      await sendOrderLicenseEmail({
-        to: email,
-        orderCode: formattedOrderCode,
-        licenses: order.licensesToDeliver,
-      }).catch((e) => console.error('Lỗi gửi mail đơn hàng miễn phí:', e));
+      if (order.licensesToDeliver.length > 0) {
+        await sendOrderLicenseEmail({
+          to: email,
+          orderCode: formattedOrderCode,
+          licenses: order.licensesToDeliver,
+        }).catch((e) => console.error('Lỗi gửi mail đơn hàng miễn phí:', e));
+      }
 
       return NextResponse.json({
         success: true,
@@ -174,39 +292,50 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // 6. Tạo đơn hàng PENDING trong Database
-    await db.order.create({
-      data: {
-        orderCode: formattedOrderCode,
-        userId: userId || null,
-        email,
-        status: 'PENDING',
-        subtotalVnd: pricing.subtotalVnd,
-        discountVnd: pricing.discountVnd,
-        totalVnd: pricing.totalVnd,
-        couponId: coupon?.id || null,
-        provider: 'PAYOS',
-        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // Hết hạn sau 24h
-        items: {
-          create: pricing.items.map((item) => orderItemData(item, lineMap)),
+    // 8. Đơn PayOS: giữ kho rồi tạo link thanh toán
+    const { reservedCount } = await db.$transaction(async (tx) => {
+      const reserve = await reserveVariantStock(tx, reserveLines);
+      if (!reserve.ok) throw new Error(`STOCK:${reserve.error}`);
+      // Đơn đang giam hàng thì hạn thanh toán ngắn, đơn chỉ có file giữ nguyên 24h.
+      const ttl = reserve.reservedCount > 0 ? RESERVED_STOCK_TTL_MS : DIGITAL_ORDER_TTL_MS;
+      await tx.order.create({
+        data: {
+          ...orderBase,
+          status: 'PENDING',
+          expiresAt: new Date(Date.now() + ttl),
         },
-      },
+      });
+      return reserve;
     });
 
-    // 7. Gọi PayOS tạo Payment Link thanh toán VietQR
     const payosResult = await createPayOSPaymentLink({
       orderCode: numericOrderCode,
-      amount: pricing.totalVnd,
+      amount: totalVnd,
       description: formattedOrderCode,
-      items: pricing.items.map((item) => {
-        const line = lineMap.get(lineKey(item.productId, item.variantId));
-        return {
-          name: (line?.product.name || 'Sản phẩm số').slice(0, 50),
-          quantity: item.qty,
-          price: item.unitPriceVnd,
-        };
-      }),
+      items: [
+        ...pricing.items.map((item) => {
+          const line = lineMap.get(lineKey(item.productId, item.variantId));
+          return {
+            name: (line?.product.name || 'Sản phẩm số').slice(0, 50),
+            quantity: item.qty,
+            price: item.unitPriceVnd,
+          };
+        }),
+        ...(shippingFeeVnd > 0
+          ? [{ name: 'Phí vận chuyển', quantity: 1, price: shippingFeeVnd }]
+          : []),
+      ],
     });
+
+    if (hasPhysical) {
+      await sendAdminNewOrderEmail({
+        orderCode: formattedOrderCode,
+        totalVnd,
+        customerName: name,
+        phone,
+        paymentMethod: 'PAYOS',
+      }).catch((e) => console.error('Lỗi gửi mail báo admin:', e));
+    }
 
     return NextResponse.json({
       success: true,
@@ -214,8 +343,13 @@ export async function POST(req: NextRequest) {
       checkoutUrl: payosResult.checkoutUrl,
       qrCode: payosResult.qrCode,
       isMock: payosResult.isMock,
+      reservedCount,
     });
   } catch (error) {
+    // Lỗi hết hàng được ném ra từ transaction để rollback phần đã trừ kho.
+    if (error instanceof Error && error.message.startsWith('STOCK:')) {
+      return NextResponse.json({ error: error.message.slice(6) }, { status: 409 });
+    }
     console.error('❌ Lỗi tạo đơn hàng thanh toán:', error);
     return NextResponse.json(
       { error: 'Có lỗi xảy ra khi khởi tạo thanh toán. Vui lòng thử lại sau.' },

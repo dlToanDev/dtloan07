@@ -37,6 +37,7 @@ const serverSchema = z.object({
   // P6 — Email
   RESEND_API_KEY: optional(z.string().startsWith('re_')),
   EMAIL_FROM: optional(z.string()),
+  ADMIN_NOTIFY_EMAIL: optional(z.string().email()),
 
   // P9 — Storage (R2)
   R2_ACCOUNT_ID: optional(z.string()),

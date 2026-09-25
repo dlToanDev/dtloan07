@@ -6,6 +6,13 @@
 
 **Tiền đề:** Giai đoạn 1 đã xong và đã merge vào `dev`; migration `20260926090000_shop_variants` đã apply.
 
+## Trạng thái: xong toàn bộ 8 task (2026-09-25)
+
+Đã nghiệm thu trên PostgreSQL thật (Docker), gồm cả 7 test tích hợp (`pnpm test:int`):
+đặt COD, phí ship theo tỉnh, chặn bán vượt kho, cron hết hạn trả kho, và vòng đời
+`Chờ xác nhận → Đã xác nhận → Đang giao → Đã giao` (đơn COD tự chuyển `PAID`).
+Còn lại của spec: giai đoạn 3 (tài khoản số).
+
 ## Global Constraints
 
 - `PURCHASABLE_TYPES` thêm `PHYSICAL`. `ACCOUNT` vẫn "Sắp mở bán" tới giai đoạn 3.

@@ -1,5 +1,6 @@
 import { db } from '@/lib/db';
 import type { ProductPriceSnapshot } from '@/lib/pricing';
+import { countAvailableAccounts } from '@/lib/shop/account-stock';
 import { lineKey, type ProductForCart, type ResolvedCartLine } from '@/lib/shop/variants';
 
 /** Đọc sản phẩm đang bán kèm biến thể, trả về dạng thuần cho resolveCartLines. */
@@ -9,6 +10,13 @@ export async function loadCartProducts(productIds: string[]): Promise<ProductFor
     where: { id: { in: [...new Set(productIds)] }, status: 'ACTIVE', saleMode: 'PAID' },
     include: { variants: true },
   });
+
+  // Tài khoản bàn giao tự động lấy tồn kho từ bảng AccountStock, không từ cột stock.
+  const autoVariantIds = rows
+    .filter((row) => row.type === 'ACCOUNT' && row.deliveryMode === 'AUTO')
+    .flatMap((row) => row.variants.map((variant) => variant.id));
+  const availableAccounts = await countAvailableAccounts(autoVariantIds);
+
   return rows.map((row) => ({
     id: row.id,
     name: row.name,
@@ -17,6 +25,7 @@ export async function loadCartProducts(productIds: string[]): Promise<ProductFor
     type: row.type,
     status: row.status,
     saleMode: row.saleMode,
+    deliveryMode: row.deliveryMode,
     variants: row.variants.map((variant) => ({
       id: variant.id,
       name: variant.name,
@@ -25,6 +34,7 @@ export async function loadCartProducts(productIds: string[]): Promise<ProductFor
       stock: variant.stock,
       sortOrder: variant.sortOrder,
       active: variant.active,
+      availableAccounts: availableAccounts.get(variant.id) ?? 0,
     })),
   }));
 }

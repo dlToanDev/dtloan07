@@ -4,7 +4,11 @@ import { db } from '@/lib/db';
 import { requireProductAdmin } from '@/server/actions/product';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { CancelOrderButton, FulfillmentActions } from '@/components/admin/order-actions';
+import {
+  CancelOrderButton,
+  FulfillmentActions,
+  ManualAccountDelivery,
+} from '@/components/admin/order-actions';
 import { provinceName } from '@/config/provinces';
 
 export const dynamic = 'force-dynamic';
@@ -29,7 +33,10 @@ export default async function AdminOrderDetailPage({
 
   const order = await db.order.findUnique({
     where: { id },
-    include: { items: true, coupon: true },
+    include: {
+      items: { include: { product: { select: { deliveryMode: true } } } },
+      coupon: true,
+    },
   });
 
   if (!order) notFound();
@@ -88,6 +95,30 @@ export default async function AdminOrderDetailPage({
                     <div className="font-semibold">{money(item.unitPriceVnd * item.qty)}</div>
                   </div>
                 ))}
+              </div>
+
+              {/* Tài khoản bàn giao thủ công: nhập thông tin và gửi cho khách */}
+              <div className="space-y-4">
+                {order.items
+                  .filter(
+                    (item) =>
+                      item.productTypeSnapshot === 'ACCOUNT' &&
+                      item.product.deliveryMode === 'MANUAL' &&
+                      order.status === 'PAID',
+                  )
+                  .map((item) => (
+                    <div key={`manual-${item.id}`} className="border-border border-t pt-4">
+                      <ManualAccountDelivery
+                        orderItemId={item.id}
+                        label={
+                          item.variantNameSnapshot
+                            ? `${item.productNameSnapshot} — ${item.variantNameSnapshot}`
+                            : item.productNameSnapshot
+                        }
+                        delivered={Boolean(item.deliveredAt)}
+                      />
+                    </div>
+                  ))}
               </div>
 
               <div className="border-border mt-4 space-y-1 border-t pt-4 text-sm">

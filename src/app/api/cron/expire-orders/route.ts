@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { releaseOrderInventory } from '@/lib/shop/inventory';
+import { releaseAccountsForOrder } from '@/lib/shop/account-stock';
 
 export const dynamic = 'force-dynamic';
 
@@ -44,6 +45,7 @@ export async function GET(req: NextRequest) {
           });
           if (updated.count === 0) return;
           await releaseOrderInventory(tx, order.id);
+          await releaseAccountsForOrder(tx, order.id);
           expiredCount += 1;
         })
         .catch((err) => console.error(`Lỗi hủy đơn quá hạn ${order.id}:`, err));

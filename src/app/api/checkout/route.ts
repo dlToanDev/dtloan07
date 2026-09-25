@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import type { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import { db } from '@/lib/db';
 import { auth } from '@/lib/auth';
@@ -6,6 +7,9 @@ import { calculatePricing } from '@/lib/pricing';
 import { buildPriceMap, loadCartProducts } from '@/lib/shop/cart-products';
 import { lineKey, resolveCartLines, type ResolvedCartLine } from '@/lib/shop/variants';
 import { reserveVariantStock } from '@/lib/shop/inventory';
+import { reserveAccountsForItem } from '@/lib/shop/account-stock';
+import { isCredentialKeyConfigured } from '@/lib/crypto/credentials';
+import { deliverAutoAccounts } from '@/lib/shop/account-delivery';
 import {
   canUseCOD,
   quoteShipping,
@@ -112,6 +116,19 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Không bán tài khoản tự động khi chưa có khóa mã hóa — nếu không thì
+    // không thể bàn giao và tiền của khách bị treo.
+    const autoAccountLines = lines.filter(
+      (line) => line.product.type === 'ACCOUNT' && line.product.deliveryMode === 'AUTO',
+    );
+    const autoAccountVariantIds = new Set(autoAccountLines.map((line) => line.variantId));
+    if (autoAccountLines.length > 0 && !isCredentialKeyConfigured()) {
+      return NextResponse.json(
+        { error: 'Hệ thống chưa sẵn sàng bàn giao tài khoản. Vui lòng liên hệ người bán.' },
+        { status: 503 },
+      );
+    }
+
     // 3. Coupon và giá tiền (server tự tính, không tin client)
     let coupon = null;
     if (couponCode && couponCode.trim() !== '') {
@@ -155,7 +172,8 @@ export async function POST(req: NextRequest) {
     );
     const formattedOrderCode = `DH-${numericOrderCode}`;
 
-    const needsFulfillment = hasPhysical;
+    const hasAccount = cartLines.some((line) => line.type === 'ACCOUNT');
+    const needsFulfillment = hasPhysical || hasAccount;
     const orderBase = {
       orderCode: formattedOrderCode,
       userId: userId || null,
@@ -176,11 +194,47 @@ export async function POST(req: NextRequest) {
       items: { create: pricing.items.map((item) => orderItemData(item, lineMap)) },
     };
 
-    const reserveLines = lines.map((line) => ({
-      variantId: line.variantId,
-      qty: line.qty,
-      label: `${line.product.name} – ${line.variant.name}`,
-    }));
+    const reserveLines = lines
+      // Tài khoản tự động giữ chỗ theo dòng kho, không trừ cột stock.
+      .filter((line) => !autoAccountVariantIds.has(line.variantId))
+      .map((line) => ({
+        variantId: line.variantId,
+        qty: line.qty,
+        label: `${line.product.name} – ${line.variant.name}`,
+      }));
+
+    /** Giữ chỗ tài khoản cho từng OrderItem sau khi đơn đã có id. */
+    async function reserveOrderAccounts(
+      tx: Prisma.TransactionClient,
+      orderId: string,
+      reservedUntil: Date | null,
+    ) {
+      if (autoAccountVariantIds.size === 0) return;
+      const items = await tx.orderItem.findMany({
+        where: { orderId, productTypeSnapshot: 'ACCOUNT' },
+        select: {
+          id: true,
+          variantId: true,
+          qty: true,
+          productNameSnapshot: true,
+          variantNameSnapshot: true,
+        },
+      });
+
+      for (const item of items) {
+        if (!item.variantId || !autoAccountVariantIds.has(item.variantId)) continue;
+        const result = await reserveAccountsForItem(tx, {
+          variantId: item.variantId,
+          orderItemId: item.id,
+          qty: item.qty,
+          reservedUntil,
+          label: item.variantNameSnapshot
+            ? `${item.productNameSnapshot} – ${item.variantNameSnapshot}`
+            : item.productNameSnapshot,
+        });
+        if (!result.ok) throw new Error(`STOCK:${result.error}`);
+      }
+    }
 
     // 6. Đơn COD: không qua cổng thanh toán, chốt đơn ngay
     if (paymentMethod === 'COD') {
@@ -238,6 +292,8 @@ export async function POST(req: NextRequest) {
           include: { items: true },
         });
 
+        await reserveOrderAccounts(tx, newOrder.id, null);
+
         if (coupon) {
           await tx.coupon.update({
             where: { id: coupon.id },
@@ -284,6 +340,16 @@ export async function POST(req: NextRequest) {
         }).catch((e) => console.error('Lỗi gửi mail đơn hàng miễn phí:', e));
       }
 
+      // Đơn 0 đ đã "thanh toán" nên bàn giao tài khoản tự động ngay.
+      if (autoAccountVariantIds.size > 0) {
+        await deliverAutoAccounts({
+          id: order.newOrder.id,
+          orderCode: formattedOrderCode,
+          email,
+          userId,
+        }).catch((e) => console.error('Lỗi bàn giao tài khoản đơn miễn phí:', e));
+      }
+
       return NextResponse.json({
         success: true,
         orderCode: formattedOrderCode,
@@ -297,14 +363,17 @@ export async function POST(req: NextRequest) {
       const reserve = await reserveVariantStock(tx, reserveLines);
       if (!reserve.ok) throw new Error(`STOCK:${reserve.error}`);
       // Đơn đang giam hàng thì hạn thanh toán ngắn, đơn chỉ có file giữ nguyên 24h.
-      const ttl = reserve.reservedCount > 0 ? RESERVED_STOCK_TTL_MS : DIGITAL_ORDER_TTL_MS;
-      await tx.order.create({
+      const holdsStock = reserve.reservedCount > 0 || autoAccountVariantIds.size > 0;
+      const ttl = holdsStock ? RESERVED_STOCK_TTL_MS : DIGITAL_ORDER_TTL_MS;
+      const expiresAt = new Date(Date.now() + ttl);
+      const order = await tx.order.create({
         data: {
           ...orderBase,
           status: 'PENDING',
-          expiresAt: new Date(Date.now() + ttl),
+          expiresAt,
         },
       });
+      await reserveOrderAccounts(tx, order.id, expiresAt);
       return reserve;
     });
 

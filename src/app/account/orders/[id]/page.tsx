@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { buttonStyles } from '@/components/ui/button';
 import { ArrowLeft, CheckCircle2, Clock, Download, Key, ShieldAlert } from 'lucide-react';
 import Link from 'next/link';
+import { AccountCredentialsButton } from '@/components/shop/account-credentials-button';
 
 interface OrderDetailPageProps {
   params: Promise<{
@@ -114,6 +115,11 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
                 <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-center">
                   <div>
                     <h3 className="text-foreground font-semibold">{item.productNameSnapshot}</h3>
+                    {item.variantNameSnapshot && (
+                      <div className="text-muted-foreground text-xs">
+                        {item.variantNameSnapshot}
+                      </div>
+                    )}
                     <div className="text-muted-foreground text-sm">
                       Số lượng: {item.qty} &times; {item.unitPriceVnd.toLocaleString('vi-VN')} đ
                     </div>
@@ -122,6 +128,17 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
                     {(item.unitPriceVnd * item.qty).toLocaleString('vi-VN')} đ
                   </div>
                 </div>
+
+                {/* Tài khoản số đã bàn giao */}
+                {isPaid && item.productTypeSnapshot === 'ACCOUNT' && (
+                  <div className="bg-muted/40 border-border space-y-3 rounded-lg border p-4">
+                    <div className="text-muted-foreground flex items-center gap-2 text-xs font-medium uppercase">
+                      <Key className="text-primary h-4 w-4" />
+                      Thông tin tài khoản
+                    </div>
+                    <AccountCredentialsButton orderItemId={item.id} />
+                  </div>
+                )}
 
                 {/* Khối giấy phép số nếu đã thanh toán */}
                 {isPaid && license && (

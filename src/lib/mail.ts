@@ -299,3 +299,70 @@ export async function sendAdminNewOrderEmail({
     text: `Đơn mới ${orderCode} (${paymentMethod}) — ${totalVnd.toLocaleString('vi-VN')} đ từ ${customerName} ${phone}.`,
   });
 }
+
+/**
+ * Gửi thông tin tài khoản số cho khách sau khi thanh toán thành công.
+ * Chuỗi truyền vào đây đã được giải mã — nơi gọi phải ghi CredentialAccessLog.
+ */
+export async function sendAccountDeliveryEmail({
+  to,
+  orderCode,
+  accounts,
+}: {
+  to: string;
+  orderCode: string;
+  accounts: Array<{ label: string; credentials: string }>;
+}) {
+  const escapeHtml = (value: string) =>
+    value
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+
+  const blocks = accounts
+    .map(
+      (account) => `
+      <div style="background-color: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; padding: 16px; margin-bottom: 12px;">
+        <h3 style="margin: 0 0 8px 0; color: #111827; font-size: 15px;">${escapeHtml(account.label)}</h3>
+        <pre style="margin: 0; white-space: pre-wrap; word-break: break-all; font-family: ui-monospace, monospace; font-size: 14px; color: #1f2937;">${escapeHtml(account.credentials)}</pre>
+      </div>`,
+    )
+    .join('');
+
+  return sendEmail({
+    to,
+    subject: `[Bàn giao tài khoản] Đơn hàng ${orderCode} tại ${siteConfig.name}`,
+    html: orderEmailShell(
+      'Thông tin tài khoản của bạn',
+      `<p style="color: #4b5563; font-size: 15px;">Đơn hàng <strong>${orderCode}</strong> đã thanh toán thành công. Dưới đây là thông tin đăng nhập:</p>
+       ${blocks}
+       <p style="color: #6b7280; font-size: 13px;">Vui lòng đổi mật khẩu phụ (nếu có) và không chia sẻ thông tin này cho người khác. Mọi vấn đề về bảo hành xin liên hệ lại đơn hàng này.</p>`,
+    ),
+    text: accounts.map((account) => `${account.label}\n${account.credentials}`).join('\n\n'),
+  });
+}
+
+/** Báo admin có tài khoản cần bàn giao thủ công. */
+export async function sendAdminManualDeliveryEmail({
+  orderCode,
+  items,
+}: {
+  orderCode: string;
+  items: string[];
+}) {
+  const to = process.env.ADMIN_NOTIFY_EMAIL;
+  if (!to) return { success: true, skipped: true };
+
+  return sendEmail({
+    to,
+    subject: `[Cần bàn giao] Đơn ${orderCode} có tài khoản giao thủ công`,
+    html: orderEmailShell(
+      'Đơn hàng cần bàn giao tài khoản',
+      `<p style="color: #4b5563; font-size: 15px;">Đơn <strong>${orderCode}</strong> đã thanh toán và đang chờ bạn gửi thông tin tài khoản:</p>
+       <ul style="color: #4b5563; font-size: 14px;">${items.map((item) => `<li>${item}</li>`).join('')}</ul>
+       <p><a href="${siteConfig.url}/admin/orders" style="color: #2563eb;">Mở trang quản lý đơn hàng</a></p>`,
+    ),
+    text: `Đơn ${orderCode} cần bàn giao tài khoản: ${items.join(', ')}.`,
+  });
+}

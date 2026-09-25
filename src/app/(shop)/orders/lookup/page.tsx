@@ -7,10 +7,13 @@ import { Button, buttonStyles } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Search, Download, Key, CheckCircle2, Clock, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
+import { AccountCredentialsButton } from '@/components/shop/account-credentials-button';
 
 interface OrderItemInfo {
   id: string;
   productName: string;
+  variantName: string | null;
+  productType: 'DOWNLOAD' | 'PHYSICAL' | 'ACCOUNT';
   qty: number;
   unitPriceVnd: number;
   license: {
@@ -165,13 +168,30 @@ export default function OrderLookupPage() {
               {order.items.map((item) => (
                 <div key={item.id} className="space-y-3 py-4 first:pt-0 last:pb-0">
                   <div className="flex items-center justify-between">
-                    <div className="text-foreground font-medium">{item.productName}</div>
+                    <div>
+                      <div className="text-foreground font-medium">{item.productName}</div>
+                      {item.variantName && (
+                        <div className="text-muted-foreground text-xs">{item.variantName}</div>
+                      )}
+                    </div>
                     <div className="text-foreground font-bold">
                       {(item.unitPriceVnd * item.qty).toLocaleString('vi-VN')} đ
                     </div>
                   </div>
 
-                  {item.license ? (
+                  {item.productType === 'ACCOUNT' && order.status === 'PAID' ? (
+                    <div className="bg-muted/40 border-border space-y-3 rounded-lg border p-4">
+                      <div className="text-muted-foreground flex items-center gap-2 text-xs font-medium uppercase">
+                        <Key className="text-primary h-4 w-4" />
+                        Thông tin tài khoản
+                      </div>
+                      <AccountCredentialsButton
+                        orderItemId={item.id}
+                        orderCode={order.orderCode}
+                        email={order.email}
+                      />
+                    </div>
+                  ) : item.license ? (
                     <div className="bg-muted/40 border-border space-y-3 rounded-lg border p-4">
                       <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-center">
                         <div className="flex items-center gap-2">

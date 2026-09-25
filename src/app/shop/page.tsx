@@ -20,7 +20,11 @@ export const metadata: Metadata = buildMetadata({
 function loadProducts(filters: ShopFilters) {
   return db.product.findMany({
     where: buildShopWhere(filters),
-    include: { variants: true },
+    include: {
+      variants: {
+        include: { _count: { select: { accountStock: { where: { status: 'AVAILABLE' } } } } },
+      },
+    },
     orderBy: { createdAt: 'desc' },
   });
 }
@@ -112,7 +116,16 @@ export default async function ShopPage({
               shop={{
                 type: product.type,
                 condition: product.condition,
-                summary: summarizeVariants(product.variants),
+                summary: summarizeVariants(
+                  product.variants.map((variant) => ({
+                    ...variant,
+                    // Tài khoản tự động: tồn kho là số dòng kho còn trống.
+                    stock:
+                      product.type === 'ACCOUNT' && product.deliveryMode === 'AUTO'
+                        ? variant._count.accountStock
+                        : variant.stock,
+                  })),
+                ),
               }}
             />
           ))}

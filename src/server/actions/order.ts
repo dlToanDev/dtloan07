@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { db } from '@/lib/db';
 import { requireProductAdmin } from '@/server/actions/product';
 import { releaseOrderInventory } from '@/lib/shop/inventory';
+import { releaseAccountsForOrder } from '@/lib/shop/account-stock';
 import { sendOrderStatusEmail } from '@/lib/mail';
 
 export type OrderActionState = { error?: string; success?: string };
@@ -90,6 +91,7 @@ export async function cancelOrder(
     // Chỉ trả kho khi đơn vẫn đang giữ hàng (chưa hủy, chưa hết hạn).
     if (order.status === 'PENDING' || order.status === 'PAID') {
       await releaseOrderInventory(tx, orderId);
+      await releaseAccountsForOrder(tx, orderId);
     }
     await tx.order.update({
       where: { id: orderId },

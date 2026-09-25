@@ -104,18 +104,75 @@ describe('resolveCartLines', () => {
     expect(errors).toHaveLength(1);
   });
 
-  it('từ chối loại hàng chưa mở bán (ACCOUNT ở giai đoạn 2)', () => {
-    const netflix = product({ id: 'p3', type: 'ACCOUNT' });
-    const { lines, errors } = resolveCartLines([{ productId: 'p3', qty: 1 }], [netflix]);
-    expect(lines).toHaveLength(0);
-    expect(errors[0]?.message).toContain('Sắp mở bán');
-  });
-
   it('cho mua hàng vật lý từ giai đoạn 2', () => {
     const shirt = product({ id: 'p4', type: 'PHYSICAL' });
     const { lines, errors } = resolveCartLines([{ productId: 'p4', qty: 1 }], [shirt]);
     expect(errors).toEqual([]);
     expect(lines).toHaveLength(1);
+  });
+
+  it('từ chối loại hàng chưa mở bán', () => {
+    const shirt = product({ id: 'p5', type: 'PHYSICAL' });
+    const { lines, errors } = resolveCartLines(
+      [{ productId: 'p5', qty: 1 }],
+      [shirt],
+      ['DOWNLOAD'],
+    );
+    expect(lines).toHaveLength(0);
+    expect(errors[0]?.message).toContain('Sắp mở bán');
+  });
+
+  it('tài khoản tự động: tồn kho tính theo số dòng kho còn trống', () => {
+    const netflix = product({
+      id: 'acc',
+      type: 'ACCOUNT',
+      deliveryMode: 'AUTO',
+      variants: [v({ id: 'acc-3m', stock: null, availableAccounts: 2 })],
+    });
+    const ok = resolveCartLines([{ productId: 'acc', variantId: 'acc-3m', qty: 2 }], [netflix]);
+    expect(ok.errors).toEqual([]);
+
+    const tooMany = resolveCartLines(
+      [{ productId: 'acc', variantId: 'acc-3m', qty: 3 }],
+      [netflix],
+    );
+    expect(tooMany.lines).toHaveLength(0);
+    expect(tooMany.errors[0]?.message).toContain('chỉ còn 2');
+  });
+
+  it('tài khoản tự động hết kho thì báo hết hàng', () => {
+    const netflix = product({
+      id: 'acc2',
+      type: 'ACCOUNT',
+      deliveryMode: 'AUTO',
+      variants: [v({ id: 'acc2-v', stock: null, availableAccounts: 0 })],
+    });
+    const { lines, errors } = resolveCartLines([{ productId: 'acc2', qty: 1 }], [netflix]);
+    expect(lines).toHaveLength(0);
+    expect(errors[0]?.message).toContain('hết hàng');
+  });
+
+  it('tài khoản bàn giao thủ công không bị chặn bởi kho', () => {
+    const codex = product({
+      id: 'acc3',
+      type: 'ACCOUNT',
+      deliveryMode: 'MANUAL',
+      variants: [v({ id: 'acc3-v', stock: null })],
+    });
+    const { lines, errors } = resolveCartLines([{ productId: 'acc3', qty: 2 }], [codex]);
+    expect(errors).toEqual([]);
+    expect(lines[0]?.qty).toBe(2);
+  });
+
+  it('giới hạn 5 tài khoản mỗi dòng giỏ hàng', () => {
+    const codex = product({
+      id: 'acc4',
+      type: 'ACCOUNT',
+      deliveryMode: 'MANUAL',
+      variants: [v({ id: 'acc4-v', stock: null })],
+    });
+    const { lines } = resolveCartLines([{ productId: 'acc4', qty: 99 }], [codex]);
+    expect(lines[0]?.qty).toBe(5);
   });
 
   it('chuẩn hóa qty về số nguyên >= 1', () => {

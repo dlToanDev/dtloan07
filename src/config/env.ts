@@ -45,6 +45,9 @@ const serverSchema = z.object({
   R2_SECRET_ACCESS_KEY: optional(z.string()),
   R2_BUCKET: optional(z.string()),
 
+  // P3 Shop — Mã hóa thông tin tài khoản số (32 byte, mã hóa base64)
+  ACCOUNT_ENCRYPTION_KEY: optional(z.string().min(44)),
+
   // P8 — Payment (PayOS)
   PAYOS_CLIENT_ID: optional(z.string()),
   PAYOS_API_KEY: optional(z.string()),

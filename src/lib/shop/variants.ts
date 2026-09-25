@@ -8,6 +8,8 @@ export interface VariantSnapshot {
   stock: number | null;
   sortOrder: number;
   active: boolean;
+  /** Với tài khoản bàn giao tự động: số dòng kho còn trống. Loại khác bỏ trống. */
+  availableAccounts?: number | null;
 }
 
 export interface ProductForCart {
@@ -18,6 +20,7 @@ export interface ProductForCart {
   type: ProductTypeValue;
   status: string;
   saleMode: string;
+  deliveryMode?: 'AUTO' | 'MANUAL' | null;
   variants: VariantSnapshot[];
 }
 
@@ -49,8 +52,25 @@ export interface VariantSummary {
   soldOut: boolean;
 }
 
-/** Loại hàng đang cho phép mua. Giai đoạn 3 sẽ thêm ACCOUNT. */
-export const PURCHASABLE_TYPES: readonly ProductTypeValue[] = ['DOWNLOAD', 'PHYSICAL'];
+/** Loại hàng đang cho phép mua. */
+export const PURCHASABLE_TYPES: readonly ProductTypeValue[] = ['DOWNLOAD', 'PHYSICAL', 'ACCOUNT'];
+
+/** Số lượng tối đa mỗi dòng giỏ hàng với tài khoản số (spec 5.2). */
+export const MAX_ACCOUNT_QTY_PER_LINE = 5;
+
+/**
+ * Tồn kho thực tế của một biến thể.
+ * Tài khoản bàn giao tự động không dùng cột `stock` mà đếm số dòng kho còn trống.
+ */
+export function effectiveStock(
+  product: Pick<ProductForCart, 'type' | 'deliveryMode'>,
+  variant: VariantSnapshot,
+): number | null {
+  if (product.type === 'ACCOUNT' && product.deliveryMode === 'AUTO') {
+    return variant.availableAccounts ?? 0;
+  }
+  return variant.stock;
+}
 
 export function lineKey(productId: string, variantId?: string | null) {
   return variantId ? `${productId}:${variantId}` : productId;
@@ -102,7 +122,9 @@ export function resolveCartLines(
       });
       continue;
     }
-    const qty = Math.max(1, Math.floor(item.qty || 1));
+    const rawQty = Math.max(1, Math.floor(item.qty || 1));
+    // Tài khoản số giới hạn số lượng mỗi dòng để tránh gom sạch kho trong một đơn.
+    const qty = product.type === 'ACCOUNT' ? Math.min(rawQty, MAX_ACCOUNT_QTY_PER_LINE) : rawQty;
     const key = lineKey(product.id, variant.id);
     const existing = merged.get(key);
     if (existing) existing.qty += qty;
@@ -111,11 +133,20 @@ export function resolveCartLines(
 
   const lines: ResolvedCartLine[] = [];
   for (const line of merged.values()) {
-    if (line.variant.stock !== null && line.qty > line.variant.stock) {
+    const stock = effectiveStock(line.product, line.variant);
+    if (stock === 0) {
       errors.push({
         productId: line.productId,
         variantId: line.variantId,
-        message: `"${line.product.name} – ${line.variant.name}" chỉ còn ${line.variant.stock}.`,
+        message: `"${line.product.name} – ${line.variant.name}" đã hết hàng.`,
+      });
+      continue;
+    }
+    if (stock !== null && line.qty > stock) {
+      errors.push({
+        productId: line.productId,
+        variantId: line.variantId,
+        message: `"${line.product.name} – ${line.variant.name}" chỉ còn ${stock}.`,
       });
       continue;
     }

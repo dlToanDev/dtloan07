@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { db } from '@/lib/db';
 import { auth } from '@/lib/auth';
-import { calculatePricing, ProductPriceSnapshot } from '@/lib/pricing';
+import { calculatePricing } from '@/lib/pricing';
+import { buildPriceMap, loadCartProducts } from '@/lib/shop/cart-products';
+import { lineKey, resolveCartLines, type ResolvedCartLine } from '@/lib/shop/variants';
 import { createPayOSPaymentLink, generateLicenseKey } from '@/lib/payments/payos';
 import { sendOrderLicenseEmail } from '@/lib/mail';
 import { siteConfig } from '@/config/site';
@@ -14,12 +16,30 @@ const checkoutSchema = z.object({
     .array(
       z.object({
         productId: z.string().min(1),
+        variantId: z.string().min(1).optional().nullable(),
         qty: z.number().int().positive().default(1),
       }),
     )
     .min(1, 'Giỏ hàng không được để trống.'),
   couponCode: z.string().optional().nullable(),
 });
+
+/** Dữ liệu OrderItem kèm snapshot biến thể và loại hàng tại thời điểm đặt. */
+function orderItemData(
+  item: { productId: string; variantId?: string; qty: number; unitPriceVnd: number },
+  lineMap: Map<string, ResolvedCartLine>,
+) {
+  const line = lineMap.get(lineKey(item.productId, item.variantId));
+  return {
+    productId: item.productId,
+    variantId: line?.variantId ?? null,
+    variantNameSnapshot: line?.variant.name ?? null,
+    productTypeSnapshot: line?.product.type ?? 'DOWNLOAD',
+    qty: item.qty,
+    unitPriceVnd: item.unitPriceVnd,
+    productNameSnapshot: line?.product.name ?? 'Sản phẩm số',
+  };
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -37,34 +57,17 @@ export async function POST(req: NextRequest) {
     const { email, items, couponCode } = parseResult.data;
     const userId = session?.user?.id;
 
-    // 1. Đọc sản phẩm từ Database
-    const productIds = items.map((i) => i.productId);
-    const dbProducts = await db.product.findMany({
-      where: {
-        id: { in: productIds },
-        status: 'ACTIVE',
-        saleMode: 'PAID',
-      },
-    });
-
-    if (dbProducts.length !== new Set(productIds).size) {
+    // 1. Đọc sản phẩm + biến thể từ Database và chuẩn hóa dòng giỏ hàng
+    const products = await loadCartProducts(items.map((i) => i.productId));
+    const { lines, errors } = resolveCartLines(items, products);
+    if (errors.length > 0 || lines.length === 0) {
       return NextResponse.json(
-        { error: 'Không tìm thấy sản phẩm hợp lệ trong giỏ hàng.' },
+        { error: errors[0]?.message ?? 'Không tìm thấy sản phẩm hợp lệ trong giỏ hàng.' },
         { status: 400 },
       );
     }
-
-    const productsMap = new Map<string, ProductPriceSnapshot>();
-    const productDetails = new Map<string, (typeof dbProducts)[0]>();
-
-    for (const p of dbProducts) {
-      productsMap.set(p.id, {
-        id: p.id,
-        priceVnd: p.priceVnd,
-        status: p.status,
-      });
-      productDetails.set(p.id, p);
-    }
+    const productsMap = buildPriceMap(lines);
+    const lineMap = new Map(lines.map((line) => [lineKey(line.productId, line.variantId), line]));
 
     // 2. Tìm coupon nếu có
     let coupon = null;
@@ -76,7 +79,7 @@ export async function POST(req: NextRequest) {
 
     // 3. Tính toán giá tiền chính xác từ server
     const pricing = calculatePricing({
-      items,
+      items: lines.map(({ productId, variantId, qty }) => ({ productId, variantId, qty })),
       productsMap,
       coupon,
     });
@@ -111,15 +114,7 @@ export async function POST(req: NextRequest) {
             provider: 'PAYOS',
             paidAt: new Date(),
             items: {
-              create: pricing.items.map((item) => {
-                const prod = productDetails.get(item.productId);
-                return {
-                  productId: item.productId,
-                  qty: item.qty,
-                  unitPriceVnd: item.unitPriceVnd,
-                  productNameSnapshot: prod?.name || 'Sản phẩm số',
-                };
-              }),
+              create: pricing.items.map((item) => orderItemData(item, lineMap)),
             },
           },
           include: { items: true },
@@ -135,7 +130,13 @@ export async function POST(req: NextRequest) {
         // Tạo License
         const licensesToDeliver = [];
         for (const orderItem of newOrder.items) {
-          const prod = productDetails.get(orderItem.productId);
+          const maxDownloads =
+            (
+              await tx.product.findUnique({
+                where: { id: orderItem.productId },
+                select: { maxDownloads: true },
+              })
+            )?.maxDownloads ?? 5;
           const licenseKey = generateLicenseKey();
           const license = await tx.license.create({
             data: {
@@ -144,7 +145,7 @@ export async function POST(req: NextRequest) {
               email,
               orderItemId: orderItem.id,
               productId: orderItem.productId,
-              maxDownloads: prod?.maxDownloads || 5,
+              maxDownloads,
             },
           });
 
@@ -187,15 +188,7 @@ export async function POST(req: NextRequest) {
         provider: 'PAYOS',
         expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // Hết hạn sau 24h
         items: {
-          create: pricing.items.map((item) => {
-            const prod = productDetails.get(item.productId);
-            return {
-              productId: item.productId,
-              qty: item.qty,
-              unitPriceVnd: item.unitPriceVnd,
-              productNameSnapshot: prod?.name || 'Sản phẩm số',
-            };
-          }),
+          create: pricing.items.map((item) => orderItemData(item, lineMap)),
         },
       },
     });
@@ -206,9 +199,9 @@ export async function POST(req: NextRequest) {
       amount: pricing.totalVnd,
       description: formattedOrderCode,
       items: pricing.items.map((item) => {
-        const prod = productDetails.get(item.productId);
+        const line = lineMap.get(lineKey(item.productId, item.variantId));
         return {
-          name: (prod?.name || 'Sản phẩm số').slice(0, 50),
+          name: (line?.product.name || 'Sản phẩm số').slice(0, 50),
           quantity: item.qty,
           price: item.unitPriceVnd,
         };

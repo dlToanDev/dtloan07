@@ -9,6 +9,10 @@ import Link from 'next/link';
 
 interface ValidatedCartItem {
   productId: string;
+  variantId: string;
+  variantName: string;
+  hasMultipleVariants: boolean;
+  stockLeft: number | null;
   name: string;
   slug: string;
   coverUrl: string;
@@ -29,6 +33,7 @@ interface ValidatedCartData {
     discountVnd: number;
   } | null;
   couponError?: string;
+  errors?: string[];
 }
 
 export function CartDrawer() {
@@ -64,6 +69,21 @@ export function CartDrawer() {
             setCouponError(res.data.couponError);
           } else {
             setCouponError(null);
+          }
+
+          // Giỏ cũ trong localStorage chưa có variantId: gắn biến thể mặc định
+          // mà server vừa chọn, để nút +/− và nút xóa khớp đúng dòng.
+          const legacy = items.filter((item) => !item.variantId);
+          if (legacy.length > 0) {
+            const store = useCart.getState();
+            for (const item of legacy) {
+              const resolved = (res.data.items as ValidatedCartItem[]).find(
+                (line) => line.productId === item.productId,
+              );
+              if (!resolved?.variantId) continue;
+              store.removeItem(item.productId);
+              store.addItem(item.productId, item.qty, resolved.variantId);
+            }
           }
         }
       })
@@ -151,8 +171,19 @@ export function CartDrawer() {
             </div>
           ) : (
             <div className="divide-border divide-y">
+              {cartData?.errors && cartData.errors.length > 0 && (
+                <p
+                  role="alert"
+                  className="rounded-md bg-amber-500/10 p-2 text-xs text-amber-700 dark:text-amber-400"
+                >
+                  {cartData.errors.join(' ')}
+                </p>
+              )}
               {cartData?.items.map((item) => (
-                <div key={item.productId} className="flex gap-3 py-4 first:pt-0 last:pb-0">
+                <div
+                  key={`${item.productId}:${item.variantId}`}
+                  className="flex gap-3 py-4 first:pt-0 last:pb-0"
+                >
                   <div className="min-w-0 flex-1">
                     <Link
                       href={`/products/${item.slug}`}
@@ -161,6 +192,9 @@ export function CartDrawer() {
                     >
                       {item.name}
                     </Link>
+                    {item.hasMultipleVariants && (
+                      <p className="text-muted-foreground text-xs">{item.variantName}</p>
+                    )}
                     <div className="text-muted-foreground mt-1 text-xs">
                       Đơn giá: {item.unitPriceVnd.toLocaleString('vi-VN')} đ
                     </div>
@@ -170,7 +204,7 @@ export function CartDrawer() {
                       <div className="border-border flex items-center rounded-md border">
                         <button
                           type="button"
-                          onClick={() => updateQty(item.productId, item.qty - 1)}
+                          onClick={() => updateQty(item.productId, item.qty - 1, item.variantId)}
                           className="text-muted-foreground hover:text-foreground px-2 py-1"
                           aria-label="Giảm số lượng"
                         >
@@ -179,8 +213,9 @@ export function CartDrawer() {
                         <span className="px-2 text-xs font-semibold">{item.qty}</span>
                         <button
                           type="button"
-                          onClick={() => updateQty(item.productId, item.qty + 1)}
-                          className="text-muted-foreground hover:text-foreground px-2 py-1"
+                          onClick={() => updateQty(item.productId, item.qty + 1, item.variantId)}
+                          disabled={item.stockLeft !== null && item.qty >= item.stockLeft}
+                          className="text-muted-foreground hover:text-foreground px-2 py-1 disabled:opacity-40"
                           aria-label="Tăng số lượng"
                         >
                           <Plus className="h-3 w-3" />
@@ -193,7 +228,7 @@ export function CartDrawer() {
                         </span>
                         <button
                           type="button"
-                          onClick={() => removeItem(item.productId)}
+                          onClick={() => removeItem(item.productId, item.variantId)}
                           className="text-muted-foreground hover:text-destructive p-1 transition-colors"
                           aria-label="Xoá món hàng"
                         >

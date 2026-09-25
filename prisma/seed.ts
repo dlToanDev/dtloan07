@@ -118,6 +118,23 @@ Giải pháp hạ tầng độc lập "1-click deploy" giúp bạn triển khai 
   });
   console.log(`✅ Seed Product 2: ${product2.name} (${product2.priceVnd} VND)`);
 
+  // 2b. Mỗi sản phẩm phải có ít nhất 1 biến thể, nếu không thì không thêm được vào giỏ.
+  for (const product of [product1, product2]) {
+    const existing = await prisma.productVariant.findFirst({ where: { productId: product.id } });
+    if (existing) continue;
+    await prisma.productVariant.create({
+      data: {
+        productId: product.id,
+        name: 'Mặc định',
+        priceVnd: product.priceVnd,
+        compareAtVnd: product.compareAtVnd,
+        stock: null,
+        sortOrder: 0,
+      },
+    });
+  }
+  console.log('✅ Seed biến thể "Mặc định" cho sản phẩm demo');
+
   // 3. Demo Coupon
   const coupon = await prisma.coupon.upsert({
     where: { code: 'WELCOME10' },

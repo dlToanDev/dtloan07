@@ -6,6 +6,15 @@
 
 **Tiền đề:** Giai đoạn 1 và 2 đã merge vào `dev`; database đã chạy migration tới `20260927090000_shop_shipping`.
 
+## Trạng thái: xong toàn bộ 7 task (2026-09-25)
+
+Đã nghiệm thu trên PostgreSQL thật, gồm 14 test tích hợp (`pnpm test:int`) và chạy tay
+đủ vòng: đặt mua → giữ chỗ tài khoản → webhook PayOS → email bàn giao kèm thông tin đã
+giải mã → đơn `DELIVERED` → khách xem lại bằng mã đơn + email (sai email bị từ chối).
+Bàn giao thủ công và bảo hành đổi tài khoản cũng đã chạy.
+
+Cả 3 giai đoạn của spec đã hoàn thành.
+
 ## Global Constraints
 
 - `PURCHASABLE_TYPES` thêm `ACCOUNT` — kết thúc trạng thái "Sắp mở bán".

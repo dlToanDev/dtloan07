@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { db } from '@/lib/db';
 import { calculatePricing } from '@/lib/pricing';
 import { buildPriceMap, loadCartProducts } from '@/lib/shop/cart-products';
-import { lineKey, resolveCartLines } from '@/lib/shop/variants';
+import { effectiveStock, lineKey, resolveCartLines } from '@/lib/shop/variants';
 
 const validateCartSchema = z.object({
   items: z.array(
@@ -74,7 +74,7 @@ export async function POST(req: NextRequest) {
         variantName: line?.variant.name ?? '',
         type: line?.product.type ?? 'DOWNLOAD',
         hasMultipleVariants: (line?.product.variants.filter((v) => v.active).length ?? 0) > 1,
-        stockLeft: line?.variant.stock ?? null,
+        stockLeft: line ? effectiveStock(line.product, line.variant) : null,
         name: line?.product.name ?? 'Sản phẩm',
         slug: line?.product.slug ?? '',
         coverUrl: line?.product.coverUrl ?? '',

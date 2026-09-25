@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { AddToCartButton } from '@/components/shop/add-to-cart-button';
 import {
+  effectiveStock,
   pickDefaultVariant,
   PURCHASABLE_TYPES,
   type ProductTypeValue,
@@ -11,17 +12,23 @@ import {
 } from '@/lib/shop/variants';
 
 const formatVnd = (value: number) => `${value.toLocaleString('vi-VN')} đ`;
-const inStock = (variant: VariantSnapshot) => variant.stock === null || variant.stock > 0;
 
 export function VariantPurchasePanel({
   productId,
   type,
+  deliveryMode,
   variants,
 }: {
   productId: string;
   type: ProductTypeValue;
+  deliveryMode?: 'AUTO' | 'MANUAL' | null;
   variants: VariantSnapshot[];
 }) {
+  const stockOf = (variant: VariantSnapshot) => effectiveStock({ type, deliveryMode }, variant);
+  const inStock = (variant: VariantSnapshot) => {
+    const stock = stockOf(variant);
+    return stock === null || stock > 0;
+  };
   const active = variants.filter((variant) => variant.active);
   const initial = active.find(inStock) ?? pickDefaultVariant(variants);
   const [selectedId, setSelectedId] = useState(initial?.id ?? '');
@@ -80,9 +87,11 @@ export function VariantPurchasePanel({
         </div>
       )}
 
-      {selected.stock !== null && (
+      {stockOf(selected) !== null && (
         <p className="text-muted-foreground text-xs">
-          {selected.stock > 0 ? `Còn ${selected.stock} sản phẩm` : 'Tạm hết hàng'}
+          {(stockOf(selected) ?? 0) > 0
+            ? `Còn ${stockOf(selected)} ${type === 'ACCOUNT' ? 'tài khoản' : 'sản phẩm'}`
+            : 'Tạm hết hàng'}
         </p>
       )}
 

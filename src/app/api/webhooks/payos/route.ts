@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { verifyPayOSSignature, payosClient, generateLicenseKey } from '@/lib/payments/payos';
-import { sendOrderLicenseEmail } from '@/lib/mail';
+import { sendAdminManualDeliveryEmail, sendOrderLicenseEmail } from '@/lib/mail';
+import { deliverAutoAccounts } from '@/lib/shop/account-delivery';
 import { siteConfig } from '@/config/site';
 
 export const runtime = 'nodejs';
@@ -94,14 +95,25 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Đơn có hàng phải giao thì chuyển sang "đã xác nhận" để admin đóng gói;
-    // đơn chỉ gồm file tải về coi như giao xong ngay khi cấp license.
+    // Trạng thái giao hàng sau khi thanh toán:
+    // - có hàng vật lý → CONFIRMED để admin đóng gói
+    // - có tài khoản bàn giao thủ công → giữ PENDING chờ admin gửi
+    // - chỉ còn tài khoản tự động / file tải về → DELIVERED ngay
     const hasPhysical = order.items.some((item) => item.productTypeSnapshot === 'PHYSICAL');
+    const manualAccountItems = order.items.filter(
+      (item) => item.productTypeSnapshot === 'ACCOUNT' && item.product.deliveryMode === 'MANUAL',
+    );
+    const hasAutoAccount = order.items.some(
+      (item) => item.productTypeSnapshot === 'ACCOUNT' && item.product.deliveryMode === 'AUTO',
+    );
+
     const nextFulfillment = hasPhysical
       ? ('CONFIRMED' as const)
-      : order.fulfillmentStatus
-        ? ('DELIVERED' as const)
-        : null;
+      : manualAccountItems.length > 0
+        ? ('PENDING' as const)
+        : order.fulfillmentStatus
+          ? ('DELIVERED' as const)
+          : null;
 
     // 5. Giao dịch Database đồng nhất: Cập nhật Order, Payment, License và Coupon
     const result = await db.$transaction(async (tx) => {
@@ -171,6 +183,28 @@ export async function POST(req: NextRequest) {
 
       return { updatedOrder, createdLicenses };
     });
+
+    // 6a. Bàn giao tài khoản số tự động (mã hóa → giải mã → email, có ghi log)
+    if (hasAutoAccount) {
+      await deliverAutoAccounts({
+        id: order.id,
+        orderCode: order.orderCode,
+        email: order.email,
+        userId: order.userId,
+      }).catch((err) => console.error('Lỗi bàn giao tài khoản tự động:', err));
+    }
+
+    // 6b. Tài khoản bàn giao thủ công: báo admin xử lý
+    if (manualAccountItems.length > 0) {
+      await sendAdminManualDeliveryEmail({
+        orderCode: order.orderCode,
+        items: manualAccountItems.map((item) =>
+          item.variantNameSnapshot
+            ? `${item.productNameSnapshot} — ${item.variantNameSnapshot} × ${item.qty}`
+            : `${item.productNameSnapshot} × ${item.qty}`,
+        ),
+      }).catch((err) => console.error('Lỗi gửi mail báo admin bàn giao thủ công:', err));
+    }
 
     // 6. Gửi email bàn giao bản quyền tự động
     if (result.createdLicenses.length > 0) {

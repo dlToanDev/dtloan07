@@ -48,7 +48,13 @@ export async function ProductDetailPage({ params, kind }: Props) {
   try {
     product = await db.product.findUnique({
       where: { slug },
-      include: { files: true, variants: { orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }] } },
+      include: {
+        files: true,
+        variants: {
+          orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
+          include: { _count: { select: { accountStock: { where: { status: 'AVAILABLE' } } } } },
+        },
+      },
     });
   } catch (err) {
     console.warn('Cảnh báo: Không thể tải sản phẩm lúc build:', err);
@@ -63,17 +69,16 @@ export async function ProductDetailPage({ params, kind }: Props) {
 
   // Hàng Shop cần giao (đồ vật lý / tài khoản): giá và nút mua lấy theo biến thể.
   const isShopGoods = product.kind === 'SHOP' && product.type !== 'DOWNLOAD';
-  const variants = product.variants.map(
-    ({ id, name, priceVnd, compareAtVnd, stock, sortOrder, active }) => ({
-      id,
-      name,
-      priceVnd,
-      compareAtVnd,
-      stock,
-      sortOrder,
-      active,
-    }),
-  );
+  const variants = product.variants.map((variant) => ({
+    id: variant.id,
+    name: variant.name,
+    priceVnd: variant.priceVnd,
+    compareAtVnd: variant.compareAtVnd,
+    stock: variant.stock,
+    sortOrder: variant.sortOrder,
+    active: variant.active,
+    availableAccounts: variant._count.accountStock,
+  }));
 
   const mode = product.saleMode || (product.priceVnd === 0 ? 'FREE' : 'PAID');
   const discountPercent =
@@ -218,6 +223,7 @@ export async function ProductDetailPage({ params, kind }: Props) {
                     <VariantPurchasePanel
                       productId={product.id}
                       type={product.type}
+                      deliveryMode={product.deliveryMode}
                       variants={variants}
                     />
 

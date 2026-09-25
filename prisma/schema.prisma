@@ -215,6 +215,35 @@ enum PaymentProvider {
   LEMONSQUEEZY
 }
 
+enum PaymentMethod {
+  PAYOS
+  COD
+}
+
+/// Vòng đời giao hàng, dùng chung cho đồ vật lý và tài khoản bàn giao thủ công.
+enum FulfillmentStatus {
+  PENDING
+  CONFIRMED
+  SHIPPING
+  DELIVERED
+  CANCELLED
+}
+
+/// Khu vực tính phí ship. Đúng 1 khu `isDefault` làm khu bao phủ toàn quốc.
+model ShippingZone {
+  id              String   @id @default(cuid())
+  name            String
+  provinces       String[] @default([]) // mã tỉnh trong src/config/provinces.ts
+  feeVnd          Int
+  freeShipFromVnd Int? // null = không có ngưỡng miễn phí ship
+  isDefault       Boolean  @default(false)
+  sortOrder       Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([sortOrder])
+}
+
 model Order {
   id          String          @id @default(cuid())
   orderCode   String          @unique // Ví dụ DH-2026-0001
@@ -228,8 +257,21 @@ model Order {
   provider    PaymentProvider
   paidAt      DateTime?
   expiresAt   DateTime?
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
+
+  // --- Giao hàng (đồ vật lý & tài khoản bàn giao thủ công) ---
+  paymentMethod     PaymentMethod      @default(PAYOS)
+  fulfillmentStatus FulfillmentStatus? // null khi đơn chỉ có hàng DOWNLOAD
+  customerName      String?
+  phone             String?
+  shipProvince      String? // mã tỉnh trong src/config/provinces.ts
+  shipAddress       String?
+  shipNote          String?
+  shippingFeeVnd    Int                @default(0)
+  trackingCode      String?
+  cancelledAt       DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   user     User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
   coupon   Coupon?     @relation(fields: [couponId], references: [id], onDelete: SetNull)

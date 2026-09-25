@@ -49,8 +49,8 @@ export interface VariantSummary {
   soldOut: boolean;
 }
 
-/** Loại hàng đang cho phép mua. Giai đoạn 2 thêm PHYSICAL, giai đoạn 3 thêm ACCOUNT. */
-export const PURCHASABLE_TYPES: readonly ProductTypeValue[] = ['DOWNLOAD'];
+/** Loại hàng đang cho phép mua. Giai đoạn 3 sẽ thêm ACCOUNT. */
+export const PURCHASABLE_TYPES: readonly ProductTypeValue[] = ['DOWNLOAD', 'PHYSICAL'];
 
 export function lineKey(productId: string, variantId?: string | null) {
   return variantId ? `${productId}:${variantId}` : productId;

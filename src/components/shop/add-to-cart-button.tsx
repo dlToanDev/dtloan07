@@ -7,9 +7,17 @@ import { ShoppingCart, Check, Zap } from 'lucide-react';
 
 interface AddToCartButtonProps {
   productId: string;
+  variantId?: string;
+  disabled?: boolean;
+  disabledLabel?: string;
 }
 
-export function AddToCartButton({ productId }: AddToCartButtonProps) {
+export function AddToCartButton({
+  productId,
+  variantId,
+  disabled,
+  disabledLabel,
+}: AddToCartButtonProps) {
   const addItem = useCart((state) => state.addItem);
   const openCart = useCart((state) => state.openCart);
   const [adding, setAdding] = useState(false);
@@ -17,7 +25,7 @@ export function AddToCartButton({ productId }: AddToCartButtonProps) {
 
   const handleAddToCart = () => {
     setAdding(true);
-    addItem(productId, 1);
+    addItem(productId, 1, variantId);
     setTimeout(() => {
       setAdding(false);
       setAdded(true);
@@ -26,9 +34,17 @@ export function AddToCartButton({ productId }: AddToCartButtonProps) {
   };
 
   const handleBuyNow = () => {
-    addItem(productId, 1);
+    addItem(productId, 1, variantId);
     openCart();
   };
+
+  if (disabled) {
+    return (
+      <Button size="lg" disabled className="h-12 w-full text-sm font-semibold">
+        {disabledLabel ?? 'Tạm hết hàng'}
+      </Button>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-3 sm:flex-row">

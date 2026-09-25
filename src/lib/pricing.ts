@@ -1,7 +1,9 @@
 import { Coupon, CouponType } from '@prisma/client';
+import { lineKey } from '@/lib/shop/variants';
 
 export interface CartItemInput {
   productId: string;
+  variantId?: string;
   qty: number;
 }
 
@@ -13,6 +15,7 @@ export interface ProductPriceSnapshot {
 
 export interface PricingItem {
   productId: string;
+  variantId?: string;
   qty: number;
   unitPriceVnd: number;
   itemTotalVnd: number;
@@ -85,6 +88,7 @@ export function calculatePricing({
   now = new Date(),
 }: {
   items: CartItemInput[];
+  /** Key = lineKey(productId, variantId) */
   productsMap: Map<string, ProductPriceSnapshot>;
   coupon?: Coupon | null;
   now?: Date;
@@ -95,7 +99,7 @@ export function calculatePricing({
   for (const item of items) {
     // Bỏ qua số lượng không hợp lệ
     const qty = Math.max(1, Math.floor(item.qty || 1));
-    const product = productsMap.get(item.productId);
+    const product = productsMap.get(lineKey(item.productId, item.variantId));
 
     if (!product || product.status !== 'ACTIVE') {
       continue;
@@ -107,6 +111,7 @@ export function calculatePricing({
     subtotalVnd += itemTotalVnd;
     pricingItems.push({
       productId: item.productId,
+      ...(item.variantId && { variantId: item.variantId }),
       qty,
       unitPriceVnd,
       itemTotalVnd,

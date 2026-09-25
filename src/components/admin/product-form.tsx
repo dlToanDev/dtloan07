@@ -9,6 +9,12 @@ import { Button, buttonStyles } from '@/components/ui/button';
 import { FileUp, ImagePlus, Loader2, Trash2, X } from 'lucide-react';
 import { uploadCoverImage } from '@/server/actions/post';
 import { ProductCover } from '@/components/shop/product-cover';
+import {
+  ShopDetailsSection,
+  type ShopDetailsValue,
+} from '@/components/admin/shop/shop-details-section';
+import { GalleryPicker } from '@/components/admin/shop/gallery-picker';
+import { VariantTable, type VariantTableDefault } from '@/components/admin/shop/variant-table';
 
 const RichTextEditor = dynamic(
   () => import('@/components/admin/rich-text-editor').then((module) => module.RichTextEditor),
@@ -30,6 +36,15 @@ type Product = {
   status: string;
   priceVnd: number;
   coverUrl: string;
+  type: 'DOWNLOAD' | 'PHYSICAL' | 'ACCOUNT';
+  category: string | null;
+  condition: string | null;
+  conditionNote: string | null;
+  warrantyNote: string | null;
+  deliveryMode: 'AUTO' | 'MANUAL' | null;
+  gallery: string[];
+  hasOrders: boolean;
+  variants: VariantTableDefault[];
 };
 
 const MAX_FILE_BYTES = 8 * 1024 * 1024;
@@ -272,18 +287,29 @@ export function ProductForm({
   const [shortDesc, setShortDesc] = useState(product?.shortDesc || '');
   const [editorError, setEditorError] = useState('');
   const [uploadCount, setUploadCount] = useState(0);
+  const [shop, setShop] = useState<ShopDetailsValue>({
+    type: product?.type ?? (kind === 'SHOP' ? 'PHYSICAL' : 'DOWNLOAD'),
+    category: (product?.category as ShopDetailsValue['category']) ?? '',
+    condition: (product?.condition as ShopDetailsValue['condition']) ?? '',
+    conditionNote: product?.conditionNote ?? '',
+    warrantyNote: product?.warrantyNote ?? '',
+    deliveryMode: product?.deliveryMode ?? '',
+  });
   const searchParams = useSearchParams();
   const isSource = kind === 'SOURCE_CODE';
+  const isShopGoods = kind === 'SHOP' && shop.type !== 'DOWNLOAD';
   const isPublished = product?.status === 'ACTIVE';
   const publishLabel = isPublished
     ? 'Cập nhật'
-    : mode === 'FREE'
-      ? isSource
-        ? 'Đăng source miễn phí'
-        : 'Đăng sản phẩm miễn phí'
-      : isSource
-        ? 'Đăng bán source code'
-        : 'Đăng bán sản phẩm';
+    : isShopGoods
+      ? 'Đăng bán sản phẩm'
+      : mode === 'FREE'
+        ? isSource
+          ? 'Đăng source miễn phí'
+          : 'Đăng sản phẩm miễn phí'
+        : isSource
+          ? 'Đăng bán source code'
+          : 'Đăng bán sản phẩm';
   const catalog = kind === 'SOURCE_CODE' ? 'source-code' : 'shop';
   const inputClass = 'border-border bg-background w-full rounded-lg border px-3 py-2.5 text-sm';
   const panelClass = 'border-border bg-card space-y-4 rounded-xl border p-5';
@@ -291,6 +317,12 @@ export function ProductForm({
     <form action={action} className="space-y-6">
       <input type="hidden" name="id" value={product?.id || ''} />
       <input type="hidden" name="kind" value={kind} />
+      {kind !== 'SHOP' && (
+        <>
+          <input type="hidden" name="type" value="DOWNLOAD" />
+          <input type="hidden" name="gallery" value="[]" />
+        </>
+      )}
       <div className="border-border bg-background/95 sticky top-16 z-20 flex flex-wrap items-center justify-between gap-3 rounded-xl border p-3 backdrop-blur">
         <span className="text-muted-foreground text-sm">
           {isSource
@@ -339,6 +371,16 @@ export function ProductForm({
       )}
       <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="min-w-0 space-y-6">
+          {kind === 'SHOP' && (
+            <section className={panelClass}>
+              <h2 className="font-semibold">Loại hàng &amp; thông tin bán</h2>
+              <ShopDetailsSection
+                value={shop}
+                onChange={(patch) => setShop((prev) => ({ ...prev, ...patch }))}
+                typeLocked={Boolean(product?.hasOrders)}
+              />
+            </section>
+          )}
           <section className={panelClass}>
             <h2 className="font-semibold">
               {isSource ? 'Thông tin source code' : 'Thông tin sản phẩm'}
@@ -390,6 +432,15 @@ export function ProductForm({
               <span className="text-muted-foreground text-xs">{shortDesc.length}/500 ký tự</span>
             </label>
           </section>
+          {isShopGoods && (
+            <section className={panelClass}>
+              <h2 className="font-semibold">Biến thể &amp; giá</h2>
+              <VariantTable
+                defaultValue={product?.variants ?? []}
+                stockReadOnly={shop.type === 'ACCOUNT' && shop.deliveryMode === 'AUTO'}
+              />
+            </section>
+          )}
           <section className="min-w-0 space-y-3">
             <h2 className="font-semibold">Mô tả sản phẩm & hướng dẫn sử dụng</h2>
             <p className="text-muted-foreground text-sm">
@@ -428,6 +479,19 @@ export function ProductForm({
               onUploadEnd={() => setUploadCount((count) => Math.max(0, count - 1))}
             />
           </section>
+          {kind === 'SHOP' && (
+            <section className={panelClass}>
+              <h2 className="font-semibold">Thư viện ảnh</h2>
+              <p className="text-muted-foreground text-xs">
+                Ảnh phụ hiển thị kèm ảnh bìa ở trang sản phẩm. Kéo thứ tự bằng nút ↑ ↓.
+              </p>
+              <GalleryPicker
+                defaultValue={product?.gallery ?? []}
+                onUploadStart={() => setUploadCount((count) => count + 1)}
+                onUploadEnd={() => setUploadCount((count) => Math.max(0, count - 1))}
+              />
+            </section>
+          )}
           <section className={panelClass}>
             <h2 className="font-semibold">Trạng thái &amp; phiên bản</h2>
             <p className="text-muted-foreground text-xs">
@@ -435,82 +499,97 @@ export function ProductForm({
                 ? 'Đang hiển thị công khai. Bấm "Chuyển về nháp" để tạm ẩn.'
                 : 'Chưa đăng. Bấm "Lưu nháp" khi chưa hoàn tất, hoặc đăng ngay ở thanh trên cùng.'}
             </p>
-            <label className="block space-y-2 text-sm">
-              Số phiên bản
-              <input
-                name="version"
-                className={inputClass}
-                value={version}
-                onChange={(event) => setVersion(event.target.value)}
-                required
-                maxLength={50}
-              />
-            </label>
-          </section>
-          <section className={panelClass}>
-            <h2 className="font-semibold">Hình thức & giá bán</h2>
-            <label className="block space-y-2 text-sm">
-              Hình thức
-              <select
-                name="saleMode"
-                className={inputClass}
-                value={mode}
-                onChange={(event) => setMode(event.target.value as typeof mode)}
-              >
-                <option value="FREE">Miễn phí</option>
-                <option value="CONTACT">Trả phí – Liên hệ báo giá</option>
-                <option value="PAID">Trả phí – Đặt giá</option>
-              </select>
-            </label>
-            <p className="text-muted-foreground text-xs">
-              {mode === 'PAID'
-                ? 'Khách thanh toán theo giá bạn đặt, sau đó nhận quyền tải file.'
-                : mode === 'CONTACT'
-                  ? 'Khách liên hệ để nhận báo giá và thống nhất bàn giao source.'
-                  : 'Khách tải file miễn phí trực tiếp trên trang sản phẩm.'}
-            </p>
-            {mode === 'PAID' ? (
+            {isShopGoods ? (
+              <input type="hidden" name="version" value={version} />
+            ) : (
               <label className="block space-y-2 text-sm">
-                Giá bán (VND)
+                Số phiên bản
                 <input
-                  type="number"
-                  name="priceVnd"
-                  min="1"
-                  max="2147483647"
-                  step="1"
-                  defaultValue={product?.priceVnd || ''}
-                  required
+                  name="version"
                   className={inputClass}
+                  value={version}
+                  onChange={(event) => setVersion(event.target.value)}
+                  required
+                  maxLength={50}
                 />
               </label>
-            ) : (
+            )}
+          </section>
+          {isShopGoods ? (
+            <>
+              <input type="hidden" name="saleMode" value="PAID" />
               <input type="hidden" name="priceVnd" value="0" />
-            )}
-          </section>
-          <section className={panelClass}>
-            <h2 className="font-semibold">
-              {isSource ? 'Gói mã nguồn bàn giao' : 'File sản phẩm bàn giao'}
-            </h2>
-            {files.length > 0 && (
-              <ul className="space-y-3">
-                {files.map((file) => (
-                  <li key={file.id} className="text-sm">
-                    <p className="font-medium break-words">{file.label}</p>
-                    <p className="text-muted-foreground text-xs">
-                      v{file.version} · {(file.sizeBytes / 1024 / 1024).toFixed(2)} MB
-                    </p>
-                  </li>
-                ))}
-              </ul>
-            )}
-            <FilePicker
-              label={isSource ? 'Upload source code (ZIP hoặc file khác)' : 'Upload file sản phẩm'}
-            />
-            <p className="text-muted-foreground text-xs">
-              Tối đa 8 MB/file. File mới được thêm vào danh sách hiện có. Bản miễn phí và đặt giá
-              cần có file trước khi công khai.
-            </p>
-          </section>
+            </>
+          ) : (
+            <>
+              <section className={panelClass}>
+                <h2 className="font-semibold">Hình thức & giá bán</h2>
+                <label className="block space-y-2 text-sm">
+                  Hình thức
+                  <select
+                    name="saleMode"
+                    className={inputClass}
+                    value={mode}
+                    onChange={(event) => setMode(event.target.value as typeof mode)}
+                  >
+                    <option value="FREE">Miễn phí</option>
+                    <option value="CONTACT">Trả phí – Liên hệ báo giá</option>
+                    <option value="PAID">Trả phí – Đặt giá</option>
+                  </select>
+                </label>
+                <p className="text-muted-foreground text-xs">
+                  {mode === 'PAID'
+                    ? 'Khách thanh toán theo giá bạn đặt, sau đó nhận quyền tải file.'
+                    : mode === 'CONTACT'
+                      ? 'Khách liên hệ để nhận báo giá và thống nhất bàn giao source.'
+                      : 'Khách tải file miễn phí trực tiếp trên trang sản phẩm.'}
+                </p>
+                {mode === 'PAID' ? (
+                  <label className="block space-y-2 text-sm">
+                    Giá bán (VND)
+                    <input
+                      type="number"
+                      name="priceVnd"
+                      min="1"
+                      max="2147483647"
+                      step="1"
+                      defaultValue={product?.priceVnd || ''}
+                      required
+                      className={inputClass}
+                    />
+                  </label>
+                ) : (
+                  <input type="hidden" name="priceVnd" value="0" />
+                )}
+              </section>
+              <section className={panelClass}>
+                <h2 className="font-semibold">
+                  {isSource ? 'Gói mã nguồn bàn giao' : 'File sản phẩm bàn giao'}
+                </h2>
+                {files.length > 0 && (
+                  <ul className="space-y-3">
+                    {files.map((file) => (
+                      <li key={file.id} className="text-sm">
+                        <p className="font-medium break-words">{file.label}</p>
+                        <p className="text-muted-foreground text-xs">
+                          v{file.version} · {(file.sizeBytes / 1024 / 1024).toFixed(2)} MB
+                        </p>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                <FilePicker
+                  label={
+                    isSource ? 'Upload source code (ZIP hoặc file khác)' : 'Upload file sản phẩm'
+                  }
+                />
+                <p className="text-muted-foreground text-xs">
+                  Tối đa 8 MB/file. File mới được thêm vào danh sách hiện có. Bản miễn phí và đặt
+                  giá cần có file trước khi công khai.
+                </p>
+              </section>
+            </>
+          )}
         </aside>
       </div>
     </form>

@@ -13,7 +13,14 @@ export async function ProductEditorPage({
 }) {
   await requireProductAdmin();
   const product = id
-    ? await db.product.findUnique({ where: { id }, include: { files: true } })
+    ? await db.product.findUnique({
+        where: { id },
+        include: {
+          files: true,
+          variants: { orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }] },
+          _count: { select: { orderItems: true } },
+        },
+      })
     : null;
   if (id && (!product || product.kind !== kind)) notFound();
   const basePath = kind === 'SOURCE_CODE' ? '/admin/source-code' : '/admin/shop';
@@ -48,6 +55,23 @@ export async function ProductEditorPage({
                 status: product.status,
                 priceVnd: product.priceVnd,
                 coverUrl: product.coverUrl,
+                type: product.type,
+                category: product.category,
+                condition: product.condition,
+                conditionNote: product.conditionNote,
+                warrantyNote: product.warrantyNote,
+                deliveryMode: product.deliveryMode,
+                gallery: product.gallery,
+                hasOrders: product._count.orderItems > 0,
+                variants: product.variants.map((variant) => ({
+                  id: variant.id,
+                  name: variant.name,
+                  sku: variant.sku,
+                  priceVnd: variant.priceVnd,
+                  compareAtVnd: variant.compareAtVnd,
+                  stock: variant.stock,
+                  active: variant.active,
+                })),
               }
             : undefined
         }

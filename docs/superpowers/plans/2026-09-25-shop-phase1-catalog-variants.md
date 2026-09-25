@@ -1,6 +1,6 @@
 # Shop Giai đoạn 1: Dữ liệu + Catalog + Biến thể — Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Shop có loại hàng (tải file / đồ vật lý / tài khoản), danh mục, tình trạng máy, bảo hành, gallery và biến thể có giá + tồn kho riêng; admin quản lý được; khách lọc, xem và chọn biến thể. Checkout vẫn chỉ bán hàng `DOWNLOAD` (hàng vật lý/tài khoản hiện "Sắp mở bán").
 
@@ -9,6 +9,13 @@
 **Tech Stack:** Next.js 15 (App Router, Server Actions), React 19, Prisma 6 + PostgreSQL, Zod 3, Zustand 5 (persist), Tailwind 4, Vitest.
 
 **Spec:** `docs/superpowers/specs/2026-09-25-shop-redesign-design.md` (mục 3.1–3.3, 3.7 một phần, 5.1–5.3, 6.1, 8, 10 giai đoạn 1)
+
+## Trạng thái (cập nhật 2026-09-25)
+
+- **Code: xong cả 8 task.** `pnpm typecheck && pnpm lint && pnpm test && pnpm build` đều xanh (83 unit test).
+- **Migration `20260926090000_shop_variants` đã viết tay nhưng CHƯA apply** — máy dev chưa có PostgreSQL. Khi có DB, chạy `pnpm prisma migrate dev` rồi `pnpm prisma generate`.
+- **Kiểm thử thủ công trên trình duyệt chưa chạy** (cần DB). Các bước "Thủ công" trong Task 6–8 vẫn nên làm sau khi apply migration.
+- Khác với bản kế hoạch gốc: migration còn nới ràng buộc `Product_sale_price_check` để chỉ áp dụng cho `type = 'DOWNLOAD'`. Hàng Shop có `Product.priceVnd` là giá biến thể rẻ nhất (có thể bằng 0 khi còn nháp) nên ràng buộc cũ sẽ làm fail khi lưu nháp.
 
 ## Global Constraints
 
@@ -67,11 +74,11 @@
 
 - Produces: Prisma types `ProductType`, `ShopCategory`, `ItemCondition`, `DeliveryMode`, `ProductVariant`; `Product.variants`, `Product.type|category|condition|conditionNote|warrantyNote|deliveryMode|gallery`; `OrderItem.variantId|variantNameSnapshot|productTypeSnapshot`.
 
-- [ ] **Step 1: Apply migration đang chờ**
+- [ ] **Step 1: Apply migration đang chờ** ⚠️ CHƯA CHẠY — máy chưa có PostgreSQL
 
 Run: `pnpm prisma migrate dev` (không đổi schema) — Expected: `20260925090000_product_sale_modes` applied, "Already in sync".
 
-- [ ] **Step 2: Thêm enum vào `prisma/schema.prisma` ngay sau `enum ProductSaleMode { ... }`**
+- [x] **Step 2: Thêm enum vào `prisma/schema.prisma` ngay sau `enum ProductSaleMode { ... }`**
 
 ```prisma
 enum ProductType {
@@ -102,7 +109,7 @@ enum DeliveryMode {
 }
 ```
 
-- [ ] **Step 3: Thêm cột vào `model Product`** (sau dòng `maxDownloads`), và quan hệ `variants`:
+- [x] **Step 3: Thêm cột vào `model Product`** (sau dòng `maxDownloads`), và quan hệ `variants`:
 
 ```prisma
   type          ProductType   @default(DOWNLOAD)
@@ -116,7 +123,7 @@ enum DeliveryMode {
 
 Trong khối quan hệ của `Product` thêm: `variants   ProductVariant[]`. Thêm index: `@@index([kind, status, category])`.
 
-- [ ] **Step 4: Thêm model `ProductVariant`** ngay sau `model Product`:
+- [x] **Step 4: Thêm model `ProductVariant`** ngay sau `model Product`:
 
 ```prisma
 model ProductVariant {
@@ -139,7 +146,7 @@ model ProductVariant {
 }
 ```
 
-- [ ] **Step 5: Thêm cột vào `model OrderItem`**
+- [x] **Step 5: Thêm cột vào `model OrderItem`**
 
 ```prisma
   variantId           String?
@@ -149,12 +156,12 @@ model ProductVariant {
   variant ProductVariant? @relation(fields: [variantId], references: [id], onDelete: Restrict)
 ```
 
-- [ ] **Step 6: Sinh migration nhưng chưa apply**
+- [x] **Step 6: Sinh migration nhưng chưa apply**
 
 Run: `pnpm prisma migrate dev --create-only --name shop_variants`
 Sau đó đổi tên thư mục vừa sinh thành `prisma/migrations/20260926090000_shop_variants` (giữ thứ tự sau `20260925090000`).
 
-- [ ] **Step 7: Nối SQL backfill vào cuối `migration.sql`**
+- [x] **Step 7: Nối SQL backfill vào cuối `migration.sql`**
 
 ```sql
 -- Backfill: mỗi sản phẩm hiện có nhận 1 biến thể "Mặc định" theo giá hiện tại.
@@ -170,17 +177,17 @@ WHERE oi."variantId" IS NULL;
 UPDATE "Product" SET "category" = 'OTHER' WHERE "kind" = 'SHOP' AND "category" IS NULL;
 ```
 
-- [ ] **Step 8: Apply và kiểm tra**
+- [ ] **Step 8: Apply và kiểm tra** ⚠️ CHƯA CHẠY — máy chưa có PostgreSQL
 
 Run: `pnpm prisma migrate dev` rồi `pnpm prisma generate`
 Run: `psql "$DATABASE_URL" -c 'SELECT COUNT(*) FROM "Product"; SELECT COUNT(*) FROM "ProductVariant";'`
 Expected: hai con số bằng nhau.
 
-- [ ] **Step 9: Typecheck + test baseline**
+- [x] **Step 9: Typecheck + test baseline**
 
 Run: `pnpm typecheck && pnpm test` — Expected: PASS (55 tests), không lỗi type.
 
-- [ ] **Step 10: Commit**
+- [x] **Step 10: Commit**
 
 ```bash
 git add prisma/schema.prisma prisma/migrations/20260926090000_shop_variants
@@ -212,7 +219,7 @@ git commit -m "feat(shop): thêm loại hàng, danh mục, tình trạng và b�
   - `summarizeVariants(variants: VariantSnapshot[]): VariantSummary` với `interface VariantSummary { minPriceVnd: number; maxPriceVnd: number; compareAtVnd: number | null; hasMultiple: boolean; soldOut: boolean }`
   - `generateVariantCombos(groups: string[]): string[]`
 
-- [ ] **Step 1: Viết test fail**
+- [x] **Step 1: Viết test fail**
 
 ```ts
 // tests/unit/shop-variants.test.ts
@@ -373,11 +380,11 @@ describe('generateVariantCombos', () => {
 });
 ```
 
-- [ ] **Step 2: Chạy test để thấy fail**
+- [x] **Step 2: Chạy test để thấy fail**
 
 Run: `pnpm vitest run tests/unit/shop-variants.test.ts` — Expected: FAIL "Cannot find module '@/lib/shop/variants'".
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 ```ts
 // src/lib/shop/variants.ts
@@ -551,11 +558,11 @@ export function generateVariantCombos(groups: string[]): string[] {
 }
 ```
 
-- [ ] **Step 4: Chạy test pass**
+- [x] **Step 4: Chạy test pass**
 
 Run: `pnpm vitest run tests/unit/shop-variants.test.ts` — Expected: PASS toàn bộ.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/lib/shop/variants.ts tests/unit/shop-variants.test.ts
@@ -584,7 +591,7 @@ git commit -m "feat(shop): module thuần xử lý biến thể và dòng giỏ 
   - Store: `addItem(productId, qty?, variantId?)`, `updateQty(productId, qty, variantId?)`, `removeItem(productId, variantId?)`
   - `CartItemInput`, `PricingItem` có thêm `variantId?: string`; `productsMap` key = `lineKey(productId, variantId)`.
 
-- [ ] **Step 1: Viết test fail cho cart-items**
+- [x] **Step 1: Viết test fail cho cart-items**
 
 ```ts
 // tests/unit/shop-cart-items.test.ts
@@ -632,9 +639,9 @@ describe('cart-items', () => {
 });
 ```
 
-- [ ] **Step 2: Chạy fail** — `pnpm vitest run tests/unit/shop-cart-items.test.ts` → FAIL module not found.
+- [x] **Step 2: Chạy fail** — `pnpm vitest run tests/unit/shop-cart-items.test.ts` → FAIL module not found.
 
-- [ ] **Step 3: Implement `src/lib/shop/cart-items.ts`**
+- [x] **Step 3: Implement `src/lib/shop/cart-items.ts`**
 
 ```ts
 export interface CartItem {
@@ -702,9 +709,9 @@ export function migrateCartState(persisted: unknown): {
 }
 ```
 
-- [ ] **Step 4: Chạy pass** — `pnpm vitest run tests/unit/shop-cart-items.test.ts` → PASS.
+- [x] **Step 4: Chạy pass** — `pnpm vitest run tests/unit/shop-cart-items.test.ts` → PASS.
 
-- [ ] **Step 5: Thêm test pricing theo biến thể vào cuối `describe` trong `tests/unit/pricing.test.ts`**
+- [x] **Step 5: Thêm test pricing theo biến thể vào cuối `describe` trong `tests/unit/pricing.test.ts`**
 
 ```ts
 it('Tính giá theo biến thể: cùng sản phẩm, 2 biến thể giá khác nhau', () => {
@@ -724,9 +731,9 @@ it('Tính giá theo biến thể: cùng sản phẩm, 2 biến thể giá khác 
 });
 ```
 
-- [ ] **Step 6: Chạy fail** — `pnpm vitest run tests/unit/pricing.test.ts` → FAIL (type/`variantId` undefined, subtotal 0).
+- [x] **Step 6: Chạy fail** — `pnpm vitest run tests/unit/pricing.test.ts` → FAIL (type/`variantId` undefined, subtotal 0).
 
-- [ ] **Step 7: Sửa `src/lib/pricing.ts`**
+- [x] **Step 7: Sửa `src/lib/pricing.ts`**
 
 Thêm import đầu file: `import { lineKey } from '@/lib/shop/variants';`
 
@@ -750,9 +757,9 @@ pricingItems.push({
 
 Cập nhật JSDoc của `productsMap`: `/** Key = lineKey(productId, variantId) */`.
 
-- [ ] **Step 8: Chạy toàn bộ test** — `pnpm test` → PASS (test cũ dùng key = productId vẫn đúng vì `lineKey(p) === p`).
+- [x] **Step 8: Chạy toàn bộ test** — `pnpm test` → PASS (test cũ dùng key = productId vẫn đúng vì `lineKey(p) === p`).
 
-- [ ] **Step 9: Viết lại `src/hooks/use-cart.ts` dùng helper**
+- [x] **Step 9: Viết lại `src/hooks/use-cart.ts` dùng helper**
 
 ```ts
 'use client';
@@ -833,9 +840,9 @@ export const useCart = create<CartStore>()(
 );
 ```
 
-- [ ] **Step 10: Typecheck** — `pnpm typecheck` → PASS (các caller cũ `addItem(id, 1)` vẫn hợp lệ).
+- [x] **Step 10: Typecheck** — `pnpm typecheck` → PASS (các caller cũ `addItem(id, 1)` vẫn hợp lệ).
 
-- [ ] **Step 11: Commit**
+- [x] **Step 11: Commit**
 
 ```bash
 git add src/lib/shop/cart-items.ts src/lib/pricing.ts src/hooks/use-cart.ts tests/unit/shop-cart-items.test.ts tests/unit/pricing.test.ts
@@ -859,7 +866,7 @@ git commit -m "feat(shop): giỏ hàng và tính giá theo biến thể"
   - `buildPriceMap(lines: ResolvedCartLine[]): Map<string, ProductPriceSnapshot>`
   - Response `/api/cart/validate` → `data.items[]` có thêm `variantId: string`, `variantName: string`, `hasMultipleVariants: boolean`, `stockLeft: number | null`; `data.errors: string[]`.
 
-- [ ] **Step 1: Tạo `src/lib/shop/cart-products.ts`**
+- [x] **Step 1: Tạo `src/lib/shop/cart-products.ts`**
 
 ```ts
 import { db } from '@/lib/db';
@@ -906,7 +913,7 @@ export function buildPriceMap(lines: ResolvedCartLine[]) {
 }
 ```
 
-- [ ] **Step 2: Sửa `/api/cart/validate/route.ts`**
+- [x] **Step 2: Sửa `/api/cart/validate/route.ts`**
 
 Schema item thêm `variantId: z.string().min(1).optional().nullable()`. Thay khối "1. Đọc giá…" tới "4. Tính toán…" bằng:
 
@@ -943,7 +950,7 @@ const detailedItems = pricing.items.map((item) => {
 
 Thêm `errors: errors.map((error) => error.message)` vào `data` của response (và `errors: []` ở nhánh giỏ rỗng). Import: `loadCartProducts, buildPriceMap` từ `@/lib/shop/cart-products`; `resolveCartLines, lineKey` từ `@/lib/shop/variants`. Xóa import `ProductPriceSnapshot` không còn dùng.
 
-- [ ] **Step 3: Sửa `/api/checkout/route.ts`**
+- [x] **Step 3: Sửa `/api/checkout/route.ts`**
 
 Schema item thêm `variantId: z.string().min(1).optional().nullable()`. Thay khối "1. Đọc sản phẩm…" (tới hết vòng `for (const p of dbProducts)`) bằng:
 
@@ -986,7 +993,7 @@ function orderItemData(
 
 Chú ý: phần tạo link PayOS phía dưới đang dùng `productDetails` cho tên item — đổi sang `lineMap.get(lineKey(item.productId, item.variantId))?.product.name`.
 
-- [ ] **Step 4: Sửa `cart-drawer.tsx`**
+- [x] **Step 4: Sửa `cart-drawer.tsx`**
 
 - `ValidatedCartItem` thêm `variantId: string; variantName: string; hasMultipleVariants: boolean; stockLeft: number | null;`; response data thêm `errors?: string[]`.
 - `key={item.productId}` → `key={`${item.productId}:${item.variantId}`}`.
@@ -1011,14 +1018,14 @@ if (legacy.length > 0) {
 
 (`addItem` mở drawer — chỉ chạy khi drawer đang mở nên không đổi hành vi thấy được.)
 
-- [ ] **Step 5: Sửa `checkout/page.tsx`** — cùng thay đổi kiểu dữ liệu, `key`, hiển thị `variantName` như Step 4; hiển thị `cartData.errors` phía trên nút thanh toán và disable nút khi có lỗi.
+- [x] **Step 5: Sửa `checkout/page.tsx`** — cùng thay đổi kiểu dữ liệu, `key`, hiển thị `variantName` như Step 4; hiển thị `cartData.errors` phía trên nút thanh toán và disable nút khi có lỗi.
 
-- [ ] **Step 6: Kiểm tra**
+- [x] **Step 6: Kiểm tra**
 
 Run: `pnpm typecheck && pnpm lint && pnpm test` → PASS.
 Chạy thủ công: `pnpm dev`, thêm 1 sản phẩm Shop dạng file vào giỏ, mở `/checkout`: tổng tiền đúng, tạo được link PayOS (hoặc lỗi PayOS chưa cấu hình như trước). `psql … -c 'SELECT "variantId","variantNameSnapshot","productTypeSnapshot" FROM "OrderItem" ORDER BY id DESC LIMIT 1;'` → có giá trị.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add src/lib/shop/cart-products.ts src/app/api/cart/validate/route.ts src/app/api/checkout/route.ts src/components/shop/cart-drawer.tsx "src/app/(shop)/checkout/page.tsx"
@@ -1043,7 +1050,7 @@ git commit -m "feat(shop): giỏ hàng và checkout resolve biến thể, snapsh
   - `planVariantSync(existing: { id: string; hasOrders: boolean }[], incoming: VariantInput[]): { create: (VariantInput & { sortOrder: number })[]; update: (VariantInput & { id: string; sortOrder: number })[]; deactivate: string[]; remove: string[] }`
   - Form field names mới: `type`, `category`, `condition`, `conditionNote`, `warrantyNote`, `deliveryMode`, `gallery` (JSON `string[]`), `variants` (JSON `VariantInput[]`).
 
-- [ ] **Step 1: Viết test fail**
+- [x] **Step 1: Viết test fail**
 
 ```ts
 // tests/unit/shop-variant-input.test.ts
@@ -1137,9 +1144,9 @@ describe('planVariantSync', () => {
 });
 ```
 
-- [ ] **Step 2: Chạy fail** — `pnpm vitest run tests/unit/shop-variant-input.test.ts` → FAIL module not found.
+- [x] **Step 2: Chạy fail** — `pnpm vitest run tests/unit/shop-variant-input.test.ts` → FAIL module not found.
 
-- [ ] **Step 3: Implement `src/lib/shop/variant-input.ts`**
+- [x] **Step 3: Implement `src/lib/shop/variant-input.ts`**
 
 ```ts
 import { z } from 'zod';
@@ -1222,9 +1229,9 @@ export function planVariantSync(
 
 Nếu eslint báo `_ignored` unused, dùng `// eslint-disable-next-line @typescript-eslint/no-unused-vars` ngay trên dòng đó.
 
-- [ ] **Step 4: Chạy pass** — `pnpm vitest run tests/unit/shop-variant-input.test.ts` → PASS.
+- [x] **Step 4: Chạy pass** — `pnpm vitest run tests/unit/shop-variant-input.test.ts` → PASS.
 
-- [ ] **Step 5: Sửa `src/server/actions/product.ts`**
+- [x] **Step 5: Sửa `src/server/actions/product.ts`**
 
 Mở rộng `schema`:
 
@@ -1361,9 +1368,9 @@ if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P20
 
 (import `Prisma` từ `@prisma/client`). Import `parseVariantsInput, planVariantSync, type VariantInput` từ `@/lib/shop/variant-input`.
 
-- [ ] **Step 6: Kiểm tra** — `pnpm typecheck && pnpm lint && pnpm test` → PASS.
+- [x] **Step 6: Kiểm tra** — `pnpm typecheck && pnpm lint && pnpm test` → PASS.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add src/lib/shop/variant-input.ts src/server/actions/product.ts tests/unit/shop-variant-input.test.ts
@@ -1389,7 +1396,7 @@ git commit -m "feat(shop): lưu loại hàng, danh mục, gallery và đồng b�
   - `VariantTable` props `{ defaultValue: (VariantInput & { id?: string })[] }`, render `<input type="hidden" name="variants" value={JSON.stringify(rows)} />`.
   - `ProductForm` `Product` type thêm: `type, category, condition, conditionNote, warrantyNote, deliveryMode, gallery, variants`.
 
-- [ ] **Step 1: Tạo `src/lib/shop/labels.ts`**
+- [x] **Step 1: Tạo `src/lib/shop/labels.ts`**
 
 ```ts
 export type ProductTypeOption = 'DOWNLOAD' | 'PHYSICAL' | 'ACCOUNT';
@@ -1436,7 +1443,7 @@ export function conditionLabel(value: string | null | undefined) {
 }
 ```
 
-- [ ] **Step 2: Tạo `shop-details-section.tsx`**
+- [x] **Step 2: Tạo `shop-details-section.tsx`**
 
 ```tsx
 'use client';
@@ -1609,7 +1616,7 @@ export function ShopDetailsSection({
 }
 ```
 
-- [ ] **Step 3: Tạo `gallery-picker.tsx`**
+- [x] **Step 3: Tạo `gallery-picker.tsx`**
 
 ```tsx
 'use client';
@@ -1743,7 +1750,7 @@ export function GalleryPicker({
 }
 ```
 
-- [ ] **Step 4: Tạo `variant-table.tsx`**
+- [x] **Step 4: Tạo `variant-table.tsx`**
 
 ```tsx
 'use client';
@@ -1972,7 +1979,7 @@ export function VariantTable({
 }
 ```
 
-- [ ] **Step 5: Gắn vào `product-form.tsx`**
+- [x] **Step 5: Gắn vào `product-form.tsx`**
 
 1. `type Product` thêm:
 
@@ -2042,7 +2049,7 @@ và sau section thông tin sản phẩm, nếu `isShopGoods`:
 8. `publishLabel`: khi `isShopGoods` và chưa đăng → `'Đăng bán sản phẩm'`.
 9. Với `kind === 'SOURCE_CODE'` render `<input type="hidden" name="type" value="DOWNLOAD" />` để schema nhận đúng.
 
-- [ ] **Step 6: Truyền dữ liệu trong `product-editor-page.tsx`**
+- [x] **Step 6: Truyền dữ liệu trong `product-editor-page.tsx`**
 
 Query đổi `include: { files: true, variants: { orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }] }, _count: { select: { orderItems: true } } }`. Object `product` truyền vào form thêm:
 
@@ -2066,7 +2073,7 @@ Query đổi `include: { files: true, variants: { orderBy: [{ sortOrder: 'asc' }
                 })),
 ```
 
-- [ ] **Step 7: Kiểm tra**
+- [x] **Step 7: Kiểm tra**
 
 Run: `pnpm typecheck && pnpm lint && pnpm test` → PASS.
 Thủ công (`pnpm dev`, `/admin/shop/new`):
@@ -2078,7 +2085,7 @@ Thủ công (`pnpm dev`, `/admin/shop/new`):
 5. Thêm 3 ảnh gallery, đổi thứ tự, lưu → giữ thứ tự.
 6. `/admin/source-code/new` vẫn như cũ (không có section Shop).
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add src/lib/shop/labels.ts src/components/admin/shop src/components/admin/product-form.tsx src/components/admin/product-editor-page.tsx
@@ -2103,7 +2110,7 @@ git commit -m "feat(admin): form Shop với loại hàng, tình trạng, gallery
   - `buildShopWhere(filters): Prisma.ProductWhereInput`
   - `ProductCard` prop mới (tùy chọn): `shop?: { type: 'DOWNLOAD' | 'PHYSICAL' | 'ACCOUNT'; condition: string | null; summary: VariantSummary }`
 
-- [ ] **Step 1: Viết test fail**
+- [x] **Step 1: Viết test fail**
 
 ```ts
 // tests/unit/shop-filters.test.ts
@@ -2146,9 +2153,9 @@ describe('buildShopWhere', () => {
 });
 ```
 
-- [ ] **Step 2: Chạy fail** — `pnpm vitest run tests/unit/shop-filters.test.ts` → FAIL module not found.
+- [x] **Step 2: Chạy fail** — `pnpm vitest run tests/unit/shop-filters.test.ts` → FAIL module not found.
 
-- [ ] **Step 3: Implement `src/lib/shop/filters.ts`**
+- [x] **Step 3: Implement `src/lib/shop/filters.ts`**
 
 ```ts
 import type { Prisma } from '@prisma/client';
@@ -2194,9 +2201,9 @@ export function buildShopWhere(filters: ShopFilters): Prisma.ProductWhereInput {
 }
 ```
 
-- [ ] **Step 4: Chạy pass** — `pnpm vitest run tests/unit/shop-filters.test.ts` → PASS.
+- [x] **Step 4: Chạy pass** — `pnpm vitest run tests/unit/shop-filters.test.ts` → PASS.
 
-- [ ] **Step 5: Sửa `src/app/shop/page.tsx`**
+- [x] **Step 5: Sửa `src/app/shop/page.tsx`**
 
 - Xóa `export const revalidate = 3600;` (trang đọc `searchParams` nên dynamic).
 - Signature: `export default async function ShopPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> })`, `const filters = parseShopFilters(await searchParams);`
@@ -2251,7 +2258,7 @@ function tabClass(active: boolean, small = false) {
 - Empty state khi có filter: "Chưa có sản phẩm trong danh mục này." kèm link "Xem tất cả".
 - Map card: `<ProductCard key={product.id} product={product} shop={{ type: product.type, condition: product.condition, summary: summarizeVariants(product.variants) }} />`.
 
-- [ ] **Step 6: Sửa `src/components/shop/product-card.tsx`**
+- [x] **Step 6: Sửa `src/components/shop/product-card.tsx`**
 
 - Props thêm `shop?: { type: 'DOWNLOAD' | 'PHYSICAL' | 'ACCOUNT'; condition: string | null; summary: VariantSummary }`.
 - Tính:
@@ -2271,12 +2278,12 @@ và thay các chỗ `product.priceVnd`/`product.compareAtVnd` trong phần giá 
 - Nút mua (nhánh `mode === 'PAID'`): nếu `soldOut` → `<Button disabled className="w-full text-xs">Hết hàng</Button>`; nếu `needsDetail` → `<Link href={`/${catalog}/${product.slug}`} className={buttonStyles({ className: 'w-full text-xs font-semibold' })}>Chọn mua</Link>`; còn lại giữ nút thêm giỏ hiện tại.
 - `ProductCover` truyền thêm `version={shop ? undefined : product.version}`.
 
-- [ ] **Step 7: Kiểm tra**
+- [x] **Step 7: Kiểm tra**
 
 Run: `pnpm typecheck && pnpm lint && pnpm test` → PASS.
 Thủ công: `/shop` hiện tab; `/shop?c=do-cong-nghe&cond=da-dung` lọc đúng; `/shop?c=xyz` hiện tất cả, không lỗi; áo 4 biến thể hiện "Từ 150.000 đ" (nếu giá khác nhau) và nút "Chọn mua"; đặt mọi biến thể stock 0 → "Hết hàng". `/source-code` và trang chủ không đổi.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add src/lib/shop/filters.ts src/app/shop/page.tsx src/components/shop/product-card.tsx tests/unit/shop-filters.test.ts
@@ -2300,9 +2307,9 @@ git commit -m "feat(shop): lọc danh mục/tình trạng và thẻ sản phẩm
   - `ProductGallery` props `{ name: string; slug: string; kind: 'SOURCE_CODE' | 'SHOP'; coverUrl: string; gallery: string[] }`
   - `VariantPurchasePanel` props `{ productId: string; type: 'DOWNLOAD' | 'PHYSICAL' | 'ACCOUNT'; variants: VariantSnapshot[] }`
 
-- [ ] **Step 1: `add-to-cart-button.tsx`** — thêm props `variantId?`, `disabled?`, `disabledLabel?`; `addItem(productId, 1, variantId)` ở cả 2 handler; khi `disabled` render một `<Button size="lg" disabled className="h-12 w-full text-sm font-semibold">{disabledLabel ?? 'Tạm hết hàng'}</Button>` thay cho 2 nút.
+- [x] **Step 1: `add-to-cart-button.tsx`** — thêm props `variantId?`, `disabled?`, `disabledLabel?`; `addItem(productId, 1, variantId)` ở cả 2 handler; khi `disabled` render một `<Button size="lg" disabled className="h-12 w-full text-sm font-semibold">{disabledLabel ?? 'Tạm hết hàng'}</Button>` thay cho 2 nút.
 
-- [ ] **Step 2: Tạo `product-gallery.tsx`**
+- [x] **Step 2: Tạo `product-gallery.tsx`**
 
 ```tsx
 'use client';
@@ -2363,7 +2370,7 @@ export function ProductGallery({
 }
 ```
 
-- [ ] **Step 3: Tạo `variant-purchase-panel.tsx`**
+- [x] **Step 3: Tạo `variant-purchase-panel.tsx`**
 
 ```tsx
 'use client';
@@ -2465,7 +2472,7 @@ export function VariantPurchasePanel({
 }
 ```
 
-- [ ] **Step 4: Sửa `product-detail-page.tsx`**
+- [x] **Step 4: Sửa `product-detail-page.tsx`**
 
 - Query: `include: { files: true, variants: { orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }] } }`.
 - Tính `const isShopGoods = product.kind === 'SHOP' && product.type !== 'DOWNLOAD';` và `const variants = product.variants.map(({ id, name, priceVnd, compareAtVnd, stock, sortOrder, active }) => ({ id, name, priceVnd, compareAtVnd, stock, sortOrder, active }));`
@@ -2496,7 +2503,7 @@ export function VariantPurchasePanel({
 - Card mua (cột phải): khi `isShopGoods`, thay toàn bộ phần giá + nút bằng `<VariantPurchasePanel productId={product.id} type={product.type} variants={variants} />`; danh sách cam kết đổi thành: đồ vật lý → "Phí ship tính theo tỉnh khi thanh toán", "Kiểm tra hàng khi nhận"; tài khoản → deliveryMode `AUTO` "Nhận thông tin tài khoản qua email ngay sau thanh toán", `MANUAL` "Bàn giao thủ công trong giờ làm việc"; cả hai có dòng bảo hành nếu có `warrantyNote`. Tiêu đề "Giá sở hữu vĩnh viễn" chỉ hiện khi `!isShopGoods`.
 - Hàng `DOWNLOAD` trả phí: `<AddToCartButton productId={product.id} variantId={pickDefaultVariant(variants)?.id} />`.
 
-- [ ] **Step 5: Kiểm tra**
+- [x] **Step 5: Kiểm tra**
 
 Run: `pnpm typecheck && pnpm lint && pnpm test && pnpm build` → PASS.
 Thủ công:
@@ -2508,7 +2515,7 @@ Thủ công:
 5. `/source-code/<slug>` hiển thị như cũ.
 6. Kiểm tra mobile (DevTools 375px): nút biến thể xuống dòng, không tràn ngang.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/components/shop/product-gallery.tsx src/components/shop/variant-purchase-panel.tsx src/components/shop/product-detail-page.tsx src/components/shop/add-to-cart-button.tsx

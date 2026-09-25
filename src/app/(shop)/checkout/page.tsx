@@ -18,6 +18,9 @@ import Link from 'next/link';
 
 interface ValidatedCartItem {
   productId: string;
+  variantId: string;
+  variantName: string;
+  hasMultipleVariants: boolean;
   name: string;
   slug: string;
   unitPriceVnd: number;
@@ -36,6 +39,7 @@ interface ValidatedCartData {
     value: number;
     discountVnd: number;
   } | null;
+  errors?: string[];
 }
 
 export default function CheckoutPage() {
@@ -236,11 +240,14 @@ export default function CheckoutPage() {
                 <div className="divide-border divide-y">
                   {cartData.items.map((item) => (
                     <div
-                      key={item.productId}
+                      key={`${item.productId}:${item.variantId}`}
                       className="flex justify-between py-3 text-sm first:pt-0 last:pb-0"
                     >
                       <div>
                         <div className="text-foreground font-medium">{item.name}</div>
+                        {item.hasMultipleVariants && (
+                          <div className="text-muted-foreground text-xs">{item.variantName}</div>
+                        )}
                         <div className="text-muted-foreground text-xs">
                           {item.unitPriceVnd.toLocaleString('vi-VN')} đ &times; {item.qty}
                         </div>
@@ -273,6 +280,15 @@ export default function CheckoutPage() {
                   </div>
                 </div>
 
+                {cartData.errors && cartData.errors.length > 0 && (
+                  <div
+                    role="alert"
+                    className="rounded-lg bg-amber-500/10 p-3 text-xs text-amber-700 dark:text-amber-400"
+                  >
+                    {cartData.errors.join(' ')}
+                  </div>
+                )}
+
                 {error && (
                   <div className="rounded-lg bg-rose-500/10 p-3 text-xs text-rose-600 dark:text-rose-400">
                     {error}
@@ -285,7 +301,7 @@ export default function CheckoutPage() {
                   type="submit"
                   size="lg"
                   className="w-full font-bold shadow-md"
-                  disabled={submitting}
+                  disabled={submitting || (cartData.errors?.length ?? 0) > 0}
                 >
                   {submitting ? (
                     <>

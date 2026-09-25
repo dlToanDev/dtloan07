@@ -73,6 +73,8 @@ export async function POST(req: NextRequest) {
         items: order.items.map((item) => ({
           id: item.id,
           productName: item.productNameSnapshot,
+          variantName: item.variantNameSnapshot,
+          productType: item.productTypeSnapshot,
           qty: item.qty,
           unitPriceVnd: item.unitPriceVnd,
           license: item.license

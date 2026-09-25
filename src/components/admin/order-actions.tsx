@@ -3,10 +3,11 @@
 import { useActionState, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { advanceFulfillment, cancelOrder, type OrderActionState } from '@/server/actions/order';
+import { deliverManualAccount, type AccountStockState } from '@/server/actions/account-stock';
 
 const initialState: OrderActionState = {};
 
-function Feedback({ state }: { state: OrderActionState }) {
+function Feedback({ state }: { state: OrderActionState | AccountStockState }) {
   if (state.error)
     return (
       <p role="alert" className="text-sm text-red-600">
@@ -115,6 +116,47 @@ export function CancelOrderButton({ orderId }: { orderId: string }) {
           Hủy đơn
         </Button>
       )}
+      <Feedback state={state} />
+    </form>
+  );
+}
+
+export function ManualAccountDelivery({
+  orderItemId,
+  label,
+  delivered,
+}: {
+  orderItemId: string;
+  label: string;
+  delivered: boolean;
+}) {
+  const [state, action, pending] = useActionState(deliverManualAccount, {} as AccountStockState);
+
+  if (delivered && !state.success) {
+    return (
+      <p className="text-muted-foreground text-xs">
+        Đã bàn giao tài khoản cho khách. Thông tin được lưu mã hóa, khách xem lại trong trang đơn
+        hàng.
+      </p>
+    );
+  }
+
+  return (
+    <form action={action} className="space-y-2">
+      <input type="hidden" name="orderItemId" value={orderItemId} />
+      <label className="block space-y-1 text-sm">
+        Thông tin tài khoản cho &ldquo;{label}&rdquo;
+        <textarea
+          name="credentials"
+          rows={3}
+          required
+          placeholder={'email|mật khẩu|ghi chú'}
+          className="border-border bg-background w-full rounded-lg border px-3 py-2 font-mono text-sm"
+        />
+      </label>
+      <Button type="submit" size="sm" disabled={pending}>
+        {pending ? 'Đang gửi…' : 'Bàn giao & gửi email'}
+      </Button>
       <Feedback state={state} />
     </form>
   );

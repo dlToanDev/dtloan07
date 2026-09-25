@@ -7,6 +7,8 @@ import { Badge } from '@/components/ui/badge';
 import { useCart } from '@/hooks/use-cart';
 import { ShoppingCart, Check, MessageCircle } from 'lucide-react';
 import { ProductCover } from '@/components/shop/product-cover';
+import { conditionLabel } from '@/lib/shop/labels';
+import type { VariantSummary } from '@/lib/shop/variants';
 import { useState } from 'react';
 
 export interface ProductCardProps {
@@ -23,9 +25,15 @@ export interface ProductCardProps {
     maxDownloads: number;
   };
   catalog?: 'source-code' | 'shop';
+  /** Có mặt với hàng Shop: giá và tồn kho lấy từ biến thể thay vì cột Product. */
+  shop?: {
+    type: 'DOWNLOAD' | 'PHYSICAL' | 'ACCOUNT';
+    condition: string | null;
+    summary: VariantSummary;
+  };
 }
 
-export function ProductCard({ product, catalog = 'shop' }: ProductCardProps) {
+export function ProductCard({ product, catalog = 'shop', shop }: ProductCardProps) {
   const addItem = useCart((state) => state.addItem);
   const [added, setAdded] = useState(false);
 
@@ -36,9 +44,15 @@ export function ProductCard({ product, catalog = 'shop' }: ProductCardProps) {
   };
 
   const mode = product.saleMode || (product.priceVnd === 0 ? 'FREE' : 'PAID');
+  const summary = shop?.summary;
+  const needsDetail = Boolean(shop && (shop.type !== 'DOWNLOAD' || summary?.hasMultiple));
+  const priceVnd = summary ? summary.minPriceVnd : product.priceVnd;
+  const compareAtVnd = summary ? summary.compareAtVnd : product.compareAtVnd;
+  const showFrom = Boolean(summary && summary.minPriceVnd !== summary.maxPriceVnd);
+  const soldOut = Boolean(summary?.soldOut);
   const discountPercent =
-    mode === 'PAID' && product.compareAtVnd && product.compareAtVnd > product.priceVnd
-      ? Math.round(((product.compareAtVnd - product.priceVnd) / product.compareAtVnd) * 100)
+    mode === 'PAID' && compareAtVnd && compareAtVnd > priceVnd
+      ? Math.round(((compareAtVnd - priceVnd) / compareAtVnd) * 100)
       : null;
 
   return (
@@ -50,12 +64,25 @@ export function ProductCard({ product, catalog = 'shop' }: ProductCardProps) {
             slug={product.slug}
             coverUrl={product.coverUrl}
             kind={catalog === 'source-code' ? 'SOURCE_CODE' : 'SHOP'}
+            version={shop ? undefined : product.version}
           />
 
           <div className="absolute top-3 right-3 flex items-center gap-1.5">
-            <Badge variant="secondary" className="font-mono text-xs shadow-xs">
-              v{product.version}
-            </Badge>
+            {!shop && (
+              <Badge variant="secondary" className="font-mono text-xs shadow-xs">
+                v{product.version}
+              </Badge>
+            )}
+            {shop?.condition && (
+              <Badge variant="secondary" className="text-xs shadow-xs">
+                {conditionLabel(shop.condition)}
+              </Badge>
+            )}
+            {soldOut && (
+              <Badge variant="destructive" className="text-xs shadow-xs">
+                Hết hàng
+              </Badge>
+            )}
             {discountPercent && (
               <Badge variant="destructive" className="text-xs font-bold shadow-xs">
                 -{discountPercent}%
@@ -84,11 +111,11 @@ export function ProductCard({ product, catalog = 'shop' }: ProductCardProps) {
               ? 'Miễn phí'
               : mode === 'CONTACT'
                 ? 'Liên hệ báo giá'
-                : `${product.priceVnd.toLocaleString('vi-VN')} đ`}
+                : `${showFrom ? 'Từ ' : ''}${priceVnd.toLocaleString('vi-VN')} đ`}
           </span>
-          {mode === 'PAID' && product.compareAtVnd && product.compareAtVnd > product.priceVnd && (
+          {mode === 'PAID' && compareAtVnd && compareAtVnd > priceVnd && (
             <span className="text-muted-foreground text-sm line-through">
-              {product.compareAtVnd.toLocaleString('vi-VN')} đ
+              {compareAtVnd.toLocaleString('vi-VN')} đ
             </span>
           )}
         </div>
@@ -112,6 +139,17 @@ export function ProductCard({ product, catalog = 'shop' }: ProductCardProps) {
             >
               {mode === 'FREE' ? 'Tải miễn phí' : 'Liên hệ'}
             </a>
+          ) : soldOut ? (
+            <Button disabled className="w-full text-xs">
+              Hết hàng
+            </Button>
+          ) : needsDetail ? (
+            <Link
+              href={`/${catalog}/${product.slug}`}
+              className={buttonStyles({ className: 'w-full text-xs font-semibold' })}
+            >
+              Chọn mua
+            </Link>
           ) : (
             <Button
               onClick={handleAddToCart}

@@ -201,4 +201,20 @@ describe('Pricing & Coupon calculation (src/lib/pricing.ts)', () => {
     expect(result.items[0]?.qty).toBe(1);
     expect(result.subtotalVnd).toBe(100000);
   });
+
+  it('Tính giá theo biến thể: cùng sản phẩm, 2 biến thể giá khác nhau', () => {
+    const variantMap = new Map<string, ProductPriceSnapshot>([
+      ['shirt:black-m', { id: 'shirt', priceVnd: 150000, status: 'ACTIVE' }],
+      ['shirt:white-l', { id: 'shirt', priceVnd: 170000, status: 'ACTIVE' }],
+    ]);
+    const result = calculatePricing({
+      items: [
+        { productId: 'shirt', variantId: 'black-m', qty: 2 },
+        { productId: 'shirt', variantId: 'white-l', qty: 1 },
+      ],
+      productsMap: variantMap,
+    });
+    expect(result.subtotalVnd).toBe(470000);
+    expect(result.items.map((item) => item.variantId)).toEqual(['black-m', 'white-l']);
+  });
 });

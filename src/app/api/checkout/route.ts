@@ -3,7 +3,9 @@ import type { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import { db } from '@/lib/db';
 import { auth } from '@/lib/auth';
-import { calculatePricing } from '@/lib/pricing';
+import { calculatePricing, shippingDiscountFor } from '@/lib/pricing';
+import { CouponReserveError, findCouponByCode, reserveCoupon } from '@/lib/coupons';
+import { isUserPro } from '@/lib/membership-db';
 import { buildPriceMap, loadCartProducts } from '@/lib/shop/cart-products';
 import { lineKey, resolveCartLines, type ResolvedCartLine } from '@/lib/shop/variants';
 import { reserveVariantStock } from '@/lib/shop/inventory';
@@ -82,6 +84,12 @@ export async function POST(req: NextRequest) {
 
     const { email, name, phone, items, couponCode, paymentMethod, shipping } = parseResult.data;
     const userId = session?.user?.id;
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'Vui lòng đăng nhập để thanh toán đơn hàng.' },
+        { status: 401 },
+      );
+    }
 
     // 1. Đọc sản phẩm + biến thể từ Database và chuẩn hóa dòng giỏ hàng
     const products = await loadCartProducts(items.map((i) => i.productId));
@@ -129,17 +137,24 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 3. Coupon và giá tiền (server tự tính, không tin client)
-    let coupon = null;
-    if (couponCode && couponCode.trim() !== '') {
-      coupon = await db.coupon.findUnique({ where: { code: couponCode.trim().toUpperCase() } });
-    }
+    // 3. Voucher và giá tiền (server tự tính, không tin client)
+    const lookup = couponCode?.trim()
+      ? await findCouponByCode(couponCode, { userId, email })
+      : null;
+    if (lookup && !lookup.ok) return NextResponse.json({ error: lookup.error }, { status: 400 });
+    const coupon = lookup?.ok ? lookup.coupon : null;
 
     const pricing = calculatePricing({
       items: lines.map(({ productId, variantId, qty }) => ({ productId, variantId, qty })),
       productsMap,
-      coupon,
+      coupon: coupon?.rule,
     });
+    // Mã khách nhập mà không dùng được thì báo lại, không lặng lẽ bỏ qua.
+    if (coupon && !pricing.couponApplied)
+      return NextResponse.json(
+        { error: pricing.couponError ?? 'Mã giảm giá không dùng được cho đơn này.' },
+        { status: 400 },
+      );
 
     if (pricing.items.length === 0) {
       return NextResponse.json(
@@ -163,6 +178,14 @@ export async function POST(req: NextRequest) {
         physicalSubtotalVnd: totals.physicalAfterDiscountVnd,
       }).feeVnd;
     }
+    // Voucher free ship: shippingFeeVnd lưu phần khách trả, phần được miễn lưu riêng.
+    // Tài khoản Pro luôn được miễn ship; không thì xét voucher free ship.
+    const proFreeShip = hasPhysical && (await isUserPro(userId));
+    const voucherShipDiscountVnd = proFreeShip
+      ? 0
+      : shippingDiscountFor(pricing.couponApplied, shippingFeeVnd);
+    const shippingDiscountVnd = proFreeShip ? shippingFeeVnd : voucherShipDiscountVnd;
+    shippingFeeVnd -= shippingDiscountVnd;
 
     const totalVnd = Math.max(0, pricing.totalVnd + shippingFeeVnd);
 
@@ -183,8 +206,9 @@ export async function POST(req: NextRequest) {
       subtotalVnd: pricing.subtotalVnd,
       discountVnd: pricing.discountVnd,
       shippingFeeVnd,
+      shippingDiscountVnd,
       totalVnd,
-      couponId: coupon?.id || null,
+      couponId: coupon?.couponId ?? null,
       provider: 'PAYOS' as const,
       paymentMethod,
       fulfillmentStatus: needsFulfillment ? ('PENDING' as const) : null,
@@ -202,6 +226,18 @@ export async function POST(req: NextRequest) {
         qty: line.qty,
         label: `${line.product.name} – ${line.variant.name}`,
       }));
+
+    /** Giữ một lượt voucher cho đơn vừa tạo (cùng transaction với giữ kho). */
+    async function reserveOrderCoupon(tx: Prisma.TransactionClient, orderId: string) {
+      if (!coupon) return;
+      await reserveCoupon(tx, {
+        coupon,
+        orderId,
+        userId: userId ?? null,
+        email,
+        discountVnd: pricing.discountVnd + voucherShipDiscountVnd,
+      });
+    }
 
     /** Giữ chỗ tài khoản cho từng OrderItem sau khi đơn đã có id. */
     async function reserveOrderAccounts(
@@ -244,12 +280,7 @@ export async function POST(req: NextRequest) {
         const order = await tx.order.create({
           data: { ...orderBase, status: 'PENDING', expiresAt: null },
         });
-        if (coupon) {
-          await tx.coupon.update({
-            where: { id: coupon.id },
-            data: { usedCount: { increment: 1 } },
-          });
-        }
+        await reserveOrderCoupon(tx, order.id);
         return order;
       });
 
@@ -293,13 +324,7 @@ export async function POST(req: NextRequest) {
         });
 
         await reserveOrderAccounts(tx, newOrder.id, null);
-
-        if (coupon) {
-          await tx.coupon.update({
-            where: { id: coupon.id },
-            data: { usedCount: { increment: 1 } },
-          });
-        }
+        await reserveOrderCoupon(tx, newOrder.id);
 
         const licensesToDeliver = [];
         for (const orderItem of newOrder.items) {
@@ -374,6 +399,7 @@ export async function POST(req: NextRequest) {
         },
       });
       await reserveOrderAccounts(tx, order.id, expiresAt);
+      await reserveOrderCoupon(tx, order.id);
       return reserve;
     });
 
@@ -418,6 +444,9 @@ export async function POST(req: NextRequest) {
     // Lỗi hết hàng được ném ra từ transaction để rollback phần đã trừ kho.
     if (error instanceof Error && error.message.startsWith('STOCK:')) {
       return NextResponse.json({ error: error.message.slice(6) }, { status: 409 });
+    }
+    if (error instanceof CouponReserveError) {
+      return NextResponse.json({ error: error.message }, { status: 409 });
     }
     console.error('❌ Lỗi tạo đơn hàng thanh toán:', error);
     return NextResponse.json(

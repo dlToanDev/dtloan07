@@ -3,10 +3,17 @@ import { Header } from '@/components/layout/header';
 import { ThemeProvider } from '@/components/theme-provider';
 import { ProgressBar } from '@/components/layout/progress-bar';
 import { ExitIntentPopup } from '@/components/marketing/exit-intent-popup';
+import { LoginAdPopup } from '@/components/marketing/login-ad-popup';
+import { AnnouncementBar } from '@/components/layout/announcement-bar';
 import { CartDrawer } from '@/components/shop/cart-drawer';
 import { siteConfig } from '@/config/site';
 import { fontMono, fontSans } from '@/lib/fonts';
 import { cn } from '@/lib/utils';
+import {
+  getActiveBannerAnnouncement,
+  getPublicLoginAdConfig,
+  getPublicActiveAnnouncements,
+} from '@/server/actions/settings';
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
 
@@ -26,7 +33,13 @@ export const viewport: Viewport = {
   ],
 };
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  const [adConfig, activeAnnouncement, announcements] = await Promise.all([
+    getPublicLoginAdConfig(),
+    getActiveBannerAnnouncement(),
+    getPublicActiveAnnouncements(),
+  ]);
+
   return (
     // suppressHydrationWarning: next-themes gắn class vào <html> trước khi React
     // hydrate, nên markup server và client khác nhau một cách có chủ đích.
@@ -46,14 +59,16 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           </a>
 
           <ProgressBar />
+          <AnnouncementBar announcement={activeAnnouncement} />
           <div className="flex min-h-dvh flex-col">
-            <Header />
+            <Header announcements={announcements} />
             <main id="main" className="flex-1">
               {children}
             </main>
             <Footer />
           </div>
           <ExitIntentPopup />
+          <LoginAdPopup initialConfig={adConfig} />
           <CartDrawer />
         </ThemeProvider>
       </body>

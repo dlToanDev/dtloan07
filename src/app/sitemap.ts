@@ -23,16 +23,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.9,
     },
     {
-      url: absoluteUrl('/source-code'),
+      url: absoluteUrl('/shop'),
       lastModified: latest,
       changeFrequency: 'weekly',
       priority: 0.9,
     },
     {
-      url: absoluteUrl('/shop'),
+      url: absoluteUrl('/pro'),
       lastModified: latest,
-      changeFrequency: 'weekly',
-      priority: 0.9,
+      changeFrequency: 'monthly',
+      priority: 0.6,
     },
     {
       url: absoluteUrl('/affiliate'),
@@ -49,12 +49,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.4,
     })),
 
-    ...posts.map((post) => ({
-      url: absoluteUrl(`/blog/${post.slug}`),
-      lastModified: post.updatedAt ?? post.publishedAt,
-      changeFrequency: 'monthly' as const,
-      priority: post.featured ? 0.8 : 0.7,
-    })),
+    ...posts
+      .filter((post) => !post.noIndex)
+      .map((post) => ({
+        url: absoluteUrl(`/blog/${post.slug}`),
+        lastModified: post.updatedAt ?? post.publishedAt,
+        changeFrequency: 'monthly' as const,
+        priority: post.featured ? 0.8 : 0.7,
+      })),
 
     ...categories.map(({ category }) => ({
       url: absoluteUrl(`/categories/${category}`),

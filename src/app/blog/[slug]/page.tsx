@@ -31,7 +31,9 @@ import {
   MessageSquare,
   Share2,
   Sparkles,
+  UserRound,
 } from 'lucide-react';
+import { CommunityContent } from '@/components/blog/community-content';
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -42,7 +44,8 @@ export const dynamicParams = true;
 
 export async function generateStaticParams() {
   const posts = await getAllPosts();
-  return posts.map((post) => ({ slug: post.slug }));
+  // Bài cộng đồng render theo yêu cầu (dynamicParams) để bài mới/bị gỡ cập nhật ngay.
+  return posts.filter((post) => post.source !== 'community').map((post) => ({ slug: post.slug }));
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
@@ -60,7 +63,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     modifiedTime: post.updatedAt,
     ogImage: post.cover || DEFAULT_POST_COVER,
     tags: post.tags,
-    noIndex: post.draft,
+    noIndex: post.draft || post.noIndex,
   });
 }
 
@@ -135,6 +138,22 @@ export default async function PostPage({ params }: PageProps) {
 
           {/* Thanh thông số ngày, thời gian đọc, số từ */}
           <div className="text-muted-foreground mt-6 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs sm:text-sm">
+            {post.author && (
+              <>
+                <span className="text-foreground inline-flex items-center gap-1.5 font-medium">
+                  <UserRound className="text-primary/80 size-3.5" />
+                  {post.author.name}
+                  {post.author.pro && (
+                    <Badge className="bg-amber-500 px-1.5 py-0 text-[10px] text-white hover:bg-amber-500">
+                      PRO
+                    </Badge>
+                  )}
+                </span>
+                <span aria-hidden="true" className="text-border">
+                  ·
+                </span>
+              </>
+            )}
             <span className="inline-flex items-center gap-1.5">
               <Calendar className="text-primary/80 size-3.5" />
               <time dateTime={post.publishedAt}>{formatDate(post.publishedAt)}</time>
@@ -247,7 +266,11 @@ export default async function PostPage({ params }: PageProps) {
 
           {/* Prose content */}
           <div className="prose dark:prose-invert max-w-none text-base leading-relaxed sm:text-lg">
-            <MDXRemote source={content} components={mdxComponents} options={{ mdxOptions }} />
+            {post.source === 'community' ? (
+              <CommunityContent html={content} />
+            ) : (
+              <MDXRemote source={content} components={mdxComponents} options={{ mdxOptions }} />
+            )}
           </div>
 
           {/* Phần Bình luận bài viết */}

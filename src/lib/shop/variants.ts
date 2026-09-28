@@ -21,6 +21,8 @@ export interface ProductForCart {
   status: string;
   saleMode: string;
   deliveryMode?: 'AUTO' | 'MANUAL' | null;
+  /** Dùng để xét phạm vi voucher theo danh mục. */
+  categoryId?: string | null;
   variants: VariantSnapshot[];
 }
 

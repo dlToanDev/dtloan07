@@ -4,7 +4,7 @@ interface ProductCoverProps {
   name: string;
   slug: string;
   coverUrl?: string | null;
-  kind?: 'SOURCE_CODE' | 'SHOP';
+  type?: 'DOWNLOAD' | 'PHYSICAL' | 'ACCOUNT';
   version?: string;
   className?: string;
 }
@@ -33,7 +33,7 @@ export function ProductCover({
   name,
   slug,
   coverUrl,
-  kind = 'SOURCE_CODE',
+  type = 'DOWNLOAD',
   version,
   className,
 }: ProductCoverProps) {
@@ -48,7 +48,7 @@ export function ProductCover({
 
   const hash = hashString(slug || name);
   const [from, via, accent] = PALETTES[hash % PALETTES.length] ?? PALETTES[0];
-  const isSource = kind === 'SOURCE_CODE';
+  const isSource = type === 'DOWNLOAD';
   const fileName = `${slug || 'app'}${isSource ? '.tsx' : ''}`;
   // Độ dài các dòng "code" giả, thay đổi theo slug cho đỡ đơn điệu
   const lines = Array.from({ length: 5 }, (_, i) => 35 + ((hash >> (i * 3)) % 50));

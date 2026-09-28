@@ -25,6 +25,20 @@ const nextConfig = {
       },
     ],
   },
+  // Source Code đã gộp vào Shop (loại hàng "Source code") — giữ link cũ không bị 404.
+  async redirects() {
+    return [
+      { source: '/source-code', destination: '/shop?c=source-code', permanent: true },
+      { source: '/source-code/:slug', destination: '/shop/:slug', permanent: true },
+      { source: '/admin/source-code', destination: '/admin/shop', permanent: true },
+      { source: '/admin/source-code/new', destination: '/admin/shop/new', permanent: true },
+      {
+        source: '/admin/source-code/:id/edit',
+        destination: '/admin/shop/:id/edit',
+        permanent: true,
+      },
+    ];
+  },
   async headers() {
     return [
       {

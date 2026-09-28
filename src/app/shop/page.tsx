@@ -4,7 +4,7 @@ import { Container } from '@/components/layout/container';
 import { ProductCard } from '@/components/shop/product-card';
 import { buildMetadata } from '@/lib/seo';
 import { buildShopWhere, parseShopFilters, type ShopFilters } from '@/lib/shop/filters';
-import { CONDITION_OPTIONS, SHOP_CATEGORY_OPTIONS } from '@/lib/shop/labels';
+import { CONDITION_OPTIONS } from '@/lib/shop/labels';
 import { summarizeVariants } from '@/lib/shop/variants';
 import type { Metadata } from 'next';
 import { ShieldCheck, Zap, RefreshCw, FileCode } from 'lucide-react';
@@ -12,7 +12,7 @@ import { ShieldCheck, Zap, RefreshCw, FileCode } from 'lucide-react';
 export const metadata: Metadata = buildMetadata({
   title: 'Shop sản phẩm của dltoan07',
   description:
-    'Cửa hàng sản phẩm chính chủ của dltoan07, tách biệt hoàn toàn với sản phẩm affiliate và source code.',
+    'Cửa hàng sản phẩm chính chủ của dltoan07, gồm source code, tài khoản số và đồ vật lý — tách biệt với sản phẩm affiliate.',
   pathname: '/shop',
 });
 
@@ -40,7 +40,18 @@ export default async function ShopPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const filters = parseShopFilters(await searchParams);
+  let categories: { id: string; name: string; slug: string; hasCondition: boolean }[] = [];
+  try {
+    // Chỉ hiện danh mục đang có sản phẩm bán, theo thứ tự admin sắp xếp.
+    categories = await db.productCategory.findMany({
+      where: { products: { some: { status: 'ACTIVE' } } },
+      orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+      select: { id: true, name: true, slug: true, hasCondition: true },
+    });
+  } catch (err) {
+    console.warn('Cảnh báo: Không thể tải danh mục shop:', err);
+  }
+  const filters = parseShopFilters(await searchParams, categories);
   let products: Awaited<ReturnType<typeof loadProducts>> = [];
   try {
     products = await loadProducts(filters);
@@ -62,28 +73,31 @@ export default async function ShopPage({
       {/* Lọc theo danh mục */}
       <div className="space-y-3">
         <nav className="flex flex-wrap gap-2" aria-label="Lọc danh mục">
-          <Link href="/shop" className={tabClass(!filters.category)}>
+          <Link href="/shop" className={tabClass(!filters.categoryId)}>
             Tất cả
           </Link>
-          {SHOP_CATEGORY_OPTIONS.filter((option) => option.value !== 'OTHER').map((option) => (
+          {categories.map((category) => (
             <Link
-              key={option.slug}
-              href={`/shop?c=${option.slug}`}
-              className={tabClass(filters.category === option.value)}
+              key={category.id}
+              href={`/shop?c=${category.slug}`}
+              className={tabClass(filters.categoryId === category.id)}
             >
-              {option.label}
+              {category.name}
             </Link>
           ))}
         </nav>
-        {filters.category === 'TECH' && (
+        {filters.hasCondition && (
           <nav className="flex flex-wrap gap-2" aria-label="Lọc tình trạng">
-            <Link href="/shop?c=do-cong-nghe" className={tabClass(!filters.condition, true)}>
+            <Link
+              href={`/shop?c=${filters.categorySlug}`}
+              className={tabClass(!filters.condition, true)}
+            >
               Mọi tình trạng
             </Link>
             {CONDITION_OPTIONS.map((option) => (
               <Link
                 key={option.slug}
-                href={`/shop?c=do-cong-nghe&cond=${option.slug}`}
+                href={`/shop?c=${filters.categorySlug}&cond=${option.slug}`}
                 className={tabClass(filters.condition === option.value, true)}
               >
                 {option.label}
@@ -96,7 +110,7 @@ export default async function ShopPage({
       {/* Grid sản phẩm */}
       {products.length === 0 ? (
         <div className="border-border text-muted-foreground space-y-2 rounded-xl border border-dashed p-12 text-center">
-          {filters.category ? (
+          {filters.categoryId ? (
             <>
               <p>Chưa có sản phẩm trong danh mục này.</p>
               <Link href="/shop" className="text-primary text-sm hover:underline">

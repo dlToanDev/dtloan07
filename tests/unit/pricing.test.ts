@@ -1,6 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { calculatePricing, validateCoupon, ProductPriceSnapshot } from '@/lib/pricing';
-import { Coupon, CouponType } from '@prisma/client';
+import {
+  calculatePricing,
+  validateCoupon,
+  type CouponRule,
+  ProductPriceSnapshot,
+} from '@/lib/pricing';
+import { CouponType } from '@prisma/client';
 
 describe('Pricing & Coupon calculation (src/lib/pricing.ts)', () => {
   const mockProducts = new Map<string, ProductPriceSnapshot>([
@@ -38,7 +43,7 @@ describe('Pricing & Coupon calculation (src/lib/pricing.ts)', () => {
   });
 
   it('3. Áp dụng coupon PERCENT chính xác (giảm 10%)', () => {
-    const coupon: Coupon = {
+    const coupon: CouponRule & { id: string; createdAt: Date } = {
       id: 'c1',
       code: 'SALE10',
       type: CouponType.PERCENT,
@@ -64,7 +69,7 @@ describe('Pricing & Coupon calculation (src/lib/pricing.ts)', () => {
   });
 
   it('4. Áp dụng coupon FIXED chính xác (giảm 50,000 đ)', () => {
-    const coupon: Coupon = {
+    const coupon: CouponRule & { id: string; createdAt: Date } = {
       id: 'c2',
       code: 'GIAM50K',
       type: CouponType.FIXED,
@@ -89,7 +94,7 @@ describe('Pricing & Coupon calculation (src/lib/pricing.ts)', () => {
   });
 
   it('5. Giảm giá không bao giờ vượt quá Subtotal (Total không bao giờ âm)', () => {
-    const coupon: Coupon = {
+    const coupon: CouponRule & { id: string; createdAt: Date } = {
       id: 'c3',
       code: 'SUPER999K',
       type: CouponType.FIXED,
@@ -114,7 +119,7 @@ describe('Pricing & Coupon calculation (src/lib/pricing.ts)', () => {
   });
 
   it('6. Từ chối coupon đã bị vô hiệu hoá (active = false)', () => {
-    const coupon: Coupon = {
+    const coupon: CouponRule & { id: string; createdAt: Date } = {
       id: 'c4',
       code: 'DISABLED',
       type: CouponType.PERCENT,
@@ -134,7 +139,7 @@ describe('Pricing & Coupon calculation (src/lib/pricing.ts)', () => {
 
   it('7. Từ chối coupon đã hết hạn sử dụng (endsAt quá khứ)', () => {
     const pastDate = new Date(Date.now() - 1000 * 60 * 60 * 24); // 1 ngày trước
-    const coupon: Coupon = {
+    const coupon: CouponRule & { id: string; createdAt: Date } = {
       id: 'c5',
       code: 'EXPIRED',
       type: CouponType.PERCENT,
@@ -154,7 +159,7 @@ describe('Pricing & Coupon calculation (src/lib/pricing.ts)', () => {
 
   it('8. Từ chối coupon chưa đến thời gian áp dụng (startsAt tương lai)', () => {
     const futureDate = new Date(Date.now() + 1000 * 60 * 60 * 24); // 1 ngày sau
-    const coupon: Coupon = {
+    const coupon: CouponRule & { id: string; createdAt: Date } = {
       id: 'c6',
       code: 'FUTURE',
       type: CouponType.PERCENT,
@@ -173,7 +178,7 @@ describe('Pricing & Coupon calculation (src/lib/pricing.ts)', () => {
   });
 
   it('9. Từ chối coupon khi đã đạt maxUses', () => {
-    const coupon: Coupon = {
+    const coupon: CouponRule & { id: string; createdAt: Date } = {
       id: 'c7',
       code: 'MAXED',
       type: CouponType.PERCENT,

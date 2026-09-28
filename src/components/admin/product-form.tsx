@@ -1,20 +1,27 @@
 'use client';
 
-import { useActionState, useRef, useState } from 'react';
+import { useActionState, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { saveProduct } from '@/server/actions/product';
 import { Button, buttonStyles } from '@/components/ui/button';
-import { FileUp, ImagePlus, Loader2, Trash2, X } from 'lucide-react';
-import { uploadCoverImage } from '@/server/actions/post';
-import { ProductCover } from '@/components/shop/product-cover';
+import { Badge } from '@/components/ui/badge';
+import { CheckCircle2, FileUp, Pencil, X } from 'lucide-react';
 import {
-  ShopDetailsSection,
+  ProductTypeStep,
+  ShopInfoFields,
+  ChoiceCard,
+  DELIVERY_OPTIONS,
+  type CategoryOption,
   type ShopDetailsValue,
 } from '@/components/admin/shop/shop-details-section';
-import { GalleryPicker } from '@/components/admin/shop/gallery-picker';
-import { VariantTable, type VariantTableDefault } from '@/components/admin/shop/variant-table';
+import { FormSection } from '@/components/admin/shop/form-section';
+import { ImagePicker } from '@/components/admin/shop/image-picker';
+import { PricingEditor } from '@/components/admin/shop/pricing-editor';
+import { MoneyInput } from '@/components/admin/shop/money-input';
+import { AccountOffer } from '@/components/admin/shop/account-offer';
+import { missingForPublish, type VariantDefault } from '@/lib/shop/product-form';
 
 const RichTextEditor = dynamic(
   () => import('@/components/admin/rich-text-editor').then((module) => module.RichTextEditor),
@@ -31,7 +38,6 @@ type Product = {
   shortDesc: string;
   description: string;
   version: string;
-  kind: 'SOURCE_CODE' | 'SHOP';
   saleMode: 'FREE' | 'CONTACT' | 'PAID';
   status: string;
   priceVnd: number;
@@ -44,8 +50,29 @@ type Product = {
   deliveryMode: 'AUTO' | 'MANUAL' | null;
   gallery: string[];
   hasOrders: boolean;
-  variants: VariantTableDefault[];
+  variants: VariantDefault[];
 };
+
+/** Ảnh bìa + tối đa 20 ảnh thư viện (giới hạn `gallerySchema` phía server). */
+const MAX_SHOP_IMAGES = 21;
+
+const SALE_MODES = [
+  {
+    value: 'FREE',
+    label: 'Miễn phí',
+    hint: 'Khách tải file miễn phí trực tiếp trên trang sản phẩm.',
+  },
+  {
+    value: 'PAID',
+    label: 'Đặt giá',
+    hint: 'Khách thanh toán theo giá bạn đặt, sau đó nhận quyền tải file.',
+  },
+  {
+    value: 'CONTACT',
+    label: 'Liên hệ báo giá',
+    hint: 'Khách liên hệ để nhận báo giá và thống nhất bàn giao.',
+  },
+] as const;
 
 const MAX_FILE_BYTES = 8 * 1024 * 1024;
 
@@ -147,117 +174,6 @@ function FilePicker({ label, accept }: { label: string; accept?: string }) {
     </div>
   );
 }
-
-function CoverPicker({
-  name,
-  slug,
-  kind,
-  version,
-  defaultUrl,
-  onUploadStart,
-  onUploadEnd,
-}: {
-  name: string;
-  slug: string;
-  kind: 'SOURCE_CODE' | 'SHOP';
-  version: string;
-  defaultUrl: string;
-  onUploadStart: () => void;
-  onUploadEnd: () => void;
-}) {
-  const inputRef = useRef<HTMLInputElement>(null);
-  const [coverUrl, setCoverUrl] = useState(defaultUrl);
-  const [uploading, setUploading] = useState(false);
-  const [error, setError] = useState('');
-
-  const upload = async (file: File | undefined) => {
-    if (!file) return;
-    if (file.size > MAX_FILE_BYTES) {
-      setError('Ảnh tối đa 8 MB.');
-      return;
-    }
-    setError('');
-    setUploading(true);
-    onUploadStart();
-    try {
-      const formData = new FormData();
-      formData.set('file', file);
-      const result = await uploadCoverImage(formData);
-      if (result.success && result.url) setCoverUrl(result.url);
-      else setError(result.error || 'Không thể tải ảnh lên.');
-    } catch {
-      setError('Lỗi kết nối khi tải ảnh lên.');
-    } finally {
-      setUploading(false);
-      onUploadEnd();
-      if (inputRef.current) inputRef.current.value = '';
-    }
-  };
-
-  return (
-    <div className="space-y-3">
-      <input type="hidden" name="coverUrl" value={coverUrl} />
-      <input
-        ref={inputRef}
-        type="file"
-        accept="image/png,image/jpeg,image/webp,image/gif,image/avif,image/svg+xml"
-        className="sr-only"
-        onChange={(event) => upload(event.target.files?.[0])}
-      />
-      <div className="relative">
-        <ProductCover
-          name={name || 'Tên sản phẩm'}
-          slug={slug}
-          coverUrl={coverUrl}
-          kind={kind}
-          version={version}
-          className="border-border rounded-lg border"
-        />
-        {uploading && (
-          <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-black/50">
-            <Loader2 className="size-6 animate-spin text-white" />
-          </div>
-        )}
-      </div>
-      <div className="flex gap-2">
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className="flex-1"
-          disabled={uploading}
-          onClick={() => inputRef.current?.click()}
-        >
-          <ImagePlus className="size-4" />
-          {coverUrl ? 'Đổi ảnh' : 'Chọn ảnh từ máy'}
-        </Button>
-        {coverUrl && (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            disabled={uploading}
-            onClick={() => setCoverUrl('')}
-            title="Xóa ảnh, dùng ảnh bìa tự động"
-          >
-            <Trash2 className="size-4" />
-          </Button>
-        )}
-      </div>
-      <p className="text-muted-foreground text-xs">
-        {coverUrl
-          ? 'Đang dùng ảnh bạn tải lên. Xóa ảnh để quay về ảnh bìa tự động.'
-          : 'Để trống sẽ tự tạo ảnh bìa theo tên sản phẩm như trên. Nên dùng ảnh 16:9 (1280×720).'}
-      </p>
-      {error && (
-        <p role="alert" className="text-xs text-red-600">
-          {error}
-        </p>
-      )}
-    </div>
-  );
-}
-
 function slugify(value: string) {
   return value
     .toLowerCase()
@@ -270,140 +186,169 @@ function slugify(value: string) {
 
 export function ProductForm({
   product,
-  kind,
   files = [],
+  credentialKeyConfigured = false,
+  accountAvailable = null,
+  categories = [],
+  children,
 }: {
   product?: Product;
-  kind: 'SOURCE_CODE' | 'SHOP';
   files?: { id: string; label: string; version: string; sizeBytes: number }[];
+  credentialKeyConfigured?: boolean;
+  /** Số tài khoản còn trống trong kho (tài khoản số gửi tự động đã lưu). */
+  accountAvailable?: number | null;
+  categories?: CategoryOption[];
+  /** Nội dung thêm ở cột chính, nằm ngoài <form> (vd. kho tài khoản có form riêng). */
+  children?: ReactNode;
 }) {
   const [state, action, pending] = useActionState(saveProduct, { error: '' });
   const [mode, setMode] = useState(product?.saleMode || 'FREE');
+  const [downloadPrice, setDownloadPrice] = useState(
+    product?.priceVnd ? String(product.priceVnd) : '',
+  );
+  const [variantPrices, setVariantPrices] = useState<string[]>(
+    () =>
+      product?.variants.filter((variant) => variant.active).map((v) => String(v.priceVnd)) ?? [],
+  );
   const [name, setName] = useState(product?.name || '');
   const [version, setVersion] = useState(product?.version || '1.0.0');
   const [slug, setSlug] = useState(product?.slug || '');
   const [slugEdited, setSlugEdited] = useState(Boolean(product));
+  const [slugOpen, setSlugOpen] = useState(false);
   const [description, setDescription] = useState(product?.description || '');
   const [shortDesc, setShortDesc] = useState(product?.shortDesc || '');
   const [editorError, setEditorError] = useState('');
   const [uploadCount, setUploadCount] = useState(0);
   const [shop, setShop] = useState<ShopDetailsValue>({
-    type: product?.type ?? (kind === 'SHOP' ? 'PHYSICAL' : 'DOWNLOAD'),
-    category: (product?.category as ShopDetailsValue['category']) ?? '',
+    type: product?.type ?? '',
+    category: product?.category ?? '',
     condition: (product?.condition as ShopDetailsValue['condition']) ?? '',
     conditionNote: product?.conditionNote ?? '',
     warrantyNote: product?.warrantyNote ?? '',
     deliveryMode: product?.deliveryMode ?? '',
   });
+  const [categoryList, setCategoryList] = useState(categories);
   const searchParams = useSearchParams();
-  const isSource = kind === 'SOURCE_CODE';
-  const isShopGoods = kind === 'SHOP' && shop.type !== 'DOWNLOAD';
+  const justSaved = searchParams.get('saved') === '1';
+
+  const isSource = shop.type === 'DOWNLOAD';
+  const typeChosen = shop.type !== '';
+  const isShopGoods = shop.type === 'PHYSICAL' || shop.type === 'ACCOUNT';
+  const isAutoAccount = shop.type === 'ACCOUNT' && shop.deliveryMode === 'AUTO';
+  const updateShop = (patch: Partial<ShopDetailsValue>) =>
+    setShop((prev) => ({ ...prev, ...patch }));
+  // Sản phẩm tài khoản cũ có nhiều gói vẫn dùng bảng phân loại; còn lại bán một giá.
+  const legacyAccountPackages = product?.type === 'ACCOUNT' && product.variants.length > 1;
+  const isSimpleAccount = shop.type === 'ACCOUNT' && !legacyAccountPackages;
   const isPublished = product?.status === 'ACTIVE';
+  const trackUpload = {
+    onUploadStart: () => setUploadCount((count) => count + 1),
+    onUploadEnd: () => setUploadCount((count) => Math.max(0, count - 1)),
+  };
+
+  const missing = missingForPublish({
+    type: shop.type,
+    name,
+    shortDesc,
+    category: shop.category,
+    deliveryMode: shop.deliveryMode,
+    saleMode: mode,
+    downloadPrice,
+    variantPrices,
+  });
+
   const publishLabel = isPublished
     ? 'Cập nhật'
-    : isShopGoods
-      ? 'Đăng bán sản phẩm'
-      : mode === 'FREE'
-        ? isSource
-          ? 'Đăng source miễn phí'
-          : 'Đăng sản phẩm miễn phí'
-        : isSource
-          ? 'Đăng bán source code'
-          : 'Đăng bán sản phẩm';
-  const catalog = kind === 'SOURCE_CODE' ? 'source-code' : 'shop';
+    : !isShopGoods && mode === 'FREE'
+      ? isSource
+        ? 'Đăng source miễn phí'
+        : 'Đăng sản phẩm miễn phí'
+      : isSource
+        ? 'Đăng bán source code'
+        : 'Đăng bán';
+
   const inputClass = 'border-border bg-background w-full rounded-lg border px-3 py-2.5 text-sm';
-  const panelClass = 'border-border bg-card space-y-4 rounded-xl border p-5';
+  const busy = pending || uploadCount > 0 || !typeChosen;
+  const submitLabel = uploadCount > 0 ? 'Đang tải ảnh…' : pending ? 'Đang lưu…' : publishLabel;
+
+  // Enter trong ô nhập không được gửi form (dễ bấm nhầm khi đang gõ giá, tên…).
+  const blockEnterSubmit = (event: KeyboardEvent<HTMLFormElement>) => {
+    if (event.key === 'Enter' && (event.target as HTMLElement).tagName === 'INPUT')
+      event.preventDefault();
+  };
+
   return (
-    <form action={action} className="space-y-6">
-      <input type="hidden" name="id" value={product?.id || ''} />
-      <input type="hidden" name="kind" value={kind} />
-      {kind !== 'SHOP' && (
-        <>
-          <input type="hidden" name="type" value="DOWNLOAD" />
-          <input type="hidden" name="gallery" value="[]" />
-        </>
-      )}
-      <div className="border-border bg-background/95 sticky top-16 z-20 flex flex-wrap items-center justify-between gap-3 rounded-xl border p-3 backdrop-blur">
-        <span className="text-muted-foreground text-sm">
-          {isSource
-            ? 'Thông tin source code & thiết lập bán hàng'
-            : 'Thông tin sản phẩm & thiết lập bán hàng'}
-        </span>
-        <div className="flex flex-wrap gap-2">
-          {product?.status === 'ACTIVE' && (
-            <Link
-              href={`/${catalog}/${product.slug}`}
-              target="_blank"
-              className={buttonStyles({ variant: 'outline' })}
-            >
-              Xem trang sản phẩm
-            </Link>
-          )}
-          <Button
-            type="submit"
-            name="status"
-            value="DRAFT"
-            variant="outline"
-            disabled={pending || uploadCount > 0}
-          >
-            {isPublished ? 'Chuyển về nháp' : 'Lưu nháp'}
-          </Button>
-          <Button
-            type="submit"
-            name="status"
-            value="ACTIVE"
-            className="bg-emerald-600 text-white hover:bg-emerald-700"
-            disabled={pending || uploadCount > 0}
-          >
-            {uploadCount > 0 ? 'Đang tải ảnh…' : pending ? 'Đang lưu…' : publishLabel}
-          </Button>
-        </div>
-      </div>
-      {state.error && (
-        <p role="alert" className="rounded-lg bg-red-500/10 p-3 text-sm text-red-600">
-          {state.error}
-        </p>
-      )}
-      {!state.error && searchParams.get('saved') === '1' && (
-        <p role="status" className="rounded-lg bg-green-500/10 p-3 text-sm text-green-600">
-          Đã lưu sản phẩm.
-        </p>
-      )}
-      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]">
-        <div className="min-w-0 space-y-6">
-          {kind === 'SHOP' && (
-            <section className={panelClass}>
-              <h2 className="font-semibold">Loại hàng &amp; thông tin bán</h2>
-              <ShopDetailsSection
-                value={shop}
-                onChange={(patch) => setShop((prev) => ({ ...prev, ...patch }))}
-                typeLocked={Boolean(product?.hasOrders)}
-              />
-            </section>
-          )}
-          <section className={panelClass}>
-            <h2 className="font-semibold">
-              {isSource ? 'Thông tin source code' : 'Thông tin sản phẩm'}
-            </h2>
-            <label className="block space-y-2 text-sm font-medium">
-              {isSource ? 'Tên source code / app / tool' : 'Tên sản phẩm'}
-              <input
-                className={`${inputClass} text-lg font-semibold`}
-                name="name"
-                placeholder="Ví dụ: Tool quản lý công việc bằng Next.js"
-                value={name}
-                onChange={(event) => {
-                  setName(event.target.value);
-                  if (!slugEdited) setSlug(slugify(event.target.value));
-                }}
-                required
-                maxLength={200}
-              />
-            </label>
+    <div className="mx-auto max-w-3xl space-y-5">
+      <form action={action} onKeyDown={blockEnterSubmit} className="space-y-5">
+        <input type="hidden" name="id" value={product?.id || ''} />
+
+        {state.error && (
+          <p role="alert" className="rounded-lg bg-red-500/10 p-3 text-sm text-red-600">
+            {state.error}
+          </p>
+        )}
+        {!state.error && justSaved && (
+          <p role="status" className="rounded-lg bg-green-500/10 p-3 text-sm text-green-600">
+            Đã lưu sản phẩm.
+          </p>
+        )}
+
+        <FormSection title="Loại sản phẩm">
+          <ProductTypeStep
+            value={shop}
+            onChange={updateShop}
+            typeLocked={Boolean(product?.hasOrders)}
+          />
+        </FormSection>
+
+        <FormSection title="Danh mục & bảo hành">
+          <ShopInfoFields
+            value={shop}
+            onChange={updateShop}
+            categories={categoryList}
+            onCategoryCreated={(category) => setCategoryList((prev) => [...prev, category])}
+          />
+        </FormSection>
+
+        <FormSection title="Thông tin sản phẩm">
+          <label className="block space-y-2 text-sm font-medium">
+            {isSource ? 'Tên source code / app / tool' : 'Tên sản phẩm'}
+            <input
+              className={`${inputClass} text-base font-semibold`}
+              name="name"
+              placeholder={
+                isSource
+                  ? 'Ví dụ: Tool quản lý công việc bằng Next.js'
+                  : shop.type === 'ACCOUNT'
+                    ? 'Ví dụ: Netflix Premium 1 tháng'
+                    : 'Ví dụ: Áo thun cotton logo HVP'
+              }
+              value={name}
+              onChange={(event) => {
+                setName(event.target.value);
+                if (!slugEdited) setSlug(slugify(event.target.value));
+              }}
+              required
+              maxLength={200}
+            />
+            <span className="text-muted-foreground flex flex-wrap items-center gap-1 text-xs font-normal">
+              Đường dẫn: /shop/{slug || '…'}
+              {!slugOpen && (
+                <button
+                  type="button"
+                  onClick={() => setSlugOpen(true)}
+                  className="text-primary inline-flex items-center gap-0.5 hover:underline"
+                >
+                  <Pencil className="size-3" /> Sửa
+                </button>
+              )}
+            </span>
+          </label>
+          {slugOpen ? (
             <label className="block space-y-2 text-sm">
               Đường dẫn sản phẩm
               <div className="flex items-center gap-2">
-                <span className="text-muted-foreground shrink-0">/{catalog}/</span>
+                <span className="text-muted-foreground shrink-0">/shop/</span>
                 <input
                   name="slug"
                   className={inputClass}
@@ -414,96 +359,134 @@ export function ProductForm({
                   }}
                   required
                   pattern="[a-z0-9]+(-[a-z0-9]+)*"
+                  title="Chỉ dùng chữ thường không dấu, số và dấu gạch ngang"
                 />
               </div>
             </label>
-            <label className="block space-y-2 text-sm">
-              Tóm tắt tính năng
-              <textarea
-                name="shortDesc"
-                className={inputClass}
-                value={shortDesc}
-                onChange={(event) => setShortDesc(event.target.value)}
-                required
-                maxLength={500}
-                rows={3}
-                placeholder="Tóm tắt sản phẩm làm được gì và dành cho ai…"
-              />
-              <span className="text-muted-foreground text-xs">{shortDesc.length}/500 ký tự</span>
-            </label>
-          </section>
-          {isShopGoods && (
-            <section className={panelClass}>
-              <h2 className="font-semibold">Biến thể &amp; giá</h2>
-              <VariantTable
-                defaultValue={product?.variants ?? []}
-                stockReadOnly={shop.type === 'ACCOUNT' && shop.deliveryMode === 'AUTO'}
-              />
-            </section>
+          ) : (
+            <input type="hidden" name="slug" value={slug} />
           )}
-          <section className="min-w-0 space-y-3">
-            <h2 className="font-semibold">Mô tả sản phẩm & hướng dẫn sử dụng</h2>
-            <p className="text-muted-foreground text-sm">
-              {isSource
-                ? 'Mô tả chức năng, công nghệ sử dụng, yêu cầu hệ thống, cách cài đặt và phạm vi hỗ trợ. Chèn ảnh giao diện hoặc ảnh demo để người mua xem trước.'
-                : 'Mô tả tính năng, lợi ích, cách sử dụng và thông tin hỗ trợ. Có thể chèn ảnh minh họa sản phẩm.'}
-            </p>
-            <input type="hidden" name="description" value={description} />
-            <RichTextEditor
-              value={description}
-              onChange={setDescription}
-              onError={setEditorError}
-              onUploadStart={() => {
-                setEditorError('');
-                setUploadCount((count) => count + 1);
-              }}
-              onUploadEnd={() => setUploadCount((count) => Math.max(0, count - 1))}
+          <label className="block space-y-2 text-sm font-medium">
+            Mô tả ngắn
+            <textarea
+              name="shortDesc"
+              className={`${inputClass} font-normal`}
+              value={shortDesc}
+              onChange={(event) => setShortDesc(event.target.value)}
+              required
+              maxLength={500}
+              rows={3}
+              placeholder="1–2 câu: sản phẩm là gì, dành cho ai, điểm nổi bật…"
             />
-            {editorError && (
-              <p role="alert" className="text-sm text-red-600">
-                {editorError}
-              </p>
+            <span className="text-muted-foreground flex justify-between text-xs font-normal">
+              <span>Hiển thị ở danh sách sản phẩm.</span>
+              <span>{shortDesc.length}/500</span>
+            </span>
+          </label>
+        </FormSection>
+
+        <FormSection title="Ảnh sản phẩm">
+          <ImagePicker
+            defaultCover={product?.coverUrl || ''}
+            defaultGallery={product?.gallery ?? []}
+            max={MAX_SHOP_IMAGES}
+            {...trackUpload}
+          />
+        </FormSection>
+
+        {!typeChosen ? (
+          <FormSection title="Giá & số lượng">
+            <p className="text-muted-foreground border-border rounded-lg border border-dashed p-4 text-center text-sm">
+              Chọn loại sản phẩm ở trên để nhập giá.
+            </p>
+          </FormSection>
+        ) : isSimpleAccount ? (
+          <>
+            <input type="hidden" name="saleMode" value="PAID" />
+            <input type="hidden" name="priceVnd" value="0" />
+            <input type="hidden" name="version" value={version} />
+            <AccountOffer
+              defaultVariant={product?.variants.find((variant) => variant.active)}
+              deliveryMode={shop.deliveryMode}
+              onDeliveryModeChange={(deliveryMode) => updateShop({ deliveryMode })}
+              keyConfigured={credentialKeyConfigured}
+              availableCount={accountAvailable}
+              onPricesChange={setVariantPrices}
+            />
+          </>
+        ) : isShopGoods ? (
+          <FormSection
+            title="Phân loại, giá & số lượng"
+            hint={
+              shop.type === 'ACCOUNT'
+                ? 'Mỗi dòng là một gói: tên gói, giá và số lượng.'
+                : 'Mỗi dòng là một phân loại: màu, size, giá và số lượng. Nhập xong bấm “Thêm màu / size khác”.'
+            }
+          >
+            <input type="hidden" name="saleMode" value="PAID" />
+            <input type="hidden" name="priceVnd" value="0" />
+            <input type="hidden" name="version" value={version} />
+            {shop.type === 'ACCOUNT' && (
+              <div className="grid gap-2 sm:grid-cols-2">
+                {DELIVERY_OPTIONS.map((option) => (
+                  <ChoiceCard
+                    key={option.value}
+                    selected={shop.deliveryMode === option.value}
+                    label={option.label}
+                    hint={option.hint}
+                    onClick={() => updateShop({ deliveryMode: option.value })}
+                  />
+                ))}
+              </div>
             )}
-          </section>
-        </div>
-        <aside className="space-y-5">
-          <section className={panelClass}>
-            <h2 className="font-semibold">Ảnh bìa</h2>
-            <CoverPicker
-              name={name}
-              slug={slug}
-              kind={kind}
-              version={version}
-              defaultUrl={product?.coverUrl || ''}
-              onUploadStart={() => setUploadCount((count) => count + 1)}
-              onUploadEnd={() => setUploadCount((count) => Math.max(0, count - 1))}
+            <PricingEditor
+              defaultValue={product?.variants ?? []}
+              goodsType={shop.type === 'ACCOUNT' ? 'ACCOUNT' : 'PHYSICAL'}
+              stockFromAccounts={isAutoAccount}
+              onPricesChange={setVariantPrices}
             />
-          </section>
-          {kind === 'SHOP' && (
-            <section className={panelClass}>
-              <h2 className="font-semibold">Thư viện ảnh</h2>
-              <p className="text-muted-foreground text-xs">
-                Ảnh phụ hiển thị kèm ảnh bìa ở trang sản phẩm. Kéo thứ tự bằng nút ↑ ↓.
-              </p>
-              <GalleryPicker
-                defaultValue={product?.gallery ?? []}
-                onUploadStart={() => setUploadCount((count) => count + 1)}
-                onUploadEnd={() => setUploadCount((count) => Math.max(0, count - 1))}
-              />
-            </section>
-          )}
-          <section className={panelClass}>
-            <h2 className="font-semibold">Trạng thái &amp; phiên bản</h2>
-            <p className="text-muted-foreground text-xs">
-              {isPublished
-                ? 'Đang hiển thị công khai. Bấm "Chuyển về nháp" để tạm ẩn.'
-                : 'Chưa đăng. Bấm "Lưu nháp" khi chưa hoàn tất, hoặc đăng ngay ở thanh trên cùng.'}
-            </p>
-            {isShopGoods ? (
-              <input type="hidden" name="version" value={version} />
-            ) : (
+          </FormSection>
+        ) : (
+          <FormSection
+            title="Giá & file bàn giao"
+            hint="Khách nhận file này sau khi tải miễn phí hoặc thanh toán."
+          >
+            <input type="hidden" name="saleMode" value={mode} />
+            <div className="grid gap-2 sm:grid-cols-3">
+              {SALE_MODES.map((option) => (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => setMode(option.value)}
+                  aria-pressed={mode === option.value}
+                  className={`rounded-lg border p-3 text-left text-sm transition ${
+                    mode === option.value
+                      ? 'border-primary bg-primary/5 ring-primary ring-1'
+                      : 'border-border hover:bg-muted/40'
+                  }`}
+                >
+                  <span className="block font-semibold">{option.label}</span>
+                  <span className="text-muted-foreground text-xs">{option.hint}</span>
+                </button>
+              ))}
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              {mode === 'PAID' ? (
+                <label className="block space-y-2 text-sm font-medium">
+                  Giá bán
+                  <MoneyInput
+                    name="priceVnd"
+                    value={downloadPrice}
+                    onChange={setDownloadPrice}
+                    label="Giá bán"
+                    required
+                  />
+                </label>
+              ) : (
+                <input type="hidden" name="priceVnd" value="0" />
+              )}
               <label className="block space-y-2 text-sm">
-                Số phiên bản
+                Phiên bản
                 <input
                   name="version"
                   className={inputClass}
@@ -513,85 +496,115 @@ export function ProductForm({
                   maxLength={50}
                 />
               </label>
-            )}
-          </section>
-          {isShopGoods ? (
-            <>
-              <input type="hidden" name="saleMode" value="PAID" />
-              <input type="hidden" name="priceVnd" value="0" />
-            </>
-          ) : (
-            <>
-              <section className={panelClass}>
-                <h2 className="font-semibold">Hình thức & giá bán</h2>
-                <label className="block space-y-2 text-sm">
-                  Hình thức
-                  <select
-                    name="saleMode"
-                    className={inputClass}
-                    value={mode}
-                    onChange={(event) => setMode(event.target.value as typeof mode)}
-                  >
-                    <option value="FREE">Miễn phí</option>
-                    <option value="CONTACT">Trả phí – Liên hệ báo giá</option>
-                    <option value="PAID">Trả phí – Đặt giá</option>
-                  </select>
-                </label>
-                <p className="text-muted-foreground text-xs">
-                  {mode === 'PAID'
-                    ? 'Khách thanh toán theo giá bạn đặt, sau đó nhận quyền tải file.'
-                    : mode === 'CONTACT'
-                      ? 'Khách liên hệ để nhận báo giá và thống nhất bàn giao source.'
-                      : 'Khách tải file miễn phí trực tiếp trên trang sản phẩm.'}
-                </p>
-                {mode === 'PAID' ? (
-                  <label className="block space-y-2 text-sm">
-                    Giá bán (VND)
-                    <input
-                      type="number"
-                      name="priceVnd"
-                      min="1"
-                      max="2147483647"
-                      step="1"
-                      defaultValue={product?.priceVnd || ''}
-                      required
-                      className={inputClass}
-                    />
-                  </label>
-                ) : (
-                  <input type="hidden" name="priceVnd" value="0" />
-                )}
-              </section>
-              <section className={panelClass}>
-                <h2 className="font-semibold">
-                  {isSource ? 'Gói mã nguồn bàn giao' : 'File sản phẩm bàn giao'}
-                </h2>
-                {files.length > 0 && (
-                  <ul className="space-y-3">
-                    {files.map((file) => (
-                      <li key={file.id} className="text-sm">
-                        <p className="font-medium break-words">{file.label}</p>
-                        <p className="text-muted-foreground text-xs">
-                          v{file.version} · {(file.sizeBytes / 1024 / 1024).toFixed(2)} MB
-                        </p>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-                <FilePicker
-                  label={
-                    isSource ? 'Upload source code (ZIP hoặc file khác)' : 'Upload file sản phẩm'
-                  }
-                />
-                <p className="text-muted-foreground text-xs">
-                  Tối đa 8 MB/file. File mới được thêm vào danh sách hiện có. Bản miễn phí và đặt
-                  giá cần có file trước khi công khai.
-                </p>
-              </section>
-            </>
+            </div>
+            <div className="space-y-2">
+              {files.length > 0 && (
+                <ul className="border-border divide-border divide-y rounded-lg border">
+                  {files.map((file) => (
+                    <li key={file.id} className="flex items-center gap-3 p-3 text-sm">
+                      <FileUp className="text-muted-foreground size-4 shrink-0" />
+                      <span className="min-w-0 flex-1 font-medium break-words">{file.label}</span>
+                      <span className="text-muted-foreground shrink-0 text-xs">
+                        v{file.version} · {(file.sizeBytes / 1024 / 1024).toFixed(2)} MB
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <FilePicker
+                label={
+                  files.length > 0
+                    ? 'Thêm bản mới'
+                    : isSource
+                      ? 'File source code (ZIP hoặc file khác)'
+                      : 'File sản phẩm'
+                }
+              />
+              <p className="text-muted-foreground text-xs">
+                Tối đa 8 MB/file. File mới được thêm vào danh sách hiện có.
+                {mode !== 'CONTACT' && ' Cần có file trước khi đăng.'}
+              </p>
+            </div>
+          </FormSection>
+        )}
+
+        <FormSection
+          title="Mô tả chi tiết (tùy chọn)"
+          hint={
+            isSource
+              ? 'Chức năng, công nghệ, yêu cầu hệ thống, cách cài đặt, phạm vi hỗ trợ. Có thể chèn ảnh demo.'
+              : 'Tính năng, chất liệu, kích thước, cách sử dụng… Có thể chèn ảnh minh họa.'
+          }
+        >
+          <input type="hidden" name="description" value={description} />
+          <RichTextEditor
+            value={description}
+            onChange={setDescription}
+            onError={setEditorError}
+            onUploadStart={() => {
+              setEditorError('');
+              trackUpload.onUploadStart();
+            }}
+            onUploadEnd={trackUpload.onUploadEnd}
+          />
+          {editorError && (
+            <p role="alert" className="text-sm text-red-600">
+              {editorError}
+            </p>
           )}
-        </aside>
-      </div>
-    </form>
+        </FormSection>
+
+        {/* Thanh nút dính đáy màn hình: luôn thấy trạng thái và nút lưu. */}
+        <div className="border-border bg-background/95 sticky bottom-0 z-20 -mx-4 flex flex-wrap items-center gap-3 border-t px-4 py-3 backdrop-blur sm:mx-0 sm:rounded-t-xl sm:border-x sm:px-5">
+          <div className="flex min-w-0 flex-1 items-center gap-2 text-sm">
+            <Badge variant={isPublished ? 'default' : 'outline'} className="shrink-0">
+              {isPublished ? 'Đang hiển thị' : product ? 'Bản nháp' : 'Mới'}
+            </Badge>
+            {missing.length > 0 ? (
+              <span className="text-muted-foreground truncate">
+                Còn thiếu: <span className="text-foreground">{missing.join(', ')}</span>
+              </span>
+            ) : (
+              <span className="flex items-center gap-1 text-emerald-600">
+                <CheckCircle2 className="size-4" /> Sẵn sàng đăng
+              </span>
+            )}
+          </div>
+          <div className="flex gap-2">
+            {isPublished && (
+              <Link
+                href={`/shop/${product.slug}`}
+                target="_blank"
+                className={buttonStyles({ variant: 'ghost' })}
+              >
+                Xem trang ↗
+              </Link>
+            )}
+            {/* Lưu nháp không bắt điền đủ mọi ô — server vẫn kiểm tra tên và danh mục. */}
+            <Button
+              type="submit"
+              name="status"
+              value="DRAFT"
+              variant="outline"
+              formNoValidate
+              disabled={busy}
+            >
+              {isPublished ? 'Chuyển về nháp' : 'Lưu nháp'}
+            </Button>
+            <Button
+              type="submit"
+              name="status"
+              value="ACTIVE"
+              className="bg-emerald-600 text-white hover:bg-emerald-700"
+              disabled={busy}
+            >
+              {submitLabel}
+            </Button>
+          </div>
+        </div>
+      </form>
+
+      {children}
+    </div>
   );
 }

@@ -6,9 +6,8 @@ import { Button, buttonStyles } from '@/components/ui/button';
 import { revalidatePath } from 'next/cache';
 import Link from 'next/link';
 
-export async function ProductManager({ kind }: { kind: 'SOURCE_CODE' | 'SHOP' }) {
-  const basePath = kind === 'SOURCE_CODE' ? '/admin/source-code' : '/admin/shop';
-  const label = kind === 'SOURCE_CODE' ? 'Source Code / App / Tool' : 'Shop';
+export async function ProductManager() {
+  const basePath = '/admin/shop';
   let products: Awaited<
     ReturnType<
       typeof db.product.findMany<{
@@ -22,7 +21,6 @@ export async function ProductManager({ kind }: { kind: 'SOURCE_CODE' | 'SHOP' })
 
   try {
     products = await db.product.findMany({
-      where: { kind },
       include: {
         files: true,
         _count: {
@@ -47,7 +45,6 @@ export async function ProductManager({ kind }: { kind: 'SOURCE_CODE' | 'SHOP' })
     });
     if (
       !product ||
-      product.kind !== kind ||
       (product.status !== 'ACTIVE' && product.saleMode !== 'CONTACT' && !product.files.length)
     )
       throw new Error('Cần đính kèm file trước khi công khai.');
@@ -57,40 +54,30 @@ export async function ProductManager({ kind }: { kind: 'SOURCE_CODE' | 'SHOP' })
       data: { status: newStatus as 'ACTIVE' | 'DRAFT' },
     });
     revalidatePath('/products/[slug]', 'page');
-    revalidatePath('/admin/source-code');
     revalidatePath('/admin/shop');
-    revalidatePath('/source-code/[slug]', 'page');
     revalidatePath('/shop/[slug]', 'page');
-    revalidatePath('/source-code');
     revalidatePath('/shop');
+    revalidatePath('/');
   }
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-bold">
-            Quản lý {label} ({products.length})
-          </h2>
+          <h2 className="text-xl font-bold">Quản lý Shop ({products.length})</h2>
           <p className="text-muted-foreground text-sm">
-            {kind === 'SOURCE_CODE'
-              ? 'Đăng mã nguồn app, tool và template: miễn phí, liên hệ hoặc đặt giá bán.'
-              : 'Đăng và quản lý các sản phẩm trong Shop của bạn.'}
+            Source code, tài khoản số và đồ vật lý — chọn loại khi đăng sản phẩm.
           </p>
         </div>
       </div>
 
       <Link href={`${basePath}/new`} className={buttonStyles({})}>
-        + {kind === 'SOURCE_CODE' ? 'Đăng bán source code' : 'Đăng bán sản phẩm'}
+        + Đăng bán sản phẩm
       </Link>
       <Card>
         <CardHeader>
           <CardTitle>Danh mục sản phẩm</CardTitle>
-          <CardDescription>
-            {kind === 'SOURCE_CODE'
-              ? 'Danh sách mã nguồn app/tool hiển thị tại Source Code.'
-              : 'Danh sách sản phẩm hiển thị tại Shop.'}
-          </CardDescription>
+          <CardDescription>Danh sách sản phẩm hiển thị tại Shop.</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="overflow-x-auto">
@@ -145,7 +132,7 @@ export async function ProductManager({ kind }: { kind: 'SOURCE_CODE' | 'SHOP' })
                     </td>
                     <td className="space-x-2 px-2 py-3 text-right">
                       <Link
-                        href={`/${kind === 'SOURCE_CODE' ? 'source-code' : 'shop'}/${p.slug}`}
+                        href={`/shop/${p.slug}`}
                         target="_blank"
                         className={buttonStyles({
                           variant: 'outline',

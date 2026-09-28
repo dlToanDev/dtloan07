@@ -4,8 +4,8 @@ import Link from 'next/link';
 const footerLinks = [
   { label: 'Affiliate', href: '/affiliate' },
   { label: 'Khóa học', href: '/courses' },
-  { label: 'Source Code', href: '/source-code' },
   { label: 'Shop', href: '/shop' },
+  { label: 'Tài khoản Pro', href: '/pro' },
   { label: 'Giới thiệu', href: '/about' },
   { label: 'Tra cứu đơn', href: '/orders/lookup' },
   { label: 'Điều khoản', href: '/terms' },

@@ -25,8 +25,8 @@ export const siteConfig = {
     { label: 'Bài viết', href: '/blog' },
     { label: 'Affiliate', href: '/affiliate' },
     { label: 'Khóa học', href: '/courses' },
-    { label: 'Source Code', href: '/source-code' },
     { label: 'Shop', href: '/shop' },
+    { label: 'Pro', href: '/pro' },
     { label: 'Giới thiệu', href: '/about' },
   ],
 } as const;

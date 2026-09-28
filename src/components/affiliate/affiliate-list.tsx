@@ -23,7 +23,6 @@ const CATEGORY_TABS: { label: string; value: CategoryFilter }[] = [
   { label: 'DevOps & Server', value: 'DEVOPS' },
   { label: 'Công cụ Dev & AI', value: 'DEVTOOLS' },
   { label: 'Bảo mật & VPN', value: 'SECURITY' },
-  { label: 'Tool Code', value: 'TOOLCODE' },
 ];
 
 const MARKETPLACE_CATEGORIES: AffiliateCategory[] = ['SHOPPING', 'SHOPEE', 'TIKTOK'];

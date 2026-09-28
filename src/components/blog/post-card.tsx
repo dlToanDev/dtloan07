@@ -62,6 +62,19 @@ export function PostCard({
       {/* Nội dung bài viết */}
       <div className={cn('flex min-w-0 flex-1 flex-col gap-2', isGrid ? 'h-full' : '')}>
         <div className="text-muted-foreground flex flex-wrap items-center gap-2 text-sm">
+          {post.author && (
+            <>
+              <span className="text-foreground inline-flex items-center gap-1 font-medium">
+                {post.author.name}
+                {post.author.pro && (
+                  <Badge className="bg-amber-500 px-1.5 py-0 text-[10px] text-white hover:bg-amber-500">
+                    PRO
+                  </Badge>
+                )}
+              </span>
+              <span aria-hidden="true">·</span>
+            </>
+          )}
           <time dateTime={post.publishedAt}>{formatDate(post.publishedAt)}</time>
           <span aria-hidden="true">·</span>
           <span>{post.readingMinutes} phút đọc</span>

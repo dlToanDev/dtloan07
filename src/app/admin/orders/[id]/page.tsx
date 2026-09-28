@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { PRO_PLANS } from '@/lib/membership';
 import { notFound } from 'next/navigation';
 import { db } from '@/lib/db';
 import { requireProductAdmin } from '@/server/actions/product';
@@ -74,6 +75,12 @@ export default async function AdminOrderDetailPage({
             </CardHeader>
             <CardContent>
               <div className="divide-border divide-y">
+                {order.membershipPlan && (
+                  <div className="flex justify-between gap-3 py-3 text-sm">
+                    <div className="font-medium">👑 {PRO_PLANS[order.membershipPlan].label}</div>
+                    <div className="font-semibold">{money(order.subtotalVnd)}</div>
+                  </div>
+                )}
                 {order.items.map((item) => (
                   <div key={item.id} className="flex justify-between gap-3 py-3 text-sm">
                     <div>
@@ -89,7 +96,7 @@ export default async function AdminOrderDetailPage({
                           ? 'Đồ vật lý'
                           : item.productTypeSnapshot === 'ACCOUNT'
                             ? 'Tài khoản số'
-                            : 'File tải về'}
+                            : 'Source code'}
                       </div>
                     </div>
                     <div className="font-semibold">{money(item.unitPriceVnd * item.qty)}</div>
@@ -128,8 +135,17 @@ export default async function AdminOrderDetailPage({
                 </div>
                 {order.discountVnd > 0 && (
                   <div className="flex justify-between text-emerald-600">
-                    <span>Giảm giá{order.coupon ? ` (${order.coupon.code})` : ''}</span>
+                    <span>
+                      Giảm giá
+                      {order.coupon ? ` (${order.coupon.code ?? order.coupon.name})` : ''}
+                    </span>
                     <span>-{money(order.discountVnd)}</span>
+                  </div>
+                )}
+                {order.shippingDiscountVnd > 0 && (
+                  <div className="flex justify-between text-emerald-600">
+                    <span>Được miễn phí ship</span>
+                    <span>-{money(order.shippingDiscountVnd)}</span>
                   </div>
                 )}
                 {order.fulfillmentStatus && (

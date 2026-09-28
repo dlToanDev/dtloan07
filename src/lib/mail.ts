@@ -366,3 +366,42 @@ export async function sendAdminManualDeliveryEmail({
     text: `Đơn ${orderCode} cần bàn giao tài khoản: ${items.join(', ')}.`,
   });
 }
+
+const escapeHtml = (value: string) =>
+  value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+/** Báo tài khoản bị cảnh báo (thường kèm gỡ bài); đủ số cảnh báo thì báo đã khóa tài khoản. */
+export async function sendUserWarningEmail({
+  to,
+  reason,
+  postTitle,
+  warningCount,
+  limit,
+  locked,
+}: {
+  to: string;
+  reason: string;
+  postTitle?: string | null;
+  warningCount: number;
+  limit: number;
+  locked: boolean;
+}) {
+  const subject = locked
+    ? 'Tài khoản của bạn đã bị khóa'
+    : `Cảnh báo vi phạm (${warningCount}/${limit})`;
+  const postLine = postTitle
+    ? `<p style="color:#4b5563;font-size:15px;">Bài viết <strong>${escapeHtml(postTitle)}</strong> đã bị gỡ.</p>`
+    : '';
+  const status = locked
+    ? `Tài khoản đã nhận ${warningCount} cảnh báo nên đã bị khóa và không thể đăng nhập.`
+    : `Đây là cảnh báo ${warningCount}/${limit}. Đủ ${limit} cảnh báo tài khoản sẽ bị khóa.`;
+  return sendEmail({
+    to,
+    subject,
+    html: orderEmailShell(
+      subject,
+      `${postLine}<p style="color:#4b5563;font-size:15px;">Lý do: ${escapeHtml(reason)}</p><p style="color:#4b5563;font-size:15px;">${status}</p>`,
+    ),
+    text: `${postTitle ? `Bài viết "${postTitle}" đã bị gỡ. ` : ''}Lý do: ${reason}. ${status}`,
+  });
+}

@@ -1,6 +1,9 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
+import { MessageCircle } from 'lucide-react';
+import { buttonStyles } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { AddToCartButton } from '@/components/shop/add-to-cart-button';
 import {
@@ -72,9 +75,11 @@ export function VariantPurchasePanel({
               <button
                 key={variant.id}
                 type="button"
-                disabled={!inStock(variant)}
                 onClick={() => setSelectedId(variant.id)}
-                className={`rounded-lg border px-3 py-1.5 text-sm transition disabled:cursor-not-allowed disabled:line-through disabled:opacity-40 ${
+                title={inStock(variant) ? undefined : 'Tạm hết hàng — liên hệ để đặt'}
+                className={`rounded-lg border px-3 py-1.5 text-sm transition ${
+                  inStock(variant) ? '' : 'text-muted-foreground line-through'
+                } ${
                   variant.id === selected.id
                     ? 'border-primary bg-primary/10 text-primary font-semibold'
                     : 'border-border hover:bg-muted'
@@ -91,16 +96,27 @@ export function VariantPurchasePanel({
         <p className="text-muted-foreground text-xs">
           {(stockOf(selected) ?? 0) > 0
             ? `Còn ${stockOf(selected)} ${type === 'ACCOUNT' ? 'tài khoản' : 'sản phẩm'}`
-            : 'Tạm hết hàng'}
+            : 'Tạm hết hàng — liên hệ để đặt trước'}
         </p>
       )}
 
-      <AddToCartButton
-        productId={productId}
-        variantId={selected.id}
-        disabled={!purchasable || !inStock(selected)}
-        disabledLabel={purchasable ? 'Tạm hết hàng' : 'Sắp mở bán'}
-      />
+      {/* Hết hàng (số lượng = 0) → cho khách liên hệ thay vì nút mua bị khóa. */}
+      {purchasable && !inStock(selected) ? (
+        <Link
+          href="/about#lien-he"
+          className={buttonStyles({ size: 'lg', className: 'h-12 w-full text-sm font-semibold' })}
+        >
+          <MessageCircle className="h-4 w-4" />
+          Liên hệ
+        </Link>
+      ) : (
+        <AddToCartButton
+          productId={productId}
+          variantId={selected.id}
+          disabled={!purchasable}
+          disabledLabel="Sắp mở bán"
+        />
+      )}
     </div>
   );
 }

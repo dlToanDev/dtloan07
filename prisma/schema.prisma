@@ -20,6 +20,12 @@ enum Role {
   ADMIN
 }
 
+/// Gói Pro mua theo kỳ (PayOS không tự trừ tiền định kỳ).
+enum MembershipPlan {
+  PRO_MONTH
+  PRO_YEAR
+}
+
 model User {
   id            String    @id @default(cuid())
   email         String    @unique
@@ -27,14 +33,25 @@ model User {
   name          String?
   image         String?
   role          Role      @default(USER)
+  proUntil      DateTime? // Còn hạn (> now) là tài khoản Pro
+  lockedAt      DateTime? // Bị khóa (đủ 3 cảnh báo hoặc admin khóa): không đăng nhập được
+  lockReason    String?
   emailVerified DateTime?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  accounts Account[]
-  sessions Session[]
-  orders   Order[]
-  licenses License[]
+  accounts       Account[]
+  sessions       Session[]
+  orders         Order[]
+  licenses       License[]
+  couponGrants   CouponGrant[]
+  communityPosts CommunityPost[]
+  warnings       UserWarning[]   @relation("WarningTarget")
+  warningsIssued UserWarning[]   @relation("WarningIssuer")
+
+  enrollments    Enrollment[]
+  lessonProgress LessonProgress[]
+  submissions    Submission[]
 }
 
 model Account {
@@ -85,11 +102,6 @@ enum ProductStatus {
   ARCHIVED
 }
 
-enum ProductKind {
-  SOURCE_CODE
-  SHOP
-}
-
 enum ProductSaleMode {
   FREE
   CONTACT
@@ -100,16 +112,6 @@ enum ProductType {
   DOWNLOAD
   PHYSICAL
   ACCOUNT
-}
-
-enum ShopCategory {
-  APPAREL
-  HAT
-  MUG
-  ACCESSORY
-  TECH
-  ACCOUNT
-  OTHER
 }
 
 enum ItemCondition {
@@ -142,18 +144,18 @@ model Product {
   currency     String          @default("VND")
   coverUrl     String
   status       ProductStatus   @default(DRAFT)
-  kind         ProductKind     @default(SOURCE_CODE)
   version      String // Ví dụ "1.0.0"
   maxDownloads Int             @default(5)
 
   // --- Shop: loại hàng, phân loại và thông tin bán ---
-  type          ProductType    @default(DOWNLOAD)
-  category      ShopCategory? // Bắt buộc khi kind = SHOP (kiểm tra ở server action)
-  condition     ItemCondition? // Chỉ dùng khi category = TECH
+  type          ProductType      @default(DOWNLOAD) // DOWNLOAD = source code / file tải về
+  categoryId    String? // Bắt buộc khi lưu (kiểm tra ở server action)
+  category      ProductCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  condition     ItemCondition? // Chỉ dùng khi danh mục có hasCondition
   conditionNote String? // Ví dụ "Trầy nhẹ cạnh, pin 88%"
   warrantyNote  String? // Ví dụ "Bảo hành 7 ngày"
   deliveryMode  DeliveryMode? // Bắt buộc khi type = ACCOUNT
-  gallery       String[]       @default([]) // URL ảnh, theo thứ tự hiển thị
+  gallery       String[]         @default([]) // URL ảnh, theo thứ tự hiển thị
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -163,8 +165,22 @@ model Product {
   licenses   License[]
   variants   ProductVariant[]
 
-  @@index([kind, status])
-  @@index([kind, status, category])
+  @@index([status])
+  @@index([status, categoryId])
+}
+
+/// Danh mục Shop do admin tự thêm / sửa.
+model ProductCategory {
+  id           String    @id @default(cuid())
+  name         String
+  slug         String    @unique
+  sortOrder    Int       @default(0)
+  hasCondition Boolean   @default(false) // Hàng công nghệ: có chọn tình trạng Mới / Như mới / Đã dùng
+  createdAt    DateTime  @default(now())
+  products     Product[]
+  coupons      Coupon[]  @relation("CouponCategories")
+
+  @@index([sortOrder])
 }
 
 /// Biến thể sản phẩm: mỗi biến thể có giá và tồn kho riêng.
@@ -300,24 +316,29 @@ model Order {
   expiresAt   DateTime?
 
   // --- Giao hàng (đồ vật lý & tài khoản bàn giao thủ công) ---
-  paymentMethod     PaymentMethod      @default(PAYOS)
-  fulfillmentStatus FulfillmentStatus? // null khi đơn chỉ có hàng DOWNLOAD
-  customerName      String?
-  phone             String?
-  shipProvince      String? // mã tỉnh trong src/config/provinces.ts
-  shipAddress       String?
-  shipNote          String?
-  shippingFeeVnd    Int                @default(0)
-  trackingCode      String?
-  cancelledAt       DateTime?
+  paymentMethod       PaymentMethod      @default(PAYOS)
+  fulfillmentStatus   FulfillmentStatus? // null khi đơn chỉ có hàng DOWNLOAD
+  customerName        String?
+  phone               String?
+  shipProvince        String? // mã tỉnh trong src/config/provinces.ts
+  shipAddress         String?
+  shipNote            String?
+  shippingFeeVnd      Int                @default(0)
+  shippingDiscountVnd Int                @default(0) // Phí ship được voucher miễn (shippingFeeVnd là phần khách trả)
+  trackingCode        String?
+  cancelledAt         DateTime?
+
+  // --- Đơn mua gói Pro (không có OrderItem) ---
+  membershipPlan MembershipPlan?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user     User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
-  coupon   Coupon?     @relation(fields: [couponId], references: [id], onDelete: SetNull)
-  items    OrderItem[]
-  payments Payment[]
+  user             User?             @relation(fields: [userId], references: [id], onDelete: SetNull)
+  coupon           Coupon?           @relation(fields: [couponId], references: [id], onDelete: SetNull)
+  items            OrderItem[]
+  payments         Payment[]
+  couponRedemption CouponRedemption?
 
   @@index([userId, status])
   @@index([email])
@@ -363,21 +384,85 @@ model Payment {
 enum CouponType {
   PERCENT
   FIXED
+  FREE_SHIP
 }
 
-model Coupon {
-  id        String     @id @default(cuid())
-  code      String     @unique
-  type      CouponType
-  value     Int // Tỉ lệ % hoặc số tiền giảm cố định (VND)
-  maxUses   Int?
-  usedCount Int        @default(0)
-  startsAt  DateTime?
-  endsAt    DateTime?
-  active    Boolean    @default(true)
-  createdAt DateTime   @default(now())
+enum CouponScope {
+  ALL
+  CATEGORIES
+}
 
-  orders Order[]
+enum CouponGrantSource {
+  ADMIN
+  SPIN
+  TASK
+  FORM
+  POST
+}
+
+/// Voucher gốc: điều kiện giảm giá. Mã công khai (`code`) ai cũng nhập được;
+/// mã riêng từng người nằm ở CouponGrant và kế thừa mọi điều kiện của voucher.
+model Coupon {
+  id             String            @id @default(cuid())
+  code           String?           @unique // Mã công khai, null = chỉ phát mã riêng
+  name           String            @default("") // Tên nội bộ cho admin
+  type           CouponType
+  value          Int // PERCENT: %; FIXED: số tiền VND; FREE_SHIP: mức ship tối đa được miễn (0 = toàn bộ)
+  maxDiscountVnd Int? // Giảm tối đa, chỉ dùng cho PERCENT
+  minOrderVnd    Int               @default(0) // Tính trên phần hàng thuộc phạm vi áp dụng
+  scope          CouponScope       @default(ALL)
+  categories     ProductCategory[] @relation("CouponCategories")
+  maxUses        Int? // Tổng lượt dùng, null = không giới hạn
+  usedCount      Int               @default(0) // Lượt đang giữ + đã dùng (đơn hết hạn/hủy trả lại)
+  perUserLimit   Int? // Lượt dùng mã công khai mỗi người, null = không giới hạn
+  startsAt       DateTime?
+  endsAt         DateTime?
+  proOnly        Boolean           @default(false) // Voucher bí mật chỉ tài khoản Pro dùng được
+  active         Boolean           @default(true)
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @default(now()) @updatedAt
+
+  orders      Order[]
+  grants      CouponGrant[]
+  redemptions CouponRedemption[]
+}
+
+/// Mã riêng phát cho một tài khoản, dùng đúng một lần.
+model CouponGrant {
+  id        String            @id @default(cuid())
+  couponId  String
+  code      String            @unique
+  userId    String
+  source    CouponGrantSource @default(ADMIN)
+  note      String?
+  usedAt    DateTime?
+  createdAt DateTime          @default(now())
+
+  coupon     Coupon            @relation(fields: [couponId], references: [id], onDelete: Cascade)
+  user       User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  redemption CouponRedemption?
+
+  @@index([userId])
+  @@index([couponId])
+}
+
+/// Một lượt dùng voucher cho một đơn. Xóa khi đơn hết hạn / bị hủy để trả lượt.
+model CouponRedemption {
+  id          String   @id @default(cuid())
+  couponId    String
+  grantId     String?  @unique
+  orderId     String   @unique
+  userId      String?
+  email       String
+  discountVnd Int // Gồm cả phần phí ship được miễn
+  createdAt   DateTime @default(now())
+
+  coupon Coupon       @relation(fields: [couponId], references: [id], onDelete: Cascade)
+  grant  CouponGrant? @relation(fields: [grantId], references: [id], onDelete: SetNull)
+  order  Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([couponId, userId])
+  @@index([couponId, email])
 }
 
 // ==========================================
@@ -508,19 +593,252 @@ enum CourseStatus {
 }
 
 model Course {
-  id           String       @id @default(cuid())
-  slug         String       @unique
-  title        String
-  description  String       @db.Text
-  priceVnd     Int          @default(0) // 0 = Miễn phí
-  compareAtVnd Int?
-  coverUrl     String?
-  level        String       @default("Cơ bản đến Nâng cao")
-  duration     String? // vd "12 giờ video", "24 bài học"
-  status       CourseStatus @default(DRAFT)
-  learnUrl     String? // Link học (Youtube unlisted, Drive, LMS)
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
+  id                 String       @id @default(cuid())
+  slug               String       @unique
+  title              String
+  description        String       @db.Text
+  priceVnd           Int          @default(0) // 0 = Miễn phí
+  compareAtVnd       Int?
+  coverUrl           String?
+  level              String       @default("Cơ bản đến Nâng cao")
+  duration           String? // vd "12 giờ video", "24 bài học"
+  status             CourseStatus @default(DRAFT)
+  learnUrl           String? // Link học ngoài (dùng khi khóa chưa có bài học trên web)
+  plannedLessons     Int? // Lộ trình dự kiến (số bài); null = chưa xác định
+  contentCompletedAt DateTime? // Admin đánh dấu đã soạn xong nội dung; null = đang soạn
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  lessons     Lesson[]
+  enrollments Enrollment[]
 
   @@index([status])
 }
+
+enum LessonStatus {
+  DRAFT
+  PUBLISHED
+}
+
+/// Một bài học trong khóa: nội dung, video, slide, tài liệu và bài tập cuối bài.
+model Lesson {
+  id        String       @id @default(cuid())
+  courseId  String
+  title     String
+  slug      String
+  sortOrder Int          @default(0)
+  status    LessonStatus @default(DRAFT)
+  isPreview Boolean      @default(false) // Học thử miễn phí (dùng khi bán khóa học)
+  content   String       @default("") @db.Text // Markdown từ trình soạn thảo
+  videoUrl  String? // Link YouTube / Vimeo
+  videoKey  String? // Video tự upload lên R2 (ưu tiên hơn videoUrl)
+  videoName String?
+  videoSize BigInt?
+  slideKey  String? // Slide PDF trên R2
+  slideName String?
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  course      Course             @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  attachments LessonAttachment[]
+  exercises   Exercise[]
+  progress    LessonProgress[]
+
+  @@unique([courseId, slug])
+  @@index([courseId, sortOrder])
+}
+
+/// Tài liệu tải về của bài học (slide, file mẫu…), lưu trên R2.
+model LessonAttachment {
+  id         String   @id @default(cuid())
+  lessonId   String
+  label      String
+  filename   String
+  storageKey String
+  sizeBytes  Int
+  sortOrder  Int      @default(0)
+  createdAt  DateTime @default(now())
+
+  lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@index([lessonId])
+}
+
+/// Bài tập code cuối bài, chấm theo nhập/xuất chuẩn.
+model Exercise {
+  id            String   @id @default(cuid())
+  lessonId      String
+  title         String
+  statement     String   @default("") @db.Text // Markdown
+  sortOrder     Int      @default(0)
+  languages     String[] @default([]) // Khóa ngôn ngữ trong src/lib/judge/languages.ts
+  starterCode   Json     @default("{}") // { cpp: "...", python: "..." }
+  timeLimitMs   Int      @default(2000)
+  memoryLimitMb Int      @default(256)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  lesson      Lesson       @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  testCases   TestCase[]
+  submissions Submission[]
+
+  @@index([lessonId, sortOrder])
+}
+
+model TestCase {
+  id             String  @id @default(cuid())
+  exerciseId     String
+  input          String  @db.Text
+  expectedOutput String  @db.Text
+  isSample       Boolean @default(false) // Test mẫu hiện cho học viên; còn lại là test ẩn
+  sortOrder      Int     @default(0)
+
+  exercise Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+
+  @@index([exerciseId, sortOrder])
+}
+
+enum SubmissionVerdict {
+  ACCEPTED
+  WRONG_ANSWER
+  TIME_LIMIT
+  MEMORY_LIMIT
+  RUNTIME_ERROR
+  COMPILE_ERROR
+  SYSTEM_ERROR
+}
+
+model Submission {
+  id         String            @id @default(cuid())
+  exerciseId String
+  userId     String
+  language   String
+  code       String            @db.Text
+  verdict    SubmissionVerdict
+  passed     Int
+  total      Int
+  details    Json              @default("[]") // Kết quả từng test (không chứa dữ liệu test ẩn)
+  message    String?           @db.Text // Lỗi biên dịch / lỗi chạy (đã cắt ngắn)
+  createdAt  DateTime          @default(now())
+
+  exercise Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, exerciseId, createdAt])
+}
+
+model Enrollment {
+  id        String   @id @default(cuid())
+  userId    String
+  courseId  String
+  createdAt DateTime @default(now())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, courseId])
+  @@index([courseId])
+}
+
+model LessonProgress {
+  id          String   @id @default(cuid())
+  userId      String
+  lessonId    String
+  completedAt DateTime @default(now())
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, lessonId])
+}
+
+// ==========================================
+// Bài viết cộng đồng (tài khoản Pro đăng)
+// ==========================================
+
+enum CommunityPostStatus {
+  PUBLISHED
+  REMOVED
+}
+
+/// Bài viết do tài khoản Pro đăng: HTML đã lọc (không MDX), hiện chung /blog.
+model CommunityPost {
+  id            String              @id @default(cuid())
+  slug          String              @unique
+  authorId      String
+  title         String
+  contentHtml   String              @db.Text // Đã qua sanitizeCommunityHtml
+  coverUrl      String?
+  tags          String[]            @default([])
+  category      String              @default("cong-dong")
+  status        CommunityPostStatus @default(PUBLISHED)
+  indexable     Boolean             @default(false) // Admin bật để Google index (mặc định noindex)
+  removedAt     DateTime?
+  removedReason String?
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+
+  author   User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  warnings UserWarning[]
+
+  @@index([status, createdAt])
+  @@index([authorId])
+}
+
+/// Cảnh báo admin gửi cho tài khoản (thường kèm khi gỡ bài). Đủ 3 cảnh báo → khóa tài khoản.
+model UserWarning {
+  id         String   @id @default(cuid())
+  userId     String
+  postId     String?
+  reason     String
+  issuedById String?
+  createdAt  DateTime @default(now())
+
+  user     User           @relation("WarningTarget", fields: [userId], references: [id], onDelete: Cascade)
+  issuedBy User?          @relation("WarningIssuer", fields: [issuedById], references: [id], onDelete: SetNull)
+  post     CommunityPost? @relation(fields: [postId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+}
+
+// ==========================================
+// 12. Cài đặt hệ thống & Thông báo / Quảng cáo
+// ==========================================
+
+model SystemSetting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String   @db.Text
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+
+  @@index([key])
+}
+
+enum AnnouncementType {
+  NEW_PRODUCT
+  VOUCHER
+  FEATURE
+  MAINTENANCE
+  GENERAL
+}
+
+model SystemAnnouncement {
+  id          String           @id @default(cuid())
+  title       String
+  content     String
+  type        AnnouncementType @default(GENERAL)
+  badge       String?
+  linkUrl     String?
+  linkText    String?
+  isActive    Boolean          @default(true)
+  showBanner  Boolean          @default(true)
+  startsAt    DateTime?
+  expiresAt   DateTime?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@index([isActive, showBanner])
+  @@index([createdAt])
+}
+

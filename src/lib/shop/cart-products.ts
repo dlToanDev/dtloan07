@@ -26,6 +26,7 @@ export async function loadCartProducts(productIds: string[]): Promise<ProductFor
     status: row.status,
     saleMode: row.saleMode,
     deliveryMode: row.deliveryMode,
+    categoryId: row.categoryId,
     variants: row.variants.map((variant) => ({
       id: variant.id,
       name: variant.name,
@@ -46,6 +47,8 @@ export function buildPriceMap(lines: ResolvedCartLine[]) {
       id: line.productId,
       priceVnd: line.variant.priceVnd,
       status: line.product.status,
+      categoryId: line.product.categoryId ?? null,
+      type: line.product.type,
     });
   }
   return map;

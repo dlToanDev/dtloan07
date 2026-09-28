@@ -6,6 +6,7 @@ import { db } from '@/lib/db';
 import { requireProductAdmin } from '@/server/actions/product';
 import { releaseOrderInventory } from '@/lib/shop/inventory';
 import { releaseAccountsForOrder } from '@/lib/shop/account-stock';
+import { releaseCouponForOrder } from '@/lib/coupons';
 import { sendOrderStatusEmail } from '@/lib/mail';
 
 export type OrderActionState = { error?: string; success?: string };
@@ -92,6 +93,7 @@ export async function cancelOrder(
     if (order.status === 'PENDING' || order.status === 'PAID') {
       await releaseOrderInventory(tx, orderId);
       await releaseAccountsForOrder(tx, orderId);
+      await releaseCouponForOrder(tx, orderId);
     }
     await tx.order.update({
       where: { id: orderId },

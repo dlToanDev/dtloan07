@@ -119,6 +119,11 @@ export interface PostMeta extends PostFrontmatter {
   readingMinutes: number;
   wordCount: number;
   featuredScore: number;
+  /** `community`: bài tài khoản Pro đăng, nội dung là HTML đã lọc (KHÔNG biên dịch MDX). */
+  source?: 'admin' | 'community';
+  author?: { name: string; pro: boolean };
+  /** Bài cộng đồng chưa được admin bật index. */
+  noIndex?: boolean;
 }
 
 export interface Post extends PostMeta {

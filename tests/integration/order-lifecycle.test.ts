@@ -78,10 +78,8 @@ beforeAll(async () => {
       priceVnd: 150000,
       coverUrl: '',
       status: 'ACTIVE',
-      kind: 'SHOP',
       version: '1.0.0',
       type: 'PHYSICAL',
-      category: 'APPAREL',
     },
   });
   await db.productVariant.upsert({

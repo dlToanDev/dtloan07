@@ -14,6 +14,7 @@ export const CATEGORY_LABELS: Record<string, string> = {
   'lap-trinh': 'Lập trình',
   devops: 'DevOps',
   database: 'Database',
+  'cong-dong': 'Cộng đồng',
 };
 
 /**

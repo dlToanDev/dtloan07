@@ -9,10 +9,10 @@ import {
   FileText,
   GraduationCap,
   ShoppingBag,
-  Wrench,
-  Code2,
   Package,
   Truck,
+  Tags,
+  Ticket,
   KeyRound,
   Mail,
   Cloud,
@@ -21,7 +21,9 @@ import {
   Menu,
   X,
   User,
+  Users,
   ChevronRight,
+  Settings,
 } from 'lucide-react';
 
 interface NavItem {
@@ -79,6 +81,13 @@ const navGroups: NavGroup[] = [
         iconColor: 'text-cyan-500',
         iconBg: 'bg-cyan-500/10',
       },
+      {
+        title: 'Cài đặt',
+        href: '/admin/settings',
+        icon: Settings,
+        iconColor: 'text-emerald-500',
+        iconBg: 'bg-emerald-500/10',
+      },
     ],
   },
   {
@@ -91,6 +100,13 @@ const navGroups: NavGroup[] = [
         badge: 'MDX',
         iconColor: 'text-blue-500',
         iconBg: 'bg-blue-500/10',
+      },
+      {
+        title: 'Bài cộng đồng',
+        href: '/admin/community',
+        icon: Users,
+        iconColor: 'text-sky-500',
+        iconBg: 'bg-sky-500/10',
       },
       {
         title: 'Khóa học',
@@ -107,20 +123,6 @@ const navGroups: NavGroup[] = [
         iconBg: 'bg-amber-500/10',
       },
       {
-        title: 'Công cụ Affiliate',
-        href: '/admin/tools',
-        icon: Wrench,
-        iconColor: 'text-sky-500',
-        iconBg: 'bg-sky-500/10',
-      },
-      {
-        title: 'Source Code / App / Tool',
-        href: '/admin/source-code',
-        icon: Code2,
-        iconColor: 'text-emerald-500',
-        iconBg: 'bg-emerald-500/10',
-      },
-      {
         title: 'Shop',
         href: '/admin/shop',
         icon: ShoppingBag,
@@ -129,11 +131,25 @@ const navGroups: NavGroup[] = [
         iconBg: 'bg-amber-500/10',
       },
       {
+        title: 'Danh mục shop',
+        href: '/admin/shop/categories',
+        icon: Tags,
+        iconColor: 'text-orange-500',
+        iconBg: 'bg-orange-500/10',
+      },
+      {
         title: 'Phí ship',
         href: '/admin/shop/shipping',
         icon: Truck,
         iconColor: 'text-teal-500',
         iconBg: 'bg-teal-500/10',
+      },
+      {
+        title: 'Voucher',
+        href: '/admin/vouchers',
+        icon: Ticket,
+        iconColor: 'text-rose-500',
+        iconBg: 'bg-rose-500/10',
       },
     ],
   },

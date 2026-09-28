@@ -1,0 +1,30 @@
+# Máy chấm code cho khóa học (Piston) — chạy cùng VPS với web.
+# Cài đặt: xem deploy/piston/README.md
+services:
+  piston:
+    image: ghcr.io/engineer-man/piston:latest
+    container_name: piston
+    restart: unless-stopped
+    # Piston cần privileged để tạo sandbox (isolate + cgroup v2) cho từng lần chạy code.
+    privileged: true
+    # Chỉ nghe nội bộ — web gọi qua http://127.0.0.1:2000, bên ngoài không truy cập được.
+    ports:
+      - '127.0.0.1:2000:2000'
+    volumes:
+      - ./data:/piston
+    environment:
+      # ms — khớp MAX_RUN_TIMEOUT_MS / MAX_RUN_CPU_MS trong src/lib/judge/languages.ts.
+      # Mặc định Piston chỉ cho 3000 ms CPU: Java (tự biên dịch lúc chạy) tốn ~2–3 s CPU chỉ để
+      # khởi động nên bị cắt oan khi máy bận. Giới hạn thật của từng bài do web gửi kèm mỗi lần chạy.
+      PISTON_RUN_TIMEOUT: 10000
+      PISTON_RUN_CPU_TIME: 10000
+      PISTON_COMPILE_CPU_TIME: 20000
+      PISTON_COMPILE_TIMEOUT: 10000
+      PISTON_OUTPUT_MAX_SIZE: 1048576 # 1 MB (mặc định chỉ 1024 ký tự)
+      PISTON_MAX_CONCURRENT_JOBS: 4
+      PISTON_DISABLE_NETWORKING: 'true' # code học viên không có mạng
+      PISTON_LOG_LEVEL: WARN
+    # Giới hạn cứng để web luôn còn tài nguyên (VPS 4 core / 8 GB).
+    cpus: 2
+    mem_limit: 3g
+    pids_limit: 512

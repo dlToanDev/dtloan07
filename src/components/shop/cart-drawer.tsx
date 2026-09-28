@@ -6,6 +6,7 @@ import { X, Trash2, Plus, Minus, Tag, Loader2, ArrowRight, ShoppingBag } from 'l
 import { Button, buttonStyles } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
+import { useSession } from 'next-auth/react';
 
 interface ValidatedCartItem {
   productId: string;
@@ -37,6 +38,8 @@ interface ValidatedCartData {
 }
 
 export function CartDrawer() {
+  const { data: session } = useSession();
+  const isLoggedIn = Boolean(session?.user);
   const { items, isOpen, closeCart, updateQty, removeItem, couponCode, setCouponCode } = useCart();
   const [cartData, setCartData] = useState<ValidatedCartData | null>(null);
   const [loading, setLoading] = useState(false);
@@ -267,7 +270,11 @@ export function CartDrawer() {
                 <div className="flex items-center justify-between rounded-md bg-emerald-500/10 px-2 py-1 text-xs text-emerald-600 dark:text-emerald-400">
                   <div className="flex items-center gap-1.5 font-medium">
                     <Tag className="h-3.5 w-3.5" />
-                    <span>Đã áp dụng mã: {cartData.couponApplied.code}</span>
+                    <span>
+                      Đã áp dụng mã: {cartData.couponApplied.code}
+                      {cartData.couponApplied.type === 'FREE_SHIP' &&
+                        ' (miễn phí ship ở bước thanh toán)'}
+                    </span>
                   </div>
                   <button
                     type="button"
@@ -301,14 +308,25 @@ export function CartDrawer() {
             </div>
 
             {/* Nút thanh toán */}
-            <Link
-              href="/checkout"
-              onClick={closeCart}
-              className={buttonStyles({ className: 'w-full font-semibold shadow-md' })}
-            >
-              Tiến hành thanh toán
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </Link>
+            {isLoggedIn ? (
+              <Link
+                href="/checkout"
+                onClick={closeCart}
+                className={buttonStyles({ className: 'w-full font-semibold shadow-md' })}
+              >
+                Tiến hành thanh toán
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
+            ) : (
+              <Link
+                href="/login?callbackUrl=/checkout"
+                onClick={closeCart}
+                className={buttonStyles({ className: 'w-full font-semibold shadow-md' })}
+              >
+                Đăng nhập để thanh toán
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
+            )}
           </div>
         )}
       </aside>

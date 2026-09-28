@@ -18,7 +18,8 @@ export default async function AffiliatePage() {
   let deals: Awaited<ReturnType<typeof db.affiliateItem.findMany>> = [];
   try {
     deals = await db.affiliateItem.findMany({
-      where: { active: true },
+      // Nhóm Tool Code đã ngừng dùng (bỏ trang "Công cụ Affiliate") nên không hiển thị nữa.
+      where: { active: true, category: { not: 'TOOLCODE' } },
       orderBy: [{ featured: 'desc' }, { createdAt: 'desc' }],
     });
   } catch (err) {

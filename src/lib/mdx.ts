@@ -12,6 +12,7 @@ import { readFile, readdir, stat } from 'node:fs/promises';
 import path from 'node:path';
 import readingTime from 'reading-time';
 import { cache } from 'react';
+import { loadCommunityPosts } from '@/lib/community/posts';
 
 const POSTS_DIR = path.join(process.cwd(), 'content', 'posts');
 
@@ -108,8 +109,18 @@ const getAllPostsFromDisk = cache(async (): Promise<Post[]> => {
 });
 
 export const getAllPosts = cache(async (): Promise<Post[]> => {
-  const posts = await getAllPostsFromDisk();
-  return posts.filter((post) => !post.draft || process.env.NODE_ENV === 'development');
+  const posts = (await getAllPostsFromDisk()).filter(
+    (post) => !post.draft || process.env.NODE_ENV === 'development',
+  );
+  // Bài cộng đồng (DB). Lỗi DB (vd. lúc build không có mạng) thì blog vẫn chạy với bài MDX.
+  const community = await loadCommunityPosts().catch((error) => {
+    console.warn('Cảnh báo: không tải được bài cộng đồng:', error);
+    return [];
+  });
+  const mdxSlugs = new Set(posts.map((post) => post.slug));
+  return [...posts, ...community.filter((post) => !mdxSlugs.has(post.slug))].sort((a, b) =>
+    b.publishedAt.localeCompare(a.publishedAt),
+  );
 });
 
 export const getPostBySlug = cache(async (slug: string): Promise<Post | null> => {

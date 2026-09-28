@@ -15,7 +15,7 @@ function escapeXml(value: string): string {
 export const dynamic = 'force-static';
 
 export async function GET() {
-  const posts = await getPostMetas();
+  const posts = (await getPostMetas()).filter((post) => !post.noIndex);
   const updated = posts[0]?.publishedAt;
 
   const items = posts

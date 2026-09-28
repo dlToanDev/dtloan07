@@ -138,6 +138,9 @@ export function RichTextEditor({
     onUpdate: ({ editor }) => {
       const html = editor.getHTML();
       const markdown = htmlToMarkdown(html);
+      // Bỏ qua cập nhật "phản hồi" không làm đổi nội dung (vd. ngay sau setContent từ props) —
+      // nếu báo lên cha, cha và editor có thể ghi đè nhau mãi (Maximum update depth).
+      if (markdown === lastMarkdownRef.current) return;
       lastMarkdownRef.current = markdown;
       onChange(markdown);
     },
@@ -235,6 +238,9 @@ export function RichTextEditor({
       lastMarkdownRef.current = value;
       const html = markdownToHtml(value);
       editor.commands.setContent(html, { emitUpdate: false });
+      // Markdown sau khi qua editor có thể khác chút (thuộc tính ảnh, khoảng trắng); ghi nhớ bản
+      // đã chuẩn hóa để lần onUpdate kế tiếp không coi đó là thay đổi mới.
+      lastMarkdownRef.current = htmlToMarkdown(editor.getHTML());
     }
   }, [value, editor, readOnly]);
 

@@ -4,15 +4,10 @@ import { db } from '@/lib/db';
 import { requireProductAdmin } from '@/server/actions/product';
 import { ProductForm } from '@/components/admin/product-form';
 import { AccountStockManager } from '@/components/admin/shop/account-stock-manager';
+import { FormSection } from '@/components/admin/shop/form-section';
 import { isCredentialKeyConfigured } from '@/lib/crypto/credentials';
 
-export async function ProductEditorPage({
-  kind,
-  id,
-}: {
-  kind: 'SOURCE_CODE' | 'SHOP';
-  id?: string;
-}) {
+export async function ProductEditorPage({ id }: { id?: string }) {
   await requireProductAdmin();
   const product = id
     ? await db.product.findUnique({
@@ -24,7 +19,7 @@ export async function ProductEditorPage({
         },
       })
     : null;
-  if (id && (!product || product.kind !== kind)) notFound();
+  if (id && !product) notFound();
 
   const accountStock =
     product?.type === 'ACCOUNT' && product.deliveryMode === 'AUTO'
@@ -39,24 +34,30 @@ export async function ProductEditorPage({
         })
       : [];
 
-  const basePath = kind === 'SOURCE_CODE' ? '/admin/source-code' : '/admin/shop';
+  const categories = await db.productCategory.findMany({
+    orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+    select: { id: true, name: true, hasCondition: true },
+  });
+
   return (
-    <div className="space-y-6">
-      <div className="space-y-2">
-        <Link href={basePath} className="text-muted-foreground text-sm hover:underline">
-          ← Quay lại danh sách
+    <div className="mx-auto max-w-3xl space-y-6">
+      <div className="space-y-1">
+        <Link href="/admin/shop" className="text-muted-foreground text-sm hover:underline">
+          ← Shop
         </Link>
         <h1 className="text-2xl font-bold">
-          {id ? 'Chỉnh sửa sản phẩm' : 'Đăng bán'}{' '}
-          {kind === 'SOURCE_CODE' ? 'Source Code / App / Tool' : 'sản phẩm Shop'}
+          {id ? product?.name || 'Chỉnh sửa sản phẩm' : 'Thêm sản phẩm'}
         </h1>
-        <p className="text-muted-foreground text-sm">
-          Thêm thông tin sản phẩm, mô tả tính năng, ảnh demo, giá bán và file bàn giao cho khách.
-        </p>
       </div>
       <ProductForm
         key={product?.updatedAt.toISOString() || 'new'}
-        kind={kind}
+        credentialKeyConfigured={isCredentialKeyConfigured()}
+        categories={categories}
+        accountAvailable={
+          product?.type === 'ACCOUNT' && product.deliveryMode === 'AUTO'
+            ? accountStock.filter((row) => row.status === 'AVAILABLE').length
+            : null
+        }
         product={
           product
             ? {
@@ -66,13 +67,12 @@ export async function ProductEditorPage({
                 shortDesc: product.shortDesc,
                 description: product.description,
                 version: product.version,
-                kind: product.kind,
                 saleMode: product.saleMode,
                 status: product.status,
                 priceVnd: product.priceVnd,
                 coverUrl: product.coverUrl,
                 type: product.type,
-                category: product.category,
+                category: product.categoryId,
                 condition: product.condition,
                 conditionNote: product.conditionNote,
                 warrantyNote: product.warrantyNote,
@@ -97,37 +97,35 @@ export async function ProductEditorPage({
           version: file.version,
           sizeBytes: Number(file.sizeBytes),
         }))}
-      />
-
-      {/* Kho tài khoản chỉ dùng cho hàng ACCOUNT bàn giao tự động */}
-      {product?.type === 'ACCOUNT' && product.deliveryMode === 'AUTO' && (
-        <section className="border-border bg-card space-y-4 rounded-xl border p-5">
-          <div>
-            <h2 className="font-semibold">Kho tài khoản</h2>
-            <p className="text-muted-foreground text-sm">
-              Mỗi dòng là một tài khoản sẽ được gửi tự động cho khách ngay sau khi thanh toán.
-            </p>
-          </div>
-          <AccountStockManager
-            keyConfigured={isCredentialKeyConfigured()}
-            variants={product.variants.map((variant) => ({
-              id: variant.id,
-              name: variant.name,
-            }))}
-            rows={accountStock.map((row) => ({
-              id: row.id,
-              variantId: row.variantId,
-              variantName: row.variant.name,
-              status: row.status,
-              orderCode: row.orderItem?.order.orderCode ?? null,
-              createdAt: new Date(row.createdAt).toLocaleString('vi-VN'),
-              deliveredAt: row.deliveredAt
-                ? new Date(row.deliveredAt).toLocaleString('vi-VN')
-                : null,
-            }))}
-          />
-        </section>
-      )}
+      >
+        {/* Kho tài khoản chỉ dùng cho hàng ACCOUNT bàn giao tự động; có form riêng nên nằm ngoài form sản phẩm. */}
+        {product?.type === 'ACCOUNT' && product.deliveryMode === 'AUTO' && (
+          <FormSection
+            title="Tài khoản trong kho"
+            hint="Tài khoản đã nhập, trạng thái giao cho khách. Số tài khoản còn trống chính là số lượng đang bán."
+          >
+            <AccountStockManager
+              keyConfigured={isCredentialKeyConfigured()}
+              showImport={product.variants.length > 1}
+              variants={product.variants.map((variant) => ({
+                id: variant.id,
+                name: variant.name,
+              }))}
+              rows={accountStock.map((row) => ({
+                id: row.id,
+                variantId: row.variantId,
+                variantName: row.variant.name,
+                status: row.status,
+                orderCode: row.orderItem?.order.orderCode ?? null,
+                createdAt: new Date(row.createdAt).toLocaleString('vi-VN'),
+                deliveredAt: row.deliveredAt
+                  ? new Date(row.deliveredAt).toLocaleString('vi-VN')
+                  : null,
+              }))}
+            />
+          </FormSection>
+        )}
+      </ProductForm>
     </div>
   );
 }

@@ -16,10 +16,18 @@ export const metadata = {
 export default async function LoginPage({ searchParams }: Props) {
   const { callbackUrl, error } = await searchParams;
   const targetUrl = callbackUrl || '/account';
+  let message =
+    error === 'AccountLocked'
+      ? 'Tài khoản đã bị khóa do vi phạm quy định (đủ 3 cảnh báo). Liên hệ admin nếu cần hỗ trợ.'
+      : error;
+
+  if (!message && targetUrl.startsWith('/checkout')) {
+    message = 'Vui lòng đăng nhập để tiến hành đặt hàng và thanh toán.';
+  }
 
   return (
     <Container className="flex min-h-[75vh] items-center justify-center py-12">
-      <AuthCard callbackUrl={targetUrl} initialError={error} />
+      <AuthCard callbackUrl={targetUrl} initialError={message} />
     </Container>
   );
 }

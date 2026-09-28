@@ -6,14 +6,14 @@ import { ProductCover } from '@/components/shop/product-cover';
 export function ProductGallery({
   name,
   slug,
-  kind,
+  type,
   coverUrl,
   gallery,
   version,
 }: {
   name: string;
   slug: string;
-  kind: 'SOURCE_CODE' | 'SHOP';
+  type: 'DOWNLOAD' | 'PHYSICAL' | 'ACCOUNT';
   coverUrl: string;
   gallery: string[];
   version?: string;
@@ -27,7 +27,7 @@ export function ProductGallery({
         name={name}
         slug={slug}
         coverUrl={active}
-        kind={kind}
+        type={type}
         version={version}
         className="border-border rounded-xl border"
       />

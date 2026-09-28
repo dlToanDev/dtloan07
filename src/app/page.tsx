@@ -31,12 +31,12 @@ export default async function HomePage() {
   try {
     [products, affiliateDeals] = await Promise.all([
       db.product.findMany({
-        where: { status: 'ACTIVE', kind: 'SOURCE_CODE' },
+        where: { status: 'ACTIVE', type: 'DOWNLOAD' },
         take: 3,
         orderBy: { createdAt: 'desc' },
       }),
       db.affiliateItem.findMany({
-        where: { active: true, featured: true },
+        where: { active: true, featured: true, category: { not: 'TOOLCODE' } },
         take: 3,
         orderBy: { createdAt: 'desc' },
       }),
@@ -74,7 +74,7 @@ export default async function HomePage() {
 
         {/* 3 Nút CTA Phễu */}
         <div className="flex flex-wrap items-center gap-3 pt-2">
-          <Link href="/source-code" className={buttonStyles({ size: 'lg' })}>
+          <Link href="/shop?c=source-code" className={buttonStyles({ size: 'lg' })}>
             Xem sản phẩm số <ArrowRight className="ml-1.5 size-4" />
           </Link>
           <Link href="/blog" className={buttonStyles({ variant: 'outline', size: 'lg' })}>
@@ -157,7 +157,7 @@ export default async function HomePage() {
               </p>
             </div>
             <Link
-              href="/source-code"
+              href="/shop?c=source-code"
               className="text-primary inline-flex items-center gap-1 text-sm font-semibold hover:underline"
             >
               Xem tất cả <ArrowRight className="size-3.5" />
@@ -166,7 +166,7 @@ export default async function HomePage() {
 
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {products.map((product) => (
-              <ProductCard key={product.id} product={product} catalog="source-code" />
+              <ProductCard key={product.id} product={product} />
             ))}
           </div>
         </section>

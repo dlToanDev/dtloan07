@@ -3,7 +3,10 @@ import { db } from '@/lib/db';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button, buttonStyles } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Key, Package, LogOut, Download } from 'lucide-react';
+import { Key, Package, LogOut, Download, Ticket } from 'lucide-react';
+import { describeVoucher, voucherStatus } from '@/lib/coupon-labels';
+import { isPro, proDaysLeft } from '@/lib/membership';
+import { Crown } from 'lucide-react';
 import Link from 'next/link';
 
 export default async function AccountPage() {
@@ -37,6 +40,21 @@ export default async function AccountPage() {
     orderBy: { createdAt: 'desc' },
   });
 
+  const membership = userId
+    ? await db.user.findUnique({ where: { id: userId }, select: { proUntil: true } })
+    : null;
+  const pro = isPro(membership);
+
+  // Mã giảm giá riêng được tặng cho tài khoản này
+  const grants = userId
+    ? await db.couponGrant.findMany({
+        where: { userId },
+        include: { coupon: { include: { categories: { select: { name: true } } } } },
+        orderBy: { createdAt: 'desc' },
+        take: 50,
+      })
+    : [];
+
   return (
     <div className="grid gap-8 md:grid-cols-3">
       {/* Cột trái: Thông tin người dùng */}
@@ -49,8 +67,13 @@ export default async function AccountPage() {
           <CardContent className="space-y-4">
             <div>
               <div className="text-muted-foreground text-xs uppercase">Họ và tên</div>
-              <div className="text-foreground font-medium">
+              <div className="text-foreground flex items-center gap-2 font-medium">
                 {session?.user?.name || 'Người dùng'}
+                {pro && (
+                  <Badge className="bg-amber-500 text-[10px] text-white hover:bg-amber-500">
+                    PRO
+                  </Badge>
+                )}
               </div>
             </div>
             <div>
@@ -64,6 +87,34 @@ export default async function AccountPage() {
                   {session?.user?.role}
                 </Badge>
               </div>
+            </div>
+
+            <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-sm">
+              <div className="flex items-center gap-1.5 font-semibold">
+                <Crown className="size-4 text-amber-500" />
+                {pro ? 'Tài khoản Pro' : 'Tài khoản thường'}
+              </div>
+              <p className="text-muted-foreground mt-1 text-xs">
+                {pro && membership?.proUntil
+                  ? `Hết hạn ${membership.proUntil.toLocaleDateString('vi-VN')} (còn ${proDaysLeft(membership.proUntil)} ngày).`
+                  : 'Nâng cấp Pro để đăng bài, luôn free ship và nhận voucher bí mật.'}
+              </p>
+              <Link
+                href="/pro"
+                className={buttonStyles({
+                  size: 'sm',
+                  variant: 'outline',
+                  className: 'mt-2 w-full',
+                })}
+              >
+                {pro ? 'Gia hạn Pro' : 'Nâng cấp Pro'}
+              </Link>
+              <Link
+                href="/account/posts"
+                className="text-primary mt-2 block text-center text-xs font-medium hover:underline"
+              >
+                Bài viết của tôi →
+              </Link>
             </div>
 
             {session?.user?.role === 'ADMIN' && (
@@ -156,6 +207,56 @@ export default async function AccountPage() {
             )}
           </CardContent>
         </Card>
+
+        {/* Mã giảm giá của tôi */}
+        {grants.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-xl">
+                <Ticket className="text-primary h-5 w-5" />
+                Mã giảm giá của tôi ({grants.filter((grant) => !grant.usedAt).length})
+              </CardTitle>
+              <CardDescription>
+                Nhập mã ở giỏ hàng khi thanh toán. Mỗi mã dùng một lần.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="divide-border divide-y text-sm">
+                {grants.map((grant) => {
+                  const status = grant.usedAt
+                    ? { label: 'Đã dùng', tone: 'muted' as const }
+                    : voucherStatus(grant.coupon);
+                  return (
+                    <div
+                      key={grant.id}
+                      className={`flex flex-wrap items-center justify-between gap-3 py-3 ${
+                        status.tone === 'muted' ? 'opacity-60' : ''
+                      }`}
+                    >
+                      <div className="min-w-0">
+                        <div className="font-mono font-semibold tracking-wide">{grant.code}</div>
+                        <div className="text-muted-foreground text-xs">
+                          {describeVoucher(grant.coupon)} ·{' '}
+                          {grant.coupon.scope === 'ALL'
+                            ? 'Toàn Shop'
+                            : grant.coupon.categories.map((category) => category.name).join(', ')}
+                          {grant.coupon.endsAt &&
+                            ` · HSD ${grant.coupon.endsAt.toLocaleDateString('vi-VN')}`}
+                        </div>
+                      </div>
+                      <Badge
+                        variant={status.tone === 'active' ? 'default' : 'outline'}
+                        className="text-xs"
+                      >
+                        {status.label}
+                      </Badge>
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Lịch sử đơn hàng */}
         <Card>

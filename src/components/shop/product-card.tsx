@@ -24,8 +24,7 @@ export interface ProductCardProps {
     version: string;
     maxDownloads: number;
   };
-  catalog?: 'source-code' | 'shop';
-  /** Có mặt với hàng Shop: giá và tồn kho lấy từ biến thể thay vì cột Product. */
+  /** Có mặt ở trang Shop: giá và tồn kho lấy từ biến thể thay vì cột Product. */
   shop?: {
     type: 'DOWNLOAD' | 'PHYSICAL' | 'ACCOUNT';
     condition: string | null;
@@ -33,7 +32,7 @@ export interface ProductCardProps {
   };
 }
 
-export function ProductCard({ product, catalog = 'shop', shop }: ProductCardProps) {
+export function ProductCard({ product, shop }: ProductCardProps) {
   const addItem = useCart((state) => state.addItem);
   const [added, setAdded] = useState(false);
 
@@ -45,6 +44,7 @@ export function ProductCard({ product, catalog = 'shop', shop }: ProductCardProp
 
   const mode = product.saleMode || (product.priceVnd === 0 ? 'FREE' : 'PAID');
   const summary = shop?.summary;
+  const isSource = (shop?.type ?? 'DOWNLOAD') === 'DOWNLOAD';
   const needsDetail = Boolean(shop && (shop.type !== 'DOWNLOAD' || summary?.hasMultiple));
   const priceVnd = summary ? summary.minPriceVnd : product.priceVnd;
   const compareAtVnd = summary ? summary.compareAtVnd : product.compareAtVnd;
@@ -58,17 +58,17 @@ export function ProductCard({ product, catalog = 'shop', shop }: ProductCardProp
   return (
     <Card className="hover:border-primary/40 flex h-full flex-col overflow-hidden transition-all duration-200 hover:shadow-md">
       <CardHeader className="p-0">
-        <Link href={`/${catalog}/${product.slug}`} className="relative block">
+        <Link href={`/shop/${product.slug}`} className="relative block">
           <ProductCover
             name={product.name}
             slug={product.slug}
             coverUrl={product.coverUrl}
-            kind={catalog === 'source-code' ? 'SOURCE_CODE' : 'SHOP'}
-            version={shop ? undefined : product.version}
+            type={shop?.type ?? 'DOWNLOAD'}
+            version={isSource ? product.version : undefined}
           />
 
           <div className="absolute top-3 right-3 flex items-center gap-1.5">
-            {!shop && (
+            {isSource && (
               <Badge variant="secondary" className="font-mono text-xs shadow-xs">
                 v{product.version}
               </Badge>
@@ -95,7 +95,7 @@ export function ProductCard({ product, catalog = 'shop', shop }: ProductCardProp
       <CardContent className="flex-1 space-y-3 p-5">
         <div>
           <Link
-            href={`/${catalog}/${product.slug}`}
+            href={`/shop/${product.slug}`}
             className="text-foreground hover:text-primary line-clamp-2 text-lg font-bold transition-colors"
           >
             {product.name}
@@ -124,7 +124,7 @@ export function ProductCard({ product, catalog = 'shop', shop }: ProductCardProp
       <CardFooter className="flex flex-col gap-2 p-5 pt-0">
         <div className="grid w-full grid-cols-2 gap-2">
           <Link
-            href={`/${catalog}/${product.slug}`}
+            href={`/shop/${product.slug}`}
             className={buttonStyles({
               variant: 'outline',
               className: 'w-full text-xs font-medium',
@@ -134,18 +134,19 @@ export function ProductCard({ product, catalog = 'shop', shop }: ProductCardProp
           </Link>
           {mode !== 'PAID' ? (
             <a
-              href={mode === 'FREE' ? `/${catalog}/${product.slug}` : '/about#lien-he'}
+              href={mode === 'FREE' ? `/shop/${product.slug}` : '/about#lien-he'}
               className={buttonStyles({ className: 'w-full text-xs' })}
             >
               {mode === 'FREE' ? 'Tải miễn phí' : 'Liên hệ'}
             </a>
           ) : soldOut ? (
-            <Button disabled className="w-full text-xs">
-              Hết hàng
-            </Button>
+            <a href="/about#lien-he" className={buttonStyles({ className: 'w-full text-xs' })}>
+              <MessageCircle className="mr-1.5 h-3.5 w-3.5" />
+              Liên hệ
+            </a>
           ) : needsDetail ? (
             <Link
-              href={`/${catalog}/${product.slug}`}
+              href={`/shop/${product.slug}`}
               className={buttonStyles({ className: 'w-full text-xs font-semibold' })}
             >
               Chọn mua
@@ -164,13 +165,13 @@ export function ProductCard({ product, catalog = 'shop', shop }: ProductCardProp
               ) : (
                 <>
                   <ShoppingCart className="mr-1.5 h-3.5 w-3.5" />
-                  {catalog === 'source-code' ? 'Mua source' : 'Chọn mua'}
+                  {isSource ? 'Mua source' : 'Chọn mua'}
                 </>
               )}
             </Button>
           )}
         </div>
-        {catalog === 'source-code' && (
+        {isSource && (
           <Link
             href="/about#lien-he"
             className={buttonStyles({

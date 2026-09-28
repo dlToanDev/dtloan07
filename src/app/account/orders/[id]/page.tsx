@@ -1,4 +1,5 @@
 import { auth } from '@/lib/auth';
+import { PRO_PLANS } from '@/lib/membership';
 import { db } from '@/lib/db';
 import { notFound } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
@@ -104,6 +105,12 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
           </CardDescription>
         </CardHeader>
         <CardContent className="divide-border divide-y">
+          {order.membershipPlan && (
+            <div className="flex justify-between py-4 text-sm">
+              <span className="font-semibold">👑 {PRO_PLANS[order.membershipPlan].label}</span>
+              <span className="font-semibold">{order.subtotalVnd.toLocaleString('vi-VN')} đ</span>
+            </div>
+          )}
           {order.items.map((item) => {
             const license = item.license;
             const remaining = license
@@ -201,8 +208,17 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
 
           {order.discountVnd > 0 && (
             <div className="flex justify-between font-medium text-green-600">
-              <span>Giảm giá {order.coupon ? `(${order.coupon.code})` : ''}</span>
+              <span>
+                Giảm giá {order.coupon ? `(${order.coupon.code ?? order.coupon.name})` : ''}
+              </span>
               <span>-{order.discountVnd.toLocaleString('vi-VN')} đ</span>
+            </div>
+          )}
+
+          {order.shippingDiscountVnd > 0 && (
+            <div className="flex justify-between font-medium text-green-600">
+              <span>Được miễn phí ship</span>
+              <span>-{order.shippingDiscountVnd.toLocaleString('vi-VN')} đ</span>
             </div>
           )}
 

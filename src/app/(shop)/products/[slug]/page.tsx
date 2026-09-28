@@ -5,8 +5,8 @@ export default async function LegacyProductPage({ params }: { params: Promise<{ 
   const { slug } = await params;
   const product = await db.product.findUnique({
     where: { slug },
-    select: { kind: true, status: true },
+    select: { status: true },
   });
   if (!product || product.status !== 'ACTIVE') notFound();
-  redirect(`/${product.kind === 'SOURCE_CODE' ? 'source-code' : 'shop'}/${slug}`);
+  redirect(`/shop/${slug}`);
 }

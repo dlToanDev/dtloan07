@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { buttonStyles } from '@/components/ui/button';
 import { buildMetadata } from '@/lib/seo';
 import type { Metadata } from 'next';
-import { BookOpen, Clock3, GraduationCap, MessageCircle, PlayCircle } from 'lucide-react';
+import { BookOpen, Clock3, GraduationCap, PlayCircle } from 'lucide-react';
 import Link from 'next/link';
 
 export const metadata: Metadata = buildMetadata({
@@ -14,7 +14,7 @@ export const metadata: Metadata = buildMetadata({
   pathname: '/courses',
 });
 
-export const revalidate = 3600;
+export const revalidate = 300;
 
 export default async function CoursesPage() {
   let courses: Awaited<ReturnType<typeof db.course.findMany>> = [];
@@ -59,16 +59,29 @@ export default async function CoursesPage() {
                 className="border-border bg-card flex h-full flex-col rounded-2xl border p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
               >
                 <div className="flex items-start justify-between gap-4">
-                  <div className="bg-primary/10 text-primary flex size-12 shrink-0 items-center justify-center rounded-xl">
-                    <BookOpen className="size-6" />
-                  </div>
+                  {course.coverUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={course.coverUrl}
+                      alt=""
+                      className="size-12 shrink-0 rounded-xl object-cover"
+                    />
+                  ) : (
+                    <div className="bg-primary/10 text-primary flex size-12 shrink-0 items-center justify-center rounded-xl">
+                      <BookOpen className="size-6" />
+                    </div>
+                  )}
                   <Badge variant={upcoming ? 'secondary' : 'default'}>
                     {upcoming ? 'Sắp ra mắt' : 'Đang mở học'}
                   </Badge>
                 </div>
 
                 <div className="mt-5 flex-1">
-                  <h2 className="text-xl font-bold tracking-tight">{course.title}</h2>
+                  <h2 className="text-xl font-bold tracking-tight">
+                    <Link href={`/courses/${course.slug}`} className="hover:underline">
+                      {course.title}
+                    </Link>
+                  </h2>
                   <p className="text-muted-foreground mt-3 line-clamp-4 text-sm leading-relaxed">
                     {course.description}
                   </p>
@@ -103,23 +116,15 @@ export default async function CoursesPage() {
                     </div>
                   </div>
 
-                  {course.learnUrl && !upcoming ? (
-                    <a
-                      href={course.learnUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={buttonStyles({ className: 'shrink-0' })}
-                    >
-                      <PlayCircle className="mr-2 size-4" /> Xem khóa học
-                    </a>
-                  ) : (
-                    <Link
-                      href="/about#lien-he"
-                      className={buttonStyles({ variant: 'outline', className: 'shrink-0' })}
-                    >
-                      <MessageCircle className="mr-2 size-4" /> Liên hệ tư vấn
-                    </Link>
-                  )}
+                  <Link
+                    href={`/courses/${course.slug}`}
+                    className={buttonStyles({
+                      variant: upcoming ? 'outline' : 'primary',
+                      className: 'shrink-0',
+                    })}
+                  >
+                    <PlayCircle className="mr-2 size-4" /> {upcoming ? 'Xem trước' : 'Xem khóa học'}
+                  </Link>
                 </div>
               </article>
             );

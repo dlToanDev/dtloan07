@@ -1,4 +1,5 @@
 import { db } from '@/lib/db';
+import { PRO_PLANS } from '@/lib/membership';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { buttonStyles } from '@/components/ui/button';
@@ -194,6 +195,11 @@ export default async function AdminOrdersPage({ searchParams }: AdminOrdersPageP
                         </div>
                       </td>
                       <td className="px-2 py-3">
+                        {o.membershipPlan && (
+                          <div className="text-xs font-medium text-amber-600">
+                            👑 {PRO_PLANS[o.membershipPlan].label}
+                          </div>
+                        )}
                         {o.items.map((i) => (
                           <div key={i.id} className="text-xs">
                             {i.productNameSnapshot}

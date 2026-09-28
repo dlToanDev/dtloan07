@@ -2,6 +2,7 @@ import rehypeAutolinkHeadings from 'rehype-autolink-headings';
 import rehypePrettyCode, { type Options as PrettyCodeOptions } from 'rehype-pretty-code';
 import rehypeSlug from 'rehype-slug';
 import remarkGfm from 'remark-gfm';
+import rehypeUnwrapImages from '@/lib/rehype-unwrap-images';
 import type { PluggableList } from 'unified';
 
 const prettyCodeOptions: PrettyCodeOptions = {
@@ -30,6 +31,7 @@ const prettyCodeOptions: PrettyCodeOptions = {
 export const mdxOptions: { remarkPlugins: PluggableList; rehypePlugins: PluggableList } = {
   remarkPlugins: [remarkGfm],
   rehypePlugins: [
+    rehypeUnwrapImages,
     rehypeSlug,
     [rehypePrettyCode, prettyCodeOptions],
     [

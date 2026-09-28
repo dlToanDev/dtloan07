@@ -7,11 +7,42 @@ import { sendMagicLinkEmail } from '@/lib/mail';
 import { authConfig } from '@/lib/auth.config';
 import bcrypt from 'bcryptjs';
 
+/** Phiên đang đăng nhập được kiểm tra lại trạng thái khóa sau mỗi khoảng này. */
+const LOCK_RECHECK_MS = 5 * 60 * 1000;
+
+async function isLocked(where: { id?: string | null; email?: string | null }) {
+  if (!where.id && !where.email) return false;
+  const user = await db.user.findFirst({
+    where: where.id ? { id: where.id } : { email: where.email!.toLowerCase() },
+    select: { lockedAt: true },
+  });
+  return Boolean(user?.lockedAt);
+}
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
   ...authConfig,
   adapter: PrismaAdapter(db),
   session: {
     strategy: 'jwt',
+  },
+  callbacks: {
+    ...authConfig.callbacks,
+    // Tài khoản bị khóa (3 cảnh báo / admin khóa) không đăng nhập được bằng mọi cách.
+    async signIn({ user }) {
+      if (await isLocked({ id: user.id, email: user.email })) return '/login?error=AccountLocked';
+      return true;
+    },
+    // JWT nằm ở trình duyệt nên phải tự kiểm tra lại: bị khóa → trả null để xóa phiên.
+    async jwt(params) {
+      const token = await authConfig.callbacks!.jwt!(params);
+      if (!token?.id) return token;
+      const checkedAt = typeof token.lockCheckedAt === 'number' ? token.lockCheckedAt : 0;
+      if (params.user || Date.now() - checkedAt > LOCK_RECHECK_MS) {
+        if (await isLocked({ id: token.id as string })) return null;
+        token.lockCheckedAt = Date.now();
+      }
+      return token;
+    },
   },
   providers: [
     ...authConfig.providers,
@@ -33,7 +64,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           where: { email },
         });
 
-        if (!user || !user.password) {
+        if (!user || !user.password || user.lockedAt) {
           return null;
         }
 

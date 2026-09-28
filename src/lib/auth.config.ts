@@ -49,6 +49,11 @@ export const authConfig = {
 
       const isAccountRoute = nextUrl.pathname.startsWith('/account');
       const isAdminRoute = nextUrl.pathname.startsWith('/admin');
+      const isCheckoutRoute = nextUrl.pathname.startsWith('/checkout');
+
+      if (isCheckoutRoute) {
+        return isLoggedIn;
+      }
 
       if (isAccountRoute) {
         return isLoggedIn;

@@ -3,11 +3,19 @@ import { MobileNav } from '@/components/layout/mobile-nav';
 import { NavLink } from '@/components/layout/nav-link';
 import { ThemeToggle } from '@/components/layout/theme-toggle';
 import { CartButton } from '@/components/shop/cart-button';
+import { NotificationBell } from '@/components/layout/notification-bell';
+import { getPublicActiveAnnouncements, type AnnouncementItem } from '@/server/actions/settings';
 import { siteConfig } from '@/config/site';
 import Link from 'next/link';
 import { User } from 'lucide-react';
 
-export function Header() {
+interface HeaderProps {
+  announcements?: AnnouncementItem[];
+}
+
+export async function Header({ announcements: propAnnouncements }: HeaderProps = {}) {
+  const announcements = propAnnouncements ?? (await getPublicActiveAnnouncements());
+
   return (
     <header className="border-border bg-background/85 sticky top-0 z-40 border-b backdrop-blur-sm">
       <div className="container-page flex h-16 items-center justify-between gap-4">
@@ -29,6 +37,7 @@ export function Header() {
           <SearchDialog />
           <ThemeToggle />
           <CartButton />
+          <NotificationBell initialAnnouncements={announcements} />
           <Link
             href="/account"
             className="hover:bg-muted text-muted-foreground hover:text-foreground inline-flex size-9 items-center justify-center rounded-lg transition-colors"

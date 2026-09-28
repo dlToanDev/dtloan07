@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { ensureRedemptionForPaidOrder } from '@/lib/coupons';
+import { PRO_PLANS } from '@/lib/membership';
+import { grantProDays } from '@/lib/membership-db';
 import { verifyPayOSSignature, payosClient, generateLicenseKey } from '@/lib/payments/payos';
 import { sendAdminManualDeliveryEmail, sendOrderLicenseEmail } from '@/lib/mail';
 import { deliverAutoAccounts } from '@/lib/shop/account-delivery';
@@ -139,15 +142,12 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      // c. Tăng lượt dùng coupon nếu có
-      if (order.couponId) {
-        await tx.coupon.update({
-          where: { id: order.couponId },
-          data: {
-            usedCount: { increment: 1 },
-          },
-        });
-      }
+      // c. Lượt voucher đã giữ lúc đặt đơn; chỉ bù lại nếu đơn chưa có (đơn cũ / đơn đã hết hạn)
+      await ensureRedemptionForPaidOrder(tx, order);
+
+      // c2. Đơn gói Pro: cộng hạn Pro (còn hạn thì cộng dồn)
+      if (order.membershipPlan && order.userId)
+        await grantProDays(tx, order.userId, PRO_PLANS[order.membershipPlan].days);
 
       // d. Cấp mã bản quyền (License) cho từng OrderItem
       const createdLicenses = [];

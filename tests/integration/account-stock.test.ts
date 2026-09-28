@@ -106,10 +106,8 @@ beforeAll(async () => {
       priceVnd: 100000,
       coverUrl: '',
       status: 'ACTIVE',
-      kind: 'SHOP',
       version: '1.0.0',
       type: 'ACCOUNT',
-      category: 'ACCOUNT',
       deliveryMode: 'AUTO',
     },
   });

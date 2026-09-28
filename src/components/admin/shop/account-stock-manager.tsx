@@ -164,10 +164,13 @@ export function AccountStockManager({
   variants,
   rows,
   keyConfigured,
+  showImport = true,
 }: {
   variants: { id: string; name: string }[];
   rows: AccountStockRow[];
   keyConfigured: boolean;
+  /** Tắt khi tài khoản đã nhập ngay trên form sản phẩm (sản phẩm một giá). */
+  showImport?: boolean;
 }) {
   const available = rows.filter((row) => row.status === 'AVAILABLE').length;
 
@@ -186,7 +189,7 @@ export function AccountStockManager({
         <strong className="text-foreground">{available}</strong>
       </div>
 
-      <ImportForm variants={variants} />
+      {showImport && <ImportForm variants={variants} />}
 
       {rows.length > 0 && (
         <div className="overflow-x-auto">

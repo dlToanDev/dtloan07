@@ -12,17 +12,16 @@ import { ShieldCheck, FileArchive, CheckCircle2, Clock, HelpCircle } from 'lucid
 import Link from 'next/link';
 import { ProductGallery } from '@/components/shop/product-gallery';
 import { VariantPurchasePanel } from '@/components/shop/variant-purchase-panel';
-import { categoryLabel, conditionLabel } from '@/lib/shop/labels';
+import { conditionLabel } from '@/lib/shop/labels';
 import { pickDefaultVariant } from '@/lib/shop/variants';
 
 interface Props {
-  kind: 'SOURCE_CODE' | 'SHOP';
   params: Promise<{
     slug: string;
   }>;
 }
 
-export async function productMetadata({ params, kind }: Props): Promise<Metadata> {
+export async function productMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   let product = null;
   try {
@@ -33,16 +32,16 @@ export async function productMetadata({ params, kind }: Props): Promise<Metadata
     return {};
   }
 
-  if (!product || product.kind !== kind || product.status !== 'ACTIVE') return {};
+  if (!product || product.status !== 'ACTIVE') return {};
 
   return buildMetadata({
     title: product.name,
     description: product.shortDesc,
-    pathname: `/${kind === 'SOURCE_CODE' ? 'source-code' : 'shop'}/${slug}`,
+    pathname: `/shop/${slug}`,
   });
 }
 
-export async function ProductDetailPage({ params, kind }: Props) {
+export async function ProductDetailPage({ params }: Props) {
   const { slug } = await params;
   let product = null;
   try {
@@ -50,6 +49,7 @@ export async function ProductDetailPage({ params, kind }: Props) {
       where: { slug },
       include: {
         files: true,
+        category: { select: { name: true } },
         variants: {
           orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
           include: { _count: { select: { accountStock: { where: { status: 'AVAILABLE' } } } } },
@@ -60,15 +60,12 @@ export async function ProductDetailPage({ params, kind }: Props) {
     console.warn('Cảnh báo: Không thể tải sản phẩm lúc build:', err);
   }
 
-  if (!product || product.kind !== kind || product.status !== 'ACTIVE') {
+  if (!product || product.status !== 'ACTIVE') {
     notFound();
   }
 
-  const catalogHref = product.kind === 'SOURCE_CODE' ? '/source-code' : '/shop';
-  const catalogLabel = product.kind === 'SOURCE_CODE' ? 'Source Code' : 'Shop';
-
-  // Hàng Shop cần giao (đồ vật lý / tài khoản): giá và nút mua lấy theo biến thể.
-  const isShopGoods = product.kind === 'SHOP' && product.type !== 'DOWNLOAD';
+  // Hàng cần giao (đồ vật lý / tài khoản): giá và nút mua lấy theo biến thể.
+  const isShopGoods = product.type !== 'DOWNLOAD';
   const variants = product.variants.map((variant) => ({
     id: variant.id,
     name: variant.name,
@@ -94,8 +91,8 @@ export async function ProductDetailPage({ params, kind }: Props) {
           Trang chủ
         </Link>
         <span>/</span>
-        <Link href={catalogHref} className="hover:text-foreground">
-          {catalogLabel}
+        <Link href="/shop" className="hover:text-foreground">
+          Shop
         </Link>
         <span>/</span>
         <span className="text-foreground max-w-xs truncate font-medium">{product.name}</span>
@@ -108,9 +105,7 @@ export async function ProductDetailPage({ params, kind }: Props) {
             <div className="flex flex-wrap items-center gap-2">
               {isShopGoods ? (
                 <>
-                  {product.category && (
-                    <Badge variant="secondary">{categoryLabel(product.category)}</Badge>
-                  )}
+                  {product.category && <Badge variant="secondary">{product.category.name}</Badge>}
                   {product.condition && (
                     <Badge variant="secondary">{conditionLabel(product.condition)}</Badge>
                   )}
@@ -121,7 +116,7 @@ export async function ProductDetailPage({ params, kind }: Props) {
                 </Badge>
               )}
               <Badge variant="outline" className="text-xs">
-                {product.kind === 'SOURCE_CODE' ? 'Source Code chính chủ' : 'Sản phẩm chính chủ'}
+                {isShopGoods ? 'Sản phẩm chính chủ' : 'Source Code chính chủ'}
               </Badge>
             </div>
             <h1 className="text-foreground text-3xl font-extrabold tracking-tight sm:text-4xl">
@@ -133,17 +128,19 @@ export async function ProductDetailPage({ params, kind }: Props) {
           <ProductGallery
             name={product.name}
             slug={product.slug}
-            kind={product.kind}
+            type={product.type}
             coverUrl={product.coverUrl}
             gallery={product.gallery}
             version={isShopGoods ? undefined : product.version}
           />
 
-          {/* Khung mô tả chi tiết */}
-          <div className="border-border bg-card space-y-6 rounded-xl border p-6 sm:p-8">
-            <h2 className="text-foreground text-xl font-bold">Mô tả sản phẩm & Hướng dẫn</h2>
-            <ProductDescription source={product.description} />
-          </div>
+          {/* Khung mô tả chi tiết (không bắt buộc) */}
+          {product.description.trim() && (
+            <div className="border-border bg-card space-y-6 rounded-xl border p-6 sm:p-8">
+              <h2 className="text-foreground text-xl font-bold">Mô tả sản phẩm & Hướng dẫn</h2>
+              <ProductDescription source={product.description} />
+            </div>
+          )}
 
           {/* Tình trạng & bảo hành (hàng Shop) */}
           {isShopGoods && (product.conditionNote || product.warrantyNote) && (

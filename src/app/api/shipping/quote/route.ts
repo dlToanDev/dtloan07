@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { calculatePricing } from '@/lib/pricing';
+import { findCouponByCode } from '@/lib/coupons';
+import { isUserPro } from '@/lib/membership-db';
+import { calculatePricing, shippingDiscountFor } from '@/lib/pricing';
 import { buildPriceMap, loadCartProducts } from '@/lib/shop/cart-products';
 import { resolveCartLines } from '@/lib/shop/variants';
 import { quoteShipping, splitCartTotals, type CartLineType } from '@/lib/shop/shipping';
@@ -59,10 +62,11 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    let coupon = null;
-    if (couponCode && couponCode.trim() !== '') {
-      coupon = await db.coupon.findUnique({ where: { code: couponCode.trim().toUpperCase() } });
-    }
+    const session = await auth();
+    const lookup = couponCode?.trim()
+      ? await findCouponByCode(couponCode, { userId: session?.user?.id })
+      : null;
+    const coupon = lookup?.ok ? lookup.coupon.rule : null;
 
     const pricing = calculatePricing({
       items: lines.map(({ productId, variantId, qty }) => ({ productId, variantId, qty })),
@@ -83,7 +87,21 @@ export async function POST(req: NextRequest) {
       physicalSubtotalVnd: totals.physicalAfterDiscountVnd,
     });
 
-    return NextResponse.json({ success: true, data: { ...quote, hasPhysical: true } });
+    // Pro luôn miễn ship, không thì xét voucher free ship; feeVnd trả về là phần khách phải trả.
+    const proFreeShip = await isUserPro(session?.user?.id);
+    const shippingDiscountVnd = proFreeShip
+      ? quote.feeVnd
+      : shippingDiscountFor(pricing.couponApplied, quote.feeVnd);
+    return NextResponse.json({
+      success: true,
+      data: {
+        ...quote,
+        feeVnd: quote.feeVnd - shippingDiscountVnd,
+        shippingDiscountVnd,
+        proFreeShip,
+        hasPhysical: true,
+      },
+    });
   } catch (error) {
     console.error('❌ Lỗi tính phí ship:', error);
     return NextResponse.json({ error: 'Không tính được phí vận chuyển.' }, { status: 500 });

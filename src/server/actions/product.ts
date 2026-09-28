@@ -6,9 +6,17 @@ import { z } from 'zod';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { isR2Configured, uploadToStorage } from '@/lib/storage';
+import {
+  encryptCredentials,
+  isCredentialKeyConfigured,
+  splitCredentialLines,
+} from '@/lib/crypto/credentials';
 import { parseVariantsInput, planVariantSync, type VariantInput } from '@/lib/shop/variant-input';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+
+/** Số tài khoản tối đa nhập vào kho trong một lần lưu (giống nhập kho hàng loạt). */
+const MAX_ACCOUNT_LINES = 500;
 
 export async function requireProductAdmin() {
   const session = await auth();
@@ -19,17 +27,29 @@ const optionalEnum = <T extends z.ZodTypeAny>(schema: T) =>
   z.preprocess((value) => (value === '' ? undefined : value), schema.optional());
 
 const schema = z.object({
-  name: z.string().trim().min(1).max(200),
+  name: z
+    .string()
+    .trim()
+    .min(1, 'Vui lòng nhập tên sản phẩm.')
+    .max(200, 'Tên sản phẩm tối đa 200 ký tự.'),
   slug: z
     .string()
     .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Slug chỉ gồm chữ thường, số và dấu gạch ngang.'),
-  shortDesc: z.string().trim().min(1).max(500),
-  description: z.string().trim().min(1),
-  version: z.string().trim().min(1).max(50),
-  kind: z.enum(['SOURCE_CODE', 'SHOP']),
+  shortDesc: z
+    .string()
+    .trim()
+    .min(1, 'Vui lòng nhập mô tả ngắn.')
+    .max(500, 'Mô tả ngắn tối đa 500 ký tự.'),
+  // Mô tả chi tiết không bắt buộc — trang sản phẩm ẩn khung mô tả khi trống.
+  description: z.string().trim().default(''),
+  version: z.string().trim().min(1, 'Vui lòng nhập phiên bản.').max(50),
   saleMode: z.enum(['FREE', 'CONTACT', 'PAID']),
   status: z.enum(['DRAFT', 'ACTIVE', 'ARCHIVED']),
-  priceVnd: z.coerce.number().int().min(0).max(2147483647),
+  priceVnd: z.coerce
+    .number()
+    .int()
+    .min(0, 'Giá không hợp lệ.')
+    .max(2147483647, 'Giá quá lớn (tối đa khoảng 2,1 tỷ đ).'),
   coverUrl: z
     .string()
     .trim()
@@ -41,9 +61,7 @@ const schema = z.object({
 
   // --- Shop ---
   type: z.enum(['DOWNLOAD', 'PHYSICAL', 'ACCOUNT']).default('DOWNLOAD'),
-  category: optionalEnum(
-    z.enum(['APPAREL', 'HAT', 'MUG', 'ACCESSORY', 'TECH', 'ACCOUNT', 'OTHER']),
-  ),
+  categoryId: z.string().trim().max(50).optional().default(''),
   condition: optionalEnum(z.enum(['NEW', 'LIKE_NEW', 'USED'])),
   conditionNote: z.string().trim().max(300).optional().default(''),
   warrantyNote: z.string().trim().max(300).optional().default(''),
@@ -67,13 +85,26 @@ export async function saveProduct(_state: { error?: string; success?: string }, 
     return { error: parsed.error.errors[0]?.message || 'Thông tin không hợp lệ.' };
   const data = parsed.data;
 
-  // Hàng Shop cần giao (đồ vật lý / tài khoản số) dùng biến thể để quyết định giá,
-  // còn hàng file tải về giữ nguyên luồng saleMode + priceVnd như trước.
-  const isShopGoods = data.kind === 'SHOP' && data.type !== 'DOWNLOAD';
-  if (data.kind === 'SOURCE_CODE') data.type = 'DOWNLOAD';
-  if (data.kind === 'SHOP' && !data.category) return { error: 'Vui lòng chọn danh mục.' };
+  // Hàng cần giao (đồ vật lý / tài khoản số) dùng biến thể để quyết định giá,
+  // còn source code (tải file) giữ luồng saleMode + priceVnd.
+  const isShopGoods = data.type !== 'DOWNLOAD';
+  const category = data.categoryId
+    ? await db.productCategory.findUnique({ where: { id: data.categoryId } })
+    : null;
+  if (!category) return { error: 'Vui lòng chọn danh mục.' };
+  const hasCondition = Boolean(category?.hasCondition);
   if (data.type === 'ACCOUNT' && !data.deliveryMode)
     return { error: 'Vui lòng chọn cách bàn giao tài khoản.' };
+
+  // Thông tin tài khoản nhập ngay trên form (mỗi dòng một tài khoản) → thêm vào kho khi lưu.
+  const accountLines =
+    data.type === 'ACCOUNT' && data.deliveryMode === 'AUTO'
+      ? splitCredentialLines(String(form.get('accountLines') || ''))
+      : [];
+  if (accountLines.length > MAX_ACCOUNT_LINES)
+    return { error: `Mỗi lần lưu tối đa ${MAX_ACCOUNT_LINES} tài khoản.` };
+  if (accountLines.length && !isCredentialKeyConfigured())
+    return { error: 'Chưa cấu hình ACCOUNT_ENCRYPTION_KEY nên chưa lưu được thông tin tài khoản.' };
 
   let gallery: string[] = [];
   try {
@@ -116,9 +147,9 @@ export async function saveProduct(_state: { error?: string; success?: string }, 
 
   const shopFields = {
     type: data.type,
-    category: data.kind === 'SHOP' ? (data.category ?? null) : null,
-    condition: data.category === 'TECH' ? (data.condition ?? null) : null,
-    conditionNote: data.category === 'TECH' ? data.conditionNote || null : null,
+    categoryId: category?.id ?? null,
+    condition: hasCondition ? (data.condition ?? null) : null,
+    conditionNote: hasCondition ? data.conditionNote || null : null,
     warrantyNote: data.warrantyNote || null,
     deliveryMode: data.type === 'ACCOUNT' ? (data.deliveryMode ?? null) : null,
     gallery,
@@ -130,7 +161,6 @@ export async function saveProduct(_state: { error?: string; success?: string }, 
     ? await db.product.findUnique({ where: { id }, include: { files: true } })
     : null;
   if (id && !existing) return { error: 'Không tìm thấy sản phẩm.' };
-  if (existing && existing.kind !== data.kind) return { error: 'Sản phẩm thuộc mục quản lý khác.' };
   const upload = form.get('file');
   const file = upload instanceof File && upload.size > 0 ? upload : null;
   if (file && file.size > 8 * 1024 * 1024)
@@ -150,7 +180,7 @@ export async function saveProduct(_state: { error?: string; success?: string }, 
   /* eslint-disable @typescript-eslint/no-unused-vars */
   const {
     type: _type,
-    category: _category,
+    categoryId: _categoryId,
     condition: _condition,
     conditionNote: _conditionNote,
     warrantyNote: _warrantyNote,
@@ -182,30 +212,60 @@ export async function saveProduct(_state: { error?: string; success?: string }, 
           },
         }
       : undefined;
-    if (existing) {
-      await db.product.update({ where: { id }, data: { ...productData, files } });
-    } else {
-      const created = await db.product.create({ data: { ...productData, files } });
-      savedId = created.id;
-    }
+    // Đọc và tính toán hết trước, rồi ghi trong MỘT transaction dạng batch: không giữ transaction
+    // mở qua nhiều lượt đi-về mạng (database cloud có độ trễ), lỗi ở bước nào cũng không lưu dở.
+    const productId = existing ? id : randomUUID();
 
-    // Đồng bộ biến thể: tạo mới, cập nhật, ẩn (đã có đơn) hoặc xóa (chưa bán).
-    const existingVariants = await db.productVariant.findMany({
-      where: { productId: savedId },
-      select: { id: true, name: true, _count: { select: { orderItems: true } } },
-      orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
-    });
+    // Đồng bộ biến thể: tạo mới, cập nhật, ẩn (đã có đơn / còn kho) hoặc xóa (chưa bán).
+    const existingVariants = existing
+      ? await db.productVariant.findMany({
+          where: { productId },
+          select: {
+            id: true,
+            name: true,
+            _count: { select: { orderItems: true, accountStock: true } },
+          },
+          orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
+        })
+      : [];
     // Sản phẩm file tải về: giữ id của biến thể "Mặc định" hiện có để không đứt đơn cũ.
     if (!isShopGoods && existingVariants[0] && variantInputs[0])
       variantInputs[0] = { ...variantInputs[0], id: existingVariants[0].id };
+    // Dòng mới trùng tên một biến thể cũ đã bị bỏ (vd. xóa "Đen / M" rồi thêm lại) → dùng lại
+    // biến thể cũ, tránh hai biến thể cùng tên làm các lần lưu sau bị từ chối.
+    const referenced = new Set(variantInputs.map((variant) => variant.id).filter(Boolean));
+    variantInputs = variantInputs.map((variant) => {
+      if (variant.id) return variant;
+      const match = existingVariants.find(
+        (old) => !referenced.has(old.id) && old.name.toLowerCase() === variant.name.toLowerCase(),
+      );
+      if (!match) return variant;
+      referenced.add(match.id);
+      return { ...variant, id: match.id };
+    });
     const plan = planVariantSync(
       existingVariants.map((variant) => ({
         id: variant.id,
-        hasOrders: variant._count.orderItems > 0,
+        // Biến thể đã có đơn hoặc còn tài khoản trong kho (FK Restrict) chỉ được ẩn, không xóa.
+        hasOrders: variant._count.orderItems > 0 || variant._count.accountStock > 0,
       })),
       variantInputs,
     );
+    // Cấp id trước cho biến thể mới để biết ngay biến thể nhận tài khoản.
+    const creates = plan.create.map((variant) => ({ ...variant, id: randomUUID(), productId }));
+
+    // Tài khoản nhập trên form vào biến thể đang bán đầu tiên (theo thứ tự trên form).
+    const firstActive = [...plan.update, ...creates]
+      .filter((variant) => variant.active)
+      .sort((a, b) => a.sortOrder - b.sortOrder)[0];
+    if (accountLines.length && !firstActive)
+      return { error: 'Cần ít nhất một phân loại đang bán để nhập tài khoản.' };
+    const encryptedAccounts = accountLines.map((line) => encryptCredentials(line));
+
     await db.$transaction([
+      existing
+        ? db.product.update({ where: { id }, data: { ...productData, files } })
+        : db.product.create({ data: { ...productData, id: productId, files } }),
       db.productVariant.deleteMany({ where: { id: { in: plan.remove } } }),
       db.productVariant.updateMany({
         where: { id: { in: plan.deactivate } },
@@ -214,36 +274,39 @@ export async function saveProduct(_state: { error?: string; success?: string }, 
       ...plan.update.map(({ id: variantId, ...variant }) =>
         db.productVariant.update({ where: { id: variantId }, data: variant }),
       ),
-      ...plan.create.map((variant) =>
-        db.productVariant.create({ data: { ...variant, productId: savedId } }),
-      ),
+      db.productVariant.createMany({ data: creates }),
+      db.accountStock.createMany({
+        data: encryptedAccounts.map((credentials) => ({
+          variantId: firstActive!.id,
+          credentials,
+        })),
+      }),
     ]);
+    savedId = productId;
 
     for (const path of [
-      '/admin/source-code',
+      '/',
       '/admin/shop',
-      '/source-code',
       '/shop',
       `/products/${data.slug}`,
-      `/${data.kind === 'SOURCE_CODE' ? 'source-code' : 'shop'}/${data.slug}`,
+      `/shop/${data.slug}`,
     ])
       revalidatePath(path);
     if (existing) {
       revalidatePath(`/products/${existing.slug}`);
-      revalidatePath(
-        `/${existing.kind === 'SOURCE_CODE' ? 'source-code' : 'shop'}/${existing.slug}`,
-      );
+      revalidatePath(`/shop/${existing.slug}`);
     }
-    revalidatePath(
-      `/admin/${data.kind === 'SOURCE_CODE' ? 'source-code' : 'shop'}/${savedId}/edit`,
-    );
+    revalidatePath(`/admin/shop/${savedId}/edit`);
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002')
       return { error: 'SKU bị trùng với biến thể khác.' };
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2003')
+      return {
+        error:
+          'Không xóa được phân loại đang có đơn hàng hoặc tài khoản trong kho. Hãy tải lại trang.',
+      };
     console.error('Save product failed:', error);
     return { error: 'Không thể lưu sản phẩm. Vui lòng thử lại.' };
   }
-  redirect(
-    `/admin/${data.kind === 'SOURCE_CODE' ? 'source-code' : 'shop'}/${savedId}/edit?saved=1`,
-  );
+  redirect(`/admin/shop/${savedId}/edit?saved=1`);
 }

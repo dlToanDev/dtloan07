@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { db } from '@/lib/db';
+import { auth } from '@/lib/auth';
+import { findCouponByCode } from '@/lib/coupons';
 import { calculatePricing } from '@/lib/pricing';
 import { buildPriceMap, loadCartProducts } from '@/lib/shop/cart-products';
 import { effectiveStock, lineKey, resolveCartLines } from '@/lib/shop/variants';
@@ -49,13 +50,12 @@ export async function POST(req: NextRequest) {
     const { lines, errors } = resolveCartLines(items, products);
     const productsMap = buildPriceMap(lines);
 
-    // 2. Tìm coupon nếu có
-    let coupon = null;
-    if (couponCode && couponCode.trim() !== '') {
-      coupon = await db.coupon.findUnique({
-        where: { code: couponCode.trim().toUpperCase() },
-      });
-    }
+    // 2. Tìm voucher nếu có (mã riêng cần đúng tài khoản đang đăng nhập)
+    const session = couponCode?.trim() ? await auth() : null;
+    const lookup = couponCode?.trim()
+      ? await findCouponByCode(couponCode, { userId: session?.user?.id })
+      : null;
+    const coupon = lookup?.ok ? lookup.coupon.rule : null;
 
     // 3. Tính toán giá tiền từ server
     const pricing = calculatePricing({
@@ -89,7 +89,7 @@ export async function POST(req: NextRequest) {
         discountVnd: pricing.discountVnd,
         totalVnd: pricing.totalVnd,
         couponApplied: pricing.couponApplied,
-        couponError: pricing.couponError,
+        couponError: lookup && !lookup.ok ? lookup.error : pricing.couponError,
         errors: errors.map((error) => error.message),
       },
     });

@@ -1,26 +1,38 @@
+import type { Metadata } from 'next';
 import { db } from '@/lib/db';
-import { CourseManager } from '@/components/admin/course-manager';
-import { Metadata } from 'next';
+import { CourseTable } from '@/components/admin/courses/course-table';
+import { loadCourseStats } from '@/lib/courses/admin-stats';
 
-export const metadata: Metadata = {
-  title: 'Quản lý Khóa học - Admin',
-};
-
+export const metadata: Metadata = { title: 'Khóa học - Admin' };
 export const dynamic = 'force-dynamic';
 
 export default async function AdminCoursesPage() {
-  let courses: Awaited<ReturnType<typeof db.course.findMany>> = [];
-  try {
-    courses = await db.course.findMany({
-      orderBy: { createdAt: 'desc' },
-    });
-  } catch (err) {
-    console.warn('Lỗi tải danh sách khóa học:', err);
-  }
+  const courses = await db.course.findMany({
+    orderBy: { createdAt: 'desc' },
+    include: { lessons: { select: { status: true } } },
+  });
+  const stats = await loadCourseStats(courses.map((course) => course.id));
 
   return (
-    <div className="space-y-6">
-      <CourseManager initialCourses={courses} />
-    </div>
+    <CourseTable
+      courses={courses.map((course) => {
+        const s = stats.get(course.id);
+        return {
+          id: course.id,
+          title: course.title,
+          slug: course.slug,
+          status: course.status,
+          priceVnd: course.priceVnd,
+          coverUrl: course.coverUrl,
+          publishedLessons: course.lessons.filter((lesson) => lesson.status === 'PUBLISHED').length,
+          totalLessons: course.lessons.length,
+          plannedLessons: course.plannedLessons,
+          contentComplete: Boolean(course.contentCompletedAt),
+          students: s?.students.length ?? 0,
+          completionPercent: s?.completionPercent ?? null,
+          exercisePassPercent: s?.exercisePassPercent ?? null,
+        };
+      })}
+    />
   );
 }

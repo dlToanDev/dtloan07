@@ -8,7 +8,11 @@ const variantSchema = z
     id: z.string().min(1).optional(),
     name: z.string().trim().min(1, 'Tên biến thể không được để trống.').max(100),
     sku: z.preprocess(emptyToNull, z.string().trim().max(64).nullable()),
-    priceVnd: z.coerce.number().int().min(0, 'Giá biến thể không được âm.').max(MAX_INT),
+    priceVnd: z.coerce
+      .number()
+      .int()
+      .min(0, 'Giá biến thể không được âm.')
+      .max(MAX_INT, 'Giá quá lớn (tối đa khoảng 2,1 tỷ đ).'),
     compareAtVnd: z.preprocess(emptyToNull, z.coerce.number().int().min(0).max(MAX_INT).nullable()),
     stock: z.preprocess(
       emptyToNull,

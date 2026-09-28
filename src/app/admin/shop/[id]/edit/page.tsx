@@ -1,5 +1,5 @@
 import { ProductEditorPage } from '@/components/admin/product-editor-page';
 export default async function Page({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  return <ProductEditorPage kind="SHOP" id={id} />;
+  return <ProductEditorPage id={id} />;
 }

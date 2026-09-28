@@ -9,6 +9,7 @@ import { ShoppingCart, Check, MessageCircle } from 'lucide-react';
 import { ProductCover } from '@/components/shop/product-cover';
 import { conditionLabel } from '@/lib/shop/labels';
 import type { VariantSummary } from '@/lib/shop/variants';
+import { cn } from '@/lib/utils';
 import { useState } from 'react';
 
 export interface ProductCardProps {
@@ -30,9 +31,10 @@ export interface ProductCardProps {
     condition: string | null;
     summary: VariantSummary;
   };
+  variant?: 'grid' | 'list';
 }
 
-export function ProductCard({ product, shop }: ProductCardProps) {
+export function ProductCard({ product, shop, variant = 'grid' }: ProductCardProps) {
   const addItem = useCart((state) => state.addItem);
   const [added, setAdded] = useState(false);
 
@@ -55,10 +57,17 @@ export function ProductCard({ product, shop }: ProductCardProps) {
       ? Math.round(((compareAtVnd - priceVnd) / compareAtVnd) * 100)
       : null;
 
+  const isList = variant === 'list';
+
   return (
-    <Card className="hover:border-primary/40 flex h-full flex-col overflow-hidden transition-all duration-200 hover:shadow-md">
-      <CardHeader className="p-0">
-        <Link href={`/shop/${product.slug}`} className="relative block">
+    <Card
+      className={cn(
+        'hover:border-primary/40 overflow-hidden transition-all duration-200 hover:shadow-md',
+        isList ? 'flex flex-col sm:flex-row' : 'flex h-full flex-col',
+      )}
+    >
+      <CardHeader className={cn('p-0', isList && 'w-full shrink-0 sm:w-64 md:w-72')}>
+        <Link href={`/shop/${product.slug}`} className="relative block h-full">
           <ProductCover
             name={product.name}
             slug={product.slug}
@@ -92,97 +101,111 @@ export function ProductCard({ product, shop }: ProductCardProps) {
         </Link>
       </CardHeader>
 
-      <CardContent className="flex-1 space-y-3 p-5">
-        <div>
-          <Link
-            href={`/shop/${product.slug}`}
-            className="text-foreground hover:text-primary line-clamp-2 text-lg font-bold transition-colors"
-          >
-            {product.name}
-          </Link>
-          <p className="text-muted-foreground mt-2 line-clamp-3 text-sm leading-relaxed">
-            {product.shortDesc}
-          </p>
-        </div>
-
-        <div className="flex items-baseline gap-2 pt-2">
-          <span className="text-foreground text-2xl font-extrabold tracking-tight">
-            {mode === 'FREE'
-              ? 'Miễn phí'
-              : mode === 'CONTACT'
-                ? 'Liên hệ báo giá'
-                : `${showFrom ? 'Từ ' : ''}${priceVnd.toLocaleString('vi-VN')} đ`}
-          </span>
-          {mode === 'PAID' && compareAtVnd && compareAtVnd > priceVnd && (
-            <span className="text-muted-foreground text-sm line-through">
-              {compareAtVnd.toLocaleString('vi-VN')} đ
-            </span>
-          )}
-        </div>
-      </CardContent>
-
-      <CardFooter className="flex flex-col gap-2 p-5 pt-0">
-        <div className="grid w-full grid-cols-2 gap-2">
-          <Link
-            href={`/shop/${product.slug}`}
-            className={buttonStyles({
-              variant: 'outline',
-              className: 'w-full text-xs font-medium',
-            })}
-          >
-            Chi tiết
-          </Link>
-          {mode !== 'PAID' ? (
-            <a
-              href={mode === 'FREE' ? `/shop/${product.slug}` : '/about#lien-he'}
-              className={buttonStyles({ className: 'w-full text-xs' })}
-            >
-              {mode === 'FREE' ? 'Tải miễn phí' : 'Liên hệ'}
-            </a>
-          ) : soldOut ? (
-            <a href="/about#lien-he" className={buttonStyles({ className: 'w-full text-xs' })}>
-              <MessageCircle className="mr-1.5 h-3.5 w-3.5" />
-              Liên hệ
-            </a>
-          ) : needsDetail ? (
+      <div
+        className={cn(
+          'flex flex-1',
+          isList
+            ? 'flex-col justify-between p-5 md:flex-row md:items-center md:gap-6'
+            : 'flex-col justify-between',
+        )}
+      >
+        <CardContent className={cn('space-y-3', isList ? 'p-0 md:flex-1' : 'flex-1 p-5')}>
+          <div>
             <Link
               href={`/shop/${product.slug}`}
-              className={buttonStyles({ className: 'w-full text-xs font-semibold' })}
+              className="text-foreground hover:text-primary line-clamp-2 text-lg font-bold transition-colors"
             >
-              Chọn mua
+              {product.name}
             </Link>
-          ) : (
-            <Button
-              onClick={handleAddToCart}
-              className="w-full text-xs font-semibold"
-              disabled={added}
-            >
-              {added ? (
-                <>
-                  <Check className="mr-1.5 h-3.5 w-3.5" />
-                  Đã thêm
-                </>
-              ) : (
-                <>
-                  <ShoppingCart className="mr-1.5 h-3.5 w-3.5" />
-                  {isSource ? 'Mua source' : 'Chọn mua'}
-                </>
-              )}
-            </Button>
+            <p className="text-muted-foreground mt-2 line-clamp-2 text-sm leading-relaxed sm:line-clamp-3">
+              {product.shortDesc}
+            </p>
+          </div>
+
+          <div className="flex items-baseline gap-2 pt-2">
+            <span className="text-foreground text-2xl font-extrabold tracking-tight">
+              {mode === 'FREE'
+                ? 'Miễn phí'
+                : mode === 'CONTACT'
+                  ? 'Liên hệ báo giá'
+                  : `${showFrom ? 'Từ ' : ''}${priceVnd.toLocaleString('vi-VN')} đ`}
+            </span>
+            {mode === 'PAID' && compareAtVnd && compareAtVnd > priceVnd && (
+              <span className="text-muted-foreground text-sm line-through">
+                {compareAtVnd.toLocaleString('vi-VN')} đ
+              </span>
+            )}
+          </div>
+        </CardContent>
+
+        <CardFooter
+          className={cn(
+            'flex flex-col gap-2',
+            isList ? 'p-0 pt-4 md:w-56 md:shrink-0 md:pt-0' : 'p-5 pt-0',
           )}
-        </div>
-        {isSource && (
-          <Link
-            href="/about#lien-he"
-            className={buttonStyles({
-              variant: 'ghost',
-              className: 'text-muted-foreground w-full text-xs font-medium',
-            })}
-          >
-            <MessageCircle className="mr-1.5 size-3.5" /> Nhắn tin đặt theo yêu cầu
-          </Link>
-        )}
-      </CardFooter>
+        >
+          <div className="grid w-full grid-cols-2 gap-2">
+            <Link
+              href={`/shop/${product.slug}`}
+              className={buttonStyles({
+                variant: 'outline',
+                className: 'w-full text-xs font-medium',
+              })}
+            >
+              Chi tiết
+            </Link>
+            {mode !== 'PAID' ? (
+              <a
+                href={mode === 'FREE' ? `/shop/${product.slug}` : '/about#lien-he'}
+                className={buttonStyles({ className: 'w-full text-xs' })}
+              >
+                {mode === 'FREE' ? 'Tải miễn phí' : 'Liên hệ'}
+              </a>
+            ) : soldOut ? (
+              <a href="/about#lien-he" className={buttonStyles({ className: 'w-full text-xs' })}>
+                <MessageCircle className="mr-1.5 h-3.5 w-3.5" />
+                Liên hệ
+              </a>
+            ) : needsDetail ? (
+              <Link
+                href={`/shop/${product.slug}`}
+                className={buttonStyles({ className: 'w-full text-xs font-semibold' })}
+              >
+                Chọn mua
+              </Link>
+            ) : (
+              <Button
+                onClick={handleAddToCart}
+                className="w-full text-xs font-semibold"
+                disabled={added}
+              >
+                {added ? (
+                  <>
+                    <Check className="mr-1.5 h-3.5 w-3.5" />
+                    Đã thêm
+                  </>
+                ) : (
+                  <>
+                    <ShoppingCart className="mr-1.5 h-3.5 w-3.5" />
+                    {isSource ? 'Mua source' : 'Chọn mua'}
+                  </>
+                )}
+              </Button>
+            )}
+          </div>
+          {isSource && (
+            <Link
+              href="/about#lien-he"
+              className={buttonStyles({
+                variant: 'ghost',
+                className: 'text-muted-foreground w-full text-xs font-medium',
+              })}
+            >
+              <MessageCircle className="mr-1.5 size-3.5" /> Nhắn tin đặt theo yêu cầu
+            </Link>
+          )}
+        </CardFooter>
+      </div>
     </Card>
   );
 }

@@ -35,6 +35,30 @@ async function main() {
   });
   console.log(`✅ Seed Admin: ${admin.email} | Mật khẩu: Admin@123456 (${admin.id})`);
 
+  // Admin User: hatoan13@gmail.com
+  const userAdminEmail = 'hatoan13@gmail.com';
+  const userAdminHashedPassword = bcrypt.hashSync('Toantoan1310@', 10);
+
+  const userAdmin = await prisma.user.upsert({
+    where: { email: userAdminEmail },
+    update: {
+      role: Role.ADMIN,
+      password: userAdminHashedPassword,
+      name: 'Admin',
+      lockedAt: null,
+      lockReason: null,
+      emailVerified: new Date(),
+    },
+    create: {
+      email: userAdminEmail,
+      name: 'Admin',
+      role: Role.ADMIN,
+      password: userAdminHashedPassword,
+      emailVerified: new Date(),
+    },
+  });
+  console.log(`✅ Seed Admin: ${userAdmin.email} | Mật khẩu: Toantoan1310@ (${userAdmin.id})`);
+
   // 2. Demo Products
   const product1 = await prisma.product.upsert({
     where: { slug: 'nginx-reverse-proxy-production-template' },

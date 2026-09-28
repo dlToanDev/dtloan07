@@ -1,26 +1,28 @@
 'use client';
 
 import { PostCard } from '@/components/blog/post-card';
-import { CATEGORY_LABELS, getCategoryLabel } from '@/config/blog';
 import { cn } from '@/lib/utils';
 import { calculateFeaturedScore, type PostMeta } from '@/types/post';
+import { PaginationControl } from '@/components/ui/pagination-control';
+import { ViewSwitcher, type ViewMode } from '@/components/ui/view-switcher';
+import { Input } from '@/components/ui/input';
 import {
   Clock,
   Flame,
-  LayoutGrid,
-  List,
   RotateCcw,
+  Search,
   SlidersHorizontal,
   Sparkles,
+  ChevronRight,
 } from 'lucide-react';
-import { useMemo, useState, useSyncExternalStore } from 'react';
+import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 
-type PostView = 'list' | 'grid';
 type FilterTab = 'all' | 'latest' | 'featured' | 'popular';
 type SortOption = 'newest' | 'interactions' | 'views' | 'likes' | 'comments';
 
 const STORAGE_KEY = 'blog-post-view';
 const VIEW_CHANGE_EVENT = 'blog-post-view-change';
+const POSTS_PER_PAGE = 10;
 
 function subscribeToView(callback: () => void) {
   window.addEventListener('storage', callback);
@@ -32,15 +34,15 @@ function subscribeToView(callback: () => void) {
   };
 }
 
-function getSavedView(): PostView {
+function getSavedView(): ViewMode {
   return window.localStorage.getItem(STORAGE_KEY) === 'grid' ? 'grid' : 'list';
 }
 
-function getServerView(): PostView {
+function getServerView(): ViewMode {
   return 'list';
 }
 
-function saveView(view: PostView) {
+function saveView(view: ViewMode) {
   window.localStorage.setItem(STORAGE_KEY, view);
   window.dispatchEvent(new Event(VIEW_CHANGE_EVENT));
 }
@@ -49,93 +51,415 @@ function getInteractions(post: PostMeta): number {
   return post.featuredScore ?? calculateFeaturedScore(post);
 }
 
+// CẤU TRÚC 2 TẦNG CHO BLOG: TẦNG 1 (CHỦ ĐỀ LỚN) -> TẦNG 2 (CHUYÊN ĐỀ CON)
+export interface BlogSubtopic {
+  id: string;
+  name: string;
+  match: (post: PostMeta) => boolean;
+}
+
+export interface BlogTopicGroup {
+  id: string;
+  name: string;
+  match: (post: PostMeta) => boolean;
+  subtopics: BlogSubtopic[];
+}
+
+export const BLOG_TOPICS: BlogTopicGroup[] = [
+  {
+    id: 'WEB_DEV',
+    name: '💻 Lập trình Web & Fullstack',
+    match: (p) => {
+      const cat = p.category || '';
+      const s = p.slug.toLowerCase();
+      const tags = (p.tags || []).map((t) => t.toLowerCase());
+      return (
+        cat === 'lap-trinh' ||
+        tags.includes('nextjs') ||
+        tags.includes('react') ||
+        tags.includes('typescript') ||
+        tags.includes('zod') ||
+        s.includes('nextjs') ||
+        s.includes('react') ||
+        s.includes('zod')
+      );
+    },
+    subtopics: [
+      {
+        id: 'NEXTJS',
+        name: '⚛️ Next.js & Server Actions',
+        match: (p) => {
+          const s = p.slug.toLowerCase();
+          const tags = (p.tags || []).map((t) => t.toLowerCase());
+          return s.includes('nextjs') || tags.includes('nextjs') || tags.includes('server-actions');
+        },
+      },
+      {
+        id: 'TYPESCRIPT',
+        name: '📘 TypeScript & Zod Validation',
+        match: (p) => {
+          const s = p.slug.toLowerCase();
+          const tags = (p.tags || []).map((t) => t.toLowerCase());
+          return s.includes('zod') || tags.includes('zod') || tags.includes('typescript');
+        },
+      },
+      {
+        id: 'POSTGRES',
+        name: '🐘 PostgreSQL & Prisma ORM',
+        match: (p) => {
+          const s = p.slug.toLowerCase();
+          const tags = (p.tags || []).map((t) => t.toLowerCase());
+          return s.includes('postgres') || tags.includes('postgresql') || tags.includes('prisma');
+        },
+      },
+    ],
+  },
+  {
+    id: 'DEVOPS',
+    name: '☁️ DevOps, VPS & Cloud',
+    match: (p) => {
+      const cat = p.category || '';
+      const s = p.slug.toLowerCase();
+      const tags = (p.tags || []).map((t) => t.toLowerCase());
+      return (
+        cat === 'devops' ||
+        tags.includes('docker') ||
+        tags.includes('linux') ||
+        tags.includes('vps') ||
+        tags.includes('nginx') ||
+        tags.includes('cicd') ||
+        s.includes('docker') ||
+        s.includes('nginx') ||
+        s.includes('vps') ||
+        s.includes('cicd') ||
+        s.includes('prometheus')
+      );
+    },
+    subtopics: [
+      {
+        id: 'DOCKER',
+        name: '🐳 Docker & Docker Compose',
+        match: (p) => {
+          const s = p.slug.toLowerCase();
+          const tags = (p.tags || []).map((t) => t.toLowerCase());
+          return s.includes('docker') || tags.includes('docker');
+        },
+      },
+      {
+        id: 'LINUX_SECURITY',
+        name: '🐧 Linux, UFW & Fail2ban',
+        match: (p) => {
+          const s = p.slug.toLowerCase();
+          const tags = (p.tags || []).map((t) => t.toLowerCase());
+          return (
+            s.includes('bao-mat') ||
+            s.includes('ufw') ||
+            tags.includes('linux') ||
+            tags.includes('security')
+          );
+        },
+      },
+      {
+        id: 'NGINX',
+        name: '🌐 Nginx & Reverse Proxy',
+        match: (p) => {
+          const s = p.slug.toLowerCase();
+          const tags = (p.tags || []).map((t) => t.toLowerCase());
+          return s.includes('nginx') || tags.includes('nginx');
+        },
+      },
+      {
+        id: 'MONITORING_CICD',
+        name: '📈 Giám sát & GitHub Actions CI/CD',
+        match: (p) => {
+          const s = p.slug.toLowerCase();
+          const tags = (p.tags || []).map((t) => t.toLowerCase());
+          return s.includes('cicd') || s.includes('prometheus') || tags.includes('cicd');
+        },
+      },
+    ],
+  },
+  {
+    id: 'SYSTEM_AI',
+    name: '🏗️ Kiến trúc hệ thống & AI',
+    match: (p) => {
+      const cat = p.category || '';
+      const s = p.slug.toLowerCase();
+      const tags = (p.tags || []).map((t) => t.toLowerCase());
+      return (
+        cat === 'kien-truc-he-thong' ||
+        tags.includes('ai') ||
+        tags.includes('rabbitmq') ||
+        tags.includes('redis') ||
+        s.includes('ai-') ||
+        s.includes('rabbitmq') ||
+        s.includes('redis') ||
+        s.includes('openai')
+      );
+    },
+    subtopics: [
+      {
+        id: 'AI_MODELS',
+        name: '🤖 AI Agents, GPT & Claude',
+        match: (p) => {
+          const s = p.slug.toLowerCase();
+          const tags = (p.tags || []).map((t) => t.toLowerCase());
+          return (
+            s.includes('ai') || s.includes('gpt') || s.includes('openai') || tags.includes('ai')
+          );
+        },
+      },
+      {
+        id: 'MESSAGE_QUEUE',
+        name: '🐇 RabbitMQ & Event-Driven',
+        match: (p) => {
+          const s = p.slug.toLowerCase();
+          const tags = (p.tags || []).map((t) => t.toLowerCase());
+          return s.includes('rabbitmq') || tags.includes('rabbitmq');
+        },
+      },
+      {
+        id: 'CACHE_LAYER',
+        name: '⚡ Redis Cache Layer',
+        match: (p) => {
+          const s = p.slug.toLowerCase();
+          const tags = (p.tags || []).map((t) => t.toLowerCase());
+          return s.includes('redis') || tags.includes('redis');
+        },
+      },
+    ],
+  },
+  {
+    id: 'COMMUNITY',
+    name: '👥 Bài viết cộng đồng',
+    match: (p) => p.category === 'cong-dong',
+    subtopics: [
+      {
+        id: 'PERFORMANCE',
+        name: '🚀 Tối ưu hiệu năng & Lighthouse',
+        match: (p) => {
+          const s = p.slug.toLowerCase();
+          return s.includes('lighthouse') || s.includes('toi-uu');
+        },
+      },
+    ],
+  },
+];
+
 export function PostListView({ posts }: { posts: PostMeta[] }) {
   const view = useSyncExternalStore(subscribeToView, getSavedView, getServerView);
 
+  // States lọc 2 tầng
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedTopic, setSelectedTopic] = useState<string>('ALL');
+  const [selectedSubtopic, setSelectedSubtopic] = useState<string>('ALL');
   const [activeTab, setActiveTab] = useState<FilterTab>('all');
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [sortBy, setSortBy] = useState<SortOption>('newest');
+  const [currentPage, setCurrentPage] = useState(1);
 
-  // Đếm số lượng bài viết nổi bật: bài có gắn cờ featured hoặc điểm tương tác cao (>= 1500)
+  // Đếm số bài viết nổi bật
   const featuredCount = useMemo(
     () => posts.filter((p) => p.featured || getInteractions(p) >= 1500).length,
     [posts],
   );
 
-  // Tổng hợp chuyên mục cấu hình + chuyên mục từ các bài viết
-  const allCategories = useMemo(() => {
-    const map = new Map<string, string>(Object.entries(CATEGORY_LABELS));
-    for (const post of posts) {
-      if (!map.has(post.category)) {
-        map.set(post.category, getCategoryLabel(post.category));
-      }
-    }
-    return Array.from(map.entries());
-  }, [posts]);
+  // Chủ đề đang chọn ở Tầng 1
+  const activeTopicGroup = useMemo(() => {
+    return BLOG_TOPICS.find((t) => t.id === selectedTopic);
+  }, [selectedTopic]);
+
+  // Các chuyên đề con theo Tầng 1
+  const availableSubtopics = useMemo(() => {
+    return activeTopicGroup ? activeTopicGroup.subtopics : [];
+  }, [activeTopicGroup]);
 
   // Lọc và sắp xếp bài viết
   const filteredPosts = useMemo(() => {
     let result = [...posts];
 
-    // Lọc theo Category nếu có
-    if (selectedCategory !== 'all') {
-      result = result.filter((p) => p.category === selectedCategory);
+    // 1. Tìm kiếm từ khóa
+    const q = searchQuery.trim().toLowerCase();
+    if (q) {
+      result = result.filter((p) => {
+        const titleMatch = (p.title || '').toLowerCase().includes(q);
+        const descMatch = (p.description || '').toLowerCase().includes(q);
+        const tagMatch = p.tags?.some((t) => t.toLowerCase().includes(q));
+        const catMatch = (p.category || '').toLowerCase().includes(q);
+        return titleMatch || descMatch || tagMatch || catMatch;
+      });
     }
 
-    // Lọc theo Tab bộ lọc
+    // 2. Lọc theo Tầng 1: Chủ đề chính
+    if (selectedTopic !== 'ALL' && activeTopicGroup) {
+      result = result.filter((p) => activeTopicGroup.match(p));
+
+      // 3. Lọc theo Tầng 2: Chuyên đề con
+      if (selectedSubtopic !== 'ALL') {
+        const subConfig = activeTopicGroup.subtopics.find((s) => s.id === selectedSubtopic);
+        if (subConfig) {
+          result = result.filter((p) => subConfig.match(p));
+        }
+      }
+    }
+
+    // 4. Lọc theo Tab nhanh
     if (activeTab === 'featured') {
       result = result.filter((p) => p.featured || getInteractions(p) >= 1500);
     }
 
-    // Sắp xếp
+    // 5. Sắp xếp
     result.sort((a, b) => {
-      // Ưu tiên tab Nổi bật hoặc tab Nhiều tương tác: xếp theo Điểm nổi bật
-      // Điểm = (lượt xem × 1) + (like × 2) + (comment × 3) + (share × 2)
       if (activeTab === 'featured' || activeTab === 'popular' || sortBy === 'interactions') {
         const diff = getInteractions(b) - getInteractions(a);
         if (diff !== 0) return diff;
       }
-
-      if (sortBy === 'views') {
-        const diff = (b.views ?? 0) - (a.views ?? 0);
-        if (diff !== 0) return diff;
-      }
-
-      if (sortBy === 'likes') {
-        const diff = (b.likes ?? 0) - (a.likes ?? 0);
-        if (diff !== 0) return diff;
-      }
-
-      if (sortBy === 'comments') {
-        const diff = (b.comments ?? 0) - (a.comments ?? 0);
-        if (diff !== 0) return diff;
-      }
-
-      // Mặc định hoặc tab Mới nhất: theo ngày đăng
+      if (sortBy === 'views') return (b.views ?? 0) - (a.views ?? 0);
+      if (sortBy === 'likes') return (b.likes ?? 0) - (a.likes ?? 0);
+      if (sortBy === 'comments') return (b.comments ?? 0) - (a.comments ?? 0);
       return new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime();
     });
 
     return result;
-  }, [posts, activeTab, selectedCategory, sortBy]);
+  }, [posts, searchQuery, selectedTopic, activeTopicGroup, selectedSubtopic, activeTab, sortBy]);
+
+  // Reset trang về 1 khi bất kỳ điều kiện lọc nào thay đổi
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, selectedTopic, selectedSubtopic, activeTab, sortBy]);
 
   const resetFilters = () => {
+    setSearchQuery('');
+    setSelectedTopic('ALL');
+    setSelectedSubtopic('ALL');
     setActiveTab('all');
-    setSelectedCategory('all');
     setSortBy('newest');
+    setCurrentPage(1);
   };
 
-  const isFiltered = activeTab !== 'all' || selectedCategory !== 'all' || sortBy !== 'newest';
+  const isFiltered =
+    searchQuery.trim() !== '' ||
+    selectedTopic !== 'ALL' ||
+    selectedSubtopic !== 'ALL' ||
+    activeTab !== 'all' ||
+    sortBy !== 'newest';
+
+  // Tính toán phân trang
+  const totalPages = Math.max(1, Math.ceil(filteredPosts.length / POSTS_PER_PAGE));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+
+  const paginatedPosts = useMemo(() => {
+    const start = (safeCurrentPage - 1) * POSTS_PER_PAGE;
+    return filteredPosts.slice(start, start + POSTS_PER_PAGE);
+  }, [filteredPosts, safeCurrentPage]);
 
   return (
     <>
-      {/* THANH BỘ LỌC VÀ ĐIỀU KHIỂN HIỂN THỊ */}
-      <div className="mt-8 space-y-4">
-        <div className="flex flex-col gap-3.5 lg:flex-row lg:items-center lg:justify-between">
-          {/* Nhóm các Tab lọc chính: Tất cả, Mới nhất, Nổi bật, Nhiều tương tác */}
+      {/* KHUNG BỘ LỌC 2 TẦNG BẬC CHUẨN CHO BLOG */}
+      <section
+        aria-label="Tìm kiếm và bộ lọc bài viết"
+        className="border-border bg-card/70 mt-8 space-y-4 rounded-2xl border p-4 shadow-xs sm:p-5"
+      >
+        {/* Header Bộ lọc & Nút đặt lại */}
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <SlidersHorizontal className="text-primary size-4" />
+            <h2 className="text-sm font-bold">Tìm kiếm & Bộ lọc bài viết 2 tầng bậc</h2>
+          </div>
+          {isFiltered && (
+            <button
+              type="button"
+              onClick={resetFilters}
+              className="text-muted-foreground hover:text-foreground inline-flex cursor-pointer items-center gap-1.5 text-xs font-semibold transition"
+            >
+              <RotateCcw className="size-3.5" /> Đặt lại bộ lọc
+            </button>
+          )}
+        </div>
+
+        {/* Lưới Listbox 2 Tầng: Tầng 1 (Chủ đề lớn) -> Tầng 2 (Chuyên đề con) */}
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {/* Ô tìm kiếm từ khóa */}
+          <div className="relative">
+            <span className="sr-only">Tìm kiếm bài viết</span>
+            <Search className="text-muted-foreground absolute top-1/2 left-3 size-4 -translate-y-1/2" />
+            <Input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Tìm tiêu đề, tag..."
+              className="bg-background h-10 pl-9 text-xs sm:text-sm"
+            />
+          </div>
+
+          {/* TẦNG 1: CHỦ ĐỀ CHÍNH (Listbox) */}
+          <div>
+            <label className="sr-only">Tầng 1: Chọn chủ đề chính</label>
+            <select
+              value={selectedTopic}
+              onChange={(e) => {
+                setSelectedTopic(e.target.value);
+                setSelectedSubtopic('ALL'); // Reset tầng 2 khi đổi tầng 1
+              }}
+              aria-label="Tầng 1: Chọn chủ đề chính"
+              className="border-input bg-background text-foreground focus:ring-primary/40 h-10 w-full cursor-pointer rounded-md border px-3 text-xs font-medium outline-none focus:ring-2"
+            >
+              <option value="ALL">📚 Tất cả lĩnh vực / chủ đề</option>
+              {BLOG_TOPICS.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* TẦNG 2: CHUYÊN ĐỀ CON (Tự động đổi theo Tầng 1) */}
+          <div>
+            <label className="sr-only">Tầng 2: Chọn chuyên sâu</label>
+            <select
+              value={selectedSubtopic}
+              onChange={(e) => setSelectedSubtopic(e.target.value)}
+              disabled={selectedTopic === 'ALL'}
+              aria-label="Tầng 2: Chọn chuyên sâu"
+              className={`h-10 w-full cursor-pointer rounded-md border px-3 text-xs font-semibold transition outline-none ${
+                selectedTopic === 'ALL'
+                  ? 'border-input/50 bg-muted/30 text-muted-foreground cursor-not-allowed'
+                  : 'border-primary/50 bg-primary/5 text-primary focus:ring-primary/40 focus:ring-2'
+              }`}
+            >
+              <option value="ALL">
+                {selectedTopic === 'ALL' ? '📁 Chọn chủ đề trước' : `📂 Tất cả chuyên đề con`}
+              </option>
+              {availableSubtopics.map((sub) => (
+                <option key={sub.id} value={sub.id}>
+                  {sub.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Sắp xếp */}
+          <div>
+            <label className="sr-only">Sắp xếp</label>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as SortOption)}
+              aria-label="Sắp xếp danh sách bài viết"
+              className="border-input bg-background text-foreground focus:ring-primary/40 h-10 w-full cursor-pointer rounded-md border px-3 text-xs font-medium outline-none focus:ring-2"
+            >
+              <option value="newest">🕒 Ngày đăng: Mới nhất</option>
+              <option value="interactions">🔥 Điểm tương tác cao nhất</option>
+              <option value="views">👁️ Lượt xem: Nhiều nhất</option>
+              <option value="likes">❤️ Lượt thích: Nhiều nhất</option>
+              <option value="comments">💬 Bình luận: Nhiều nhất</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Hàng chọn nhanh Tab lọc & Tầng 1 */}
+        <div className="border-border/60 flex flex-wrap items-center justify-between gap-3 border-t pt-1">
           <div
             className="border-border bg-muted/60 inline-flex flex-wrap items-center gap-1 rounded-xl border p-1"
             role="tablist"
-            aria-label="Bộ lọc bài viết"
+            aria-label="Nhóm bài viết"
           >
             <FilterTabButton
               active={activeTab === 'all'}
@@ -167,7 +491,7 @@ export function PostListView({ posts }: { posts: PostMeta[] }) {
             <FilterTabButton
               active={activeTab === 'popular'}
               icon={<Flame className="size-3.5 text-rose-500" />}
-              label="Nhiều tương tác"
+              label="Tương tác cao"
               onClick={() => {
                 setActiveTab('popular');
                 setSortBy('interactions');
@@ -175,96 +499,65 @@ export function PostListView({ posts }: { posts: PostMeta[] }) {
             />
           </div>
 
-          {/* Nhóm phụ: Lọc chuyên mục + Sắp xếp + Chuyển đổi Danh sách/Lưới */}
-          <div className="flex flex-wrap items-center justify-between gap-2.5 sm:justify-end">
-            {/* Lọc chuyên mục */}
-            <div className="flex items-center gap-1.5 text-xs">
-              <SlidersHorizontal className="text-muted-foreground size-3.5" />
-              <select
-                value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
-                aria-label="Lọc theo chuyên mục"
-                className="border-border bg-background text-foreground focus:ring-primary/40 h-8 rounded-lg border px-2.5 text-xs font-medium focus:ring-2 focus:outline-none"
-              >
-                <option value="all">Tất cả chuyên mục</option>
-                {allCategories.map(([key, label]) => (
-                  <option key={key} value={key}>
-                    {label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Sắp xếp chi tiết */}
-            <select
-              value={sortBy}
-              onChange={(e) => {
-                const val = e.target.value as SortOption;
-                setSortBy(val);
-              }}
-              aria-label="Sắp xếp danh sách bài viết"
-              className="border-border bg-background text-foreground focus:ring-primary/40 h-8 rounded-lg border px-2.5 text-xs font-medium focus:ring-2 focus:outline-none"
-            >
-              <option value="newest">Ngày đăng: Mới nhất</option>
-              <option value="interactions">
-                Điểm nổi bật: Cao nhất (Xem×1, Like×2, CMT×3, Share×2)
-              </option>
-              <option value="views">Lượt xem: Nhiều nhất</option>
-              <option value="likes">Lượt thích: Nhiều nhất</option>
-              <option value="comments">Bình luận: Nhiều nhất</option>
-            </select>
-
-            {/* Switcher Danh sách / Lưới */}
-            <div
-              className="border-border bg-muted/60 inline-flex rounded-lg border p-1"
-              role="group"
-              aria-label="Kiểu hiển thị bài viết"
-            >
-              <ViewButton
-                active={view === 'list'}
-                label="Danh sách"
-                icon={<List aria-hidden="true" className="size-4" />}
-                onClick={() => saveView('list')}
-              />
-              <ViewButton
-                active={view === 'grid'}
-                label="Lưới"
-                icon={<LayoutGrid aria-hidden="true" className="size-4" />}
-                onClick={() => saveView('grid')}
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Thanh trạng thái bộ lọc đang hoạt động */}
-        <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-          <div className="text-muted-foreground flex items-center gap-2">
-            <span>
-              Hiển thị <strong>{filteredPosts.length}</strong> / {posts.length} bài viết
-            </span>
-            {activeTab === 'featured' && (
-              <span className="inline-flex items-center gap-1 rounded bg-amber-500/10 px-2 py-0.5 font-medium text-amber-600 dark:text-amber-400">
-                ★ Bài viết nổi bật: Điểm = Lượt xem (×1) + Like (×2) + Bình luận (×3) + Chia sẻ (×2)
-              </span>
-            )}
-            {activeTab === 'popular' && (
-              <span className="inline-flex items-center gap-1 rounded bg-rose-500/10 px-2 py-0.5 font-medium text-rose-600 dark:text-rose-400">
-                🔥 Xếp theo điểm tương tác cao nhất
-              </span>
-            )}
-          </div>
-
-          {isFiltered && (
+          {/* Quick chips Tầng 1 */}
+          <div className="flex flex-wrap items-center gap-1.5">
             <button
               type="button"
-              onClick={resetFilters}
-              className="hover:text-foreground text-muted-foreground inline-flex items-center gap-1 text-xs font-medium transition-colors hover:underline"
+              onClick={() => {
+                setSelectedTopic('ALL');
+                setSelectedSubtopic('ALL');
+              }}
+              className={`cursor-pointer rounded-full border px-2.5 py-0.5 text-xs font-semibold transition ${
+                selectedTopic === 'ALL'
+                  ? 'border-primary bg-primary text-primary-foreground shadow-xs'
+                  : 'border-border bg-background text-muted-foreground hover:text-foreground'
+              }`}
             >
-              <RotateCcw className="size-3" /> Đặt lại bộ lọc
+              Tất cả
             </button>
-          )}
+            {BLOG_TOPICS.map((topic) => (
+              <button
+                key={topic.id}
+                type="button"
+                onClick={() => {
+                  setSelectedTopic(topic.id);
+                  setSelectedSubtopic('ALL');
+                }}
+                className={`cursor-pointer rounded-full border px-2.5 py-0.5 text-xs font-semibold transition ${
+                  selectedTopic === topic.id
+                    ? 'border-primary bg-primary text-primary-foreground shadow-xs'
+                    : 'border-border bg-background text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                {topic.name}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+
+        {/* Thanh trạng thái: Số lượng bài viết + Chuyển đổi Danh sách / Lưới */}
+        <div className="border-border flex flex-wrap items-center justify-between gap-3 border-t pt-3 text-xs">
+          <div className="flex flex-wrap items-center gap-2 font-medium">
+            <span className="text-muted-foreground">
+              Hiển thị <strong>{paginatedPosts.length}</strong> /{' '}
+              <strong>{filteredPosts.length}</strong> bài viết
+            </span>
+            {selectedTopic !== 'ALL' && (
+              <span className="bg-primary/10 text-primary inline-flex items-center gap-1 rounded px-2 py-0.5 font-semibold">
+                {activeTopicGroup?.name}
+                {selectedSubtopic !== 'ALL' && (
+                  <>
+                    <ChevronRight className="size-3" />
+                    {availableSubtopics.find((s) => s.id === selectedSubtopic)?.name}
+                  </>
+                )}
+              </span>
+            )}
+          </div>
+
+          <ViewSwitcher view={view} onChange={saveView} size="sm" />
+        </div>
+      </section>
 
       {/* DANH SÁCH BÀI VIẾT HOẶC TRẠNG THÁI TRỐNG */}
       {filteredPosts.length === 0 ? (
@@ -274,28 +567,37 @@ export function PostListView({ posts }: { posts: PostMeta[] }) {
             Không tìm thấy bài viết phù hợp
           </h3>
           <p className="text-muted-foreground mt-1 max-w-sm text-sm">
-            Hiện không có bài viết nào thỏa mãn các điều kiện lọc đã chọn. Vui lòng thử đổi điều
-            kiện hoặc đặt lại bộ lọc.
+            Không có bài viết nào khớp với từ khóa hoặc điều kiện lọc đã chọn.
           </p>
           <button
             type="button"
             onClick={resetFilters}
-            className="bg-primary text-primary-foreground hover:bg-primary/90 mt-4 inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-xs font-medium shadow-xs transition-colors"
+            className="bg-primary text-primary-foreground hover:bg-primary/90 mt-4 inline-flex cursor-pointer items-center gap-1.5 rounded-lg px-4 py-2 text-xs font-medium shadow-xs transition-colors"
           >
             <RotateCcw className="size-3.5" /> Xem tất cả bài viết
           </button>
         </div>
       ) : (
-        <div
-          className={cn(
-            'mt-6',
-            view === 'grid' ? 'grid gap-6 sm:grid-cols-2 lg:grid-cols-3' : 'flex flex-col gap-8',
-          )}
-        >
-          {filteredPosts.map((post) => (
-            <PostCard key={post.slug} post={post} variant={view} />
-          ))}
-        </div>
+        <>
+          <div
+            className={cn(
+              'mt-6',
+              view === 'grid' ? 'grid gap-6 sm:grid-cols-2 lg:grid-cols-3' : 'flex flex-col gap-8',
+            )}
+          >
+            {paginatedPosts.map((post) => (
+              <PostCard key={post.slug} post={post} variant={view} />
+            ))}
+          </div>
+
+          <PaginationControl
+            currentPage={safeCurrentPage}
+            totalPages={totalPages}
+            totalItems={filteredPosts.length}
+            pageSize={POSTS_PER_PAGE}
+            onPageChange={setCurrentPage}
+          />
+        </>
       )}
     </>
   );
@@ -320,7 +622,7 @@ function FilterTabButton({
       onClick={onClick}
       aria-pressed={active}
       className={cn(
-        'inline-flex h-8 items-center gap-1.5 rounded-lg px-3 text-xs font-medium transition-all',
+        'inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-lg px-3 text-xs font-medium transition-all',
         active
           ? 'bg-background text-foreground font-semibold shadow-xs'
           : 'text-muted-foreground hover:text-foreground hover:bg-background/50',
@@ -338,36 +640,6 @@ function FilterTabButton({
           {count}
         </span>
       )}
-    </button>
-  );
-}
-
-function ViewButton({
-  active,
-  label,
-  icon,
-  onClick,
-}: {
-  active: boolean;
-  label: string;
-  icon: React.ReactNode;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={active}
-      title={`Hiển thị dạng ${label.toLocaleLowerCase('vi-VN')}`}
-      className={cn(
-        'inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-xs font-medium transition-all',
-        active
-          ? 'bg-background text-foreground shadow-xs'
-          : 'text-muted-foreground hover:text-foreground',
-      )}
-    >
-      {icon}
-      <span className="hidden sm:inline">{label}</span>
     </button>
   );
 }

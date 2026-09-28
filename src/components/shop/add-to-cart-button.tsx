@@ -8,6 +8,7 @@ import { ShoppingCart, Check, Zap } from 'lucide-react';
 interface AddToCartButtonProps {
   productId: string;
   variantId?: string;
+  quantity?: number;
   disabled?: boolean;
   disabledLabel?: string;
 }
@@ -15,6 +16,7 @@ interface AddToCartButtonProps {
 export function AddToCartButton({
   productId,
   variantId,
+  quantity = 1,
   disabled,
   disabledLabel,
 }: AddToCartButtonProps) {
@@ -25,7 +27,7 @@ export function AddToCartButton({
 
   const handleAddToCart = () => {
     setAdding(true);
-    addItem(productId, 1, variantId);
+    addItem(productId, quantity, variantId);
     setTimeout(() => {
       setAdding(false);
       setAdded(true);
@@ -34,7 +36,7 @@ export function AddToCartButton({
   };
 
   const handleBuyNow = () => {
-    addItem(productId, 1, variantId);
+    addItem(productId, quantity, variantId);
     openCart();
   };
 
@@ -47,25 +49,25 @@ export function AddToCartButton({
   }
 
   return (
-    <div className="flex flex-col gap-3 sm:flex-row">
+    <div className="flex flex-col gap-2.5">
       <Button
         onClick={handleAddToCart}
         variant="outline"
         size="lg"
-        className="h-12 flex-1 text-sm font-semibold"
+        className="border-primary/40 hover:bg-primary/10 hover:text-primary flex h-12 w-full items-center justify-center gap-2 text-sm font-semibold whitespace-nowrap shadow-xs transition-all"
         disabled={added}
         loading={adding}
         loadingText="Đang thêm..."
       >
         {added ? (
           <>
-            <Check className="mr-2 h-4 w-4 text-emerald-500" />
-            Đã thêm vào giỏ
+            <Check className="h-4 w-4 shrink-0 text-emerald-500" />
+            <span>Đã thêm vào giỏ hàng!</span>
           </>
         ) : (
           <>
-            <ShoppingCart className="mr-2 h-4 w-4" />
-            Thêm vào giỏ hàng
+            <ShoppingCart className="text-primary h-4 w-4 shrink-0" />
+            <span>Thêm vào giỏ hàng</span>
           </>
         )}
       </Button>
@@ -73,10 +75,10 @@ export function AddToCartButton({
       <Button
         onClick={handleBuyNow}
         size="lg"
-        className="h-12 flex-1 text-sm font-semibold shadow-sm"
+        className="bg-primary text-primary-foreground hover:bg-primary/90 flex h-12 w-full items-center justify-center gap-2 text-base font-bold whitespace-nowrap shadow-md transition-all active:scale-[0.99]"
       >
-        <Zap className="mr-2 h-4 w-4" />
-        Mua ngay
+        <Zap className="h-4 w-4 shrink-0 fill-current" />
+        <span>Mua ngay</span>
       </Button>
     </div>
   );

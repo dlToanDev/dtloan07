@@ -255,3 +255,60 @@ export async function grantVoucherToAllPro(couponId: string): Promise<Result<Gra
   revalidatePath('/account');
   return { ok: true, data: created };
 }
+
+/**
+ * Phát thông báo hệ thống kèm Voucher gửi riêng đến tất cả tài khoản PRO.
+ * Chỉ ai nâng cấp PRO mới nhìn thấy thông báo này trong chuông và banner!
+ */
+export async function broadcastVoucherToPro(
+  couponId: string,
+  options?: { customTitle?: string; customContent?: string; showBanner?: boolean },
+): Promise<Result<{ announcementId: string }>> {
+  await requireProductAdmin();
+  const coupon = await db.coupon.findUnique({
+    where: { id: couponId },
+  });
+  if (!coupon) return { ok: false, error: 'Không tìm thấy voucher.' };
+
+  const discountText =
+    coupon.type === 'PERCENT'
+      ? `Giảm ${coupon.value}%${coupon.maxDiscountVnd ? ` (tối đa ${coupon.maxDiscountVnd.toLocaleString('vi-VN')}đ)` : ''}`
+      : coupon.type === 'FIXED'
+        ? `Giảm ${coupon.value.toLocaleString('vi-VN')}đ`
+        : 'Miễn phí vận chuyển';
+
+  const title =
+    options?.customTitle?.trim() ||
+    `👑 Đặc quyền PRO: Voucher ${coupon.name || coupon.code || discountText}`;
+  const content =
+    options?.customContent?.trim() ||
+    `Tài khoản PRO của bạn nhận được mã ưu đãi đặc biệt: ${coupon.code || 'Mã ưu đãi'} (${discountText}). Áp dụng ngay khi mua sắm tại Shop!`;
+
+  try {
+    const announcement = await db.systemAnnouncement.create({
+      data: {
+        title,
+        content,
+        type: 'VOUCHER',
+        badge: '👑 Dành riêng PRO',
+        linkUrl: '/shop',
+        linkText: 'Dùng voucher ngay',
+        voucherCode: coupon.code,
+        voucherDiscount: discountText,
+        voucherExpires: coupon.endsAt,
+        proOnly: true,
+        showBanner: options?.showBanner ?? true,
+        isActive: true,
+      },
+    });
+
+    revalidatePath('/', 'layout');
+    revalidatePath('/admin/settings');
+    revalidatePath('/admin/vouchers');
+
+    return { ok: true, data: { announcementId: announcement.id } };
+  } catch (err) {
+    console.error('Lỗi phát thông báo PRO voucher:', err);
+    return { ok: false, error: 'Không thể tạo thông báo cho voucher này.' };
+  }
+}

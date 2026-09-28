@@ -1,0 +1,44 @@
+---
+title: 'Kiến Trúc Event-Driven Với RabbitMQ và Node.js: Xử Lý Tác Vụ Bất Đồng Bộ'
+description: 'Cách xây dựng message queue với RabbitMQ trong ứng dụng Node.js: gửi email thông báo, tạo file nén PDF và xử lý đơn hàng không làm nghẽn main thread.'
+publishedAt: '2026-09-26'
+category: 'kien-truc-he-thong'
+tags: ['nodejs', 'rabbitmq', 'microservices', 'architecture']
+cover: 'https://images.unsplash.com/photo-1544197150-b99a580bb7a8?w=800'
+featured: false
+draft: false
+likes: 98
+comments: 15
+shares: 18
+views: 780
+---
+
+Trong các ứng dụng quy mô lớn, việc bắt người dùng chờ đợi một request đồng bộ hoàn thành các tác vụ nặng (như gửi email, resize hàng loạt ảnh hay xuất file báo cáo Excel) sẽ làm trải nghiệm người dùng giảm sút nghiêm trọng.
+
+## 1. Giải pháp: Hàng đợi thông điệp (Message Queue)
+
+Với kiến trúc Event-Driven, web server chỉ cần tiếp nhận request của khách hàng, đẩy một payload nhỏ vào Message Queue (RabbitMQ) và phản hồi ngay `202 Accepted`. Một hoặc nhiều Worker phía sau sẽ tiêu thụ (consume) thông điệp và xử lý ngầm trong nền.
+
+```typescript title="src/queue/publisher.ts" showLineNumbers
+import amqp from 'amqplib';
+
+export async function publishOrderEvent(orderData: any) {
+  const connection = await amqp.connect(process.env.RABBITMQ_URL || 'amqp://localhost');
+  const channel = await connection.createChannel();
+  
+  const queue = 'orders.process';
+  await channel.assertQueue(queue, { durable: true });
+
+  channel.sendToQueue(queue, Buffer.from(JSON.stringify(orderData)), {
+    persistent: true,
+  });
+
+  setTimeout(() => {
+    connection.close();
+  }, 500);
+}
+```
+
+## 2. Ưu điểm nổi bật:
+- **Khả năng chịu tải (Fault Tolerance):** Nếu worker bị sập, tin nhắn vẫn được lưu an toàn trong RabbitMQ và chờ worker khởi động lại để xử lý tiếp.
+- **Dễ dàng mở rộng (Scale Out):** Có thể tăng số lượng worker container để xử lý hàng triệu đơn hàng vào các đợt Flash Sale.

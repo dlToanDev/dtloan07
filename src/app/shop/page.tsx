@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { db } from '@/lib/db';
 import { Container } from '@/components/layout/container';
-import { ProductCard } from '@/components/shop/product-card';
+import { ShopProductList } from '@/components/shop/shop-product-list';
 import { buildMetadata } from '@/lib/seo';
 import { buildShopWhere, parseShopFilters, type ShopFilters } from '@/lib/shop/filters';
 import { CONDITION_OPTIONS } from '@/lib/shop/labels';
@@ -17,22 +17,17 @@ export const metadata: Metadata = buildMetadata({
 });
 
 /** Query có filter nên trang chạy động, không ISR. */
-function loadProducts(filters: ShopFilters) {
+function loadProducts() {
   return db.product.findMany({
-    where: buildShopWhere(filters),
+    where: { status: 'ACTIVE' },
     include: {
+      category: true,
       variants: {
         include: { _count: { select: { accountStock: { where: { status: 'AVAILABLE' } } } } },
       },
     },
     orderBy: { createdAt: 'desc' },
   });
-}
-
-function tabClass(active: boolean, small = false) {
-  return `rounded-full border font-medium transition ${small ? 'px-3 py-1 text-xs' : 'px-4 py-1.5 text-sm'} ${
-    active ? 'border-primary bg-primary text-primary-foreground' : 'border-border hover:bg-muted'
-  }`;
 }
 
 export default async function ShopPage({
@@ -51,10 +46,11 @@ export default async function ShopPage({
   } catch (err) {
     console.warn('Cảnh báo: Không thể tải danh mục shop:', err);
   }
-  const filters = parseShopFilters(await searchParams, categories);
+  const params = await searchParams;
+  const initialCategorySlug = typeof params.c === 'string' ? params.c : 'all';
   let products: Awaited<ReturnType<typeof loadProducts>> = [];
   try {
-    products = await loadProducts(filters);
+    products = await loadProducts();
   } catch (err) {
     console.warn('Cảnh báo: Không thể tải danh sách sản phẩm shop lúc build:', err);
   }
@@ -70,81 +66,12 @@ export default async function ShopPage({
         </p>
       </div>
 
-      {/* Lọc theo danh mục */}
-      <div className="space-y-3">
-        <nav className="flex flex-wrap gap-2" aria-label="Lọc danh mục">
-          <Link href="/shop" className={tabClass(!filters.categoryId)}>
-            Tất cả
-          </Link>
-          {categories.map((category) => (
-            <Link
-              key={category.id}
-              href={`/shop?c=${category.slug}`}
-              className={tabClass(filters.categoryId === category.id)}
-            >
-              {category.name}
-            </Link>
-          ))}
-        </nav>
-        {filters.hasCondition && (
-          <nav className="flex flex-wrap gap-2" aria-label="Lọc tình trạng">
-            <Link
-              href={`/shop?c=${filters.categorySlug}`}
-              className={tabClass(!filters.condition, true)}
-            >
-              Mọi tình trạng
-            </Link>
-            {CONDITION_OPTIONS.map((option) => (
-              <Link
-                key={option.slug}
-                href={`/shop?c=${filters.categorySlug}&cond=${option.slug}`}
-                className={tabClass(filters.condition === option.value, true)}
-              >
-                {option.label}
-              </Link>
-            ))}
-          </nav>
-        )}
-      </div>
-
-      {/* Grid sản phẩm */}
-      {products.length === 0 ? (
-        <div className="border-border text-muted-foreground space-y-2 rounded-xl border border-dashed p-12 text-center">
-          {filters.categoryId ? (
-            <>
-              <p>Chưa có sản phẩm trong danh mục này.</p>
-              <Link href="/shop" className="text-primary text-sm hover:underline">
-                Xem tất cả sản phẩm
-              </Link>
-            </>
-          ) : (
-            <p>Shop đang được cập nhật sản phẩm mới. Vui lòng quay lại sau.</p>
-          )}
-        </div>
-      ) : (
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {products.map((product) => (
-            <ProductCard
-              key={product.id}
-              product={product}
-              shop={{
-                type: product.type,
-                condition: product.condition,
-                summary: summarizeVariants(
-                  product.variants.map((variant) => ({
-                    ...variant,
-                    // Tài khoản tự động: tồn kho là số dòng kho còn trống.
-                    stock:
-                      product.type === 'ACCOUNT' && product.deliveryMode === 'AUTO'
-                        ? variant._count.accountStock
-                        : variant.stock,
-                  })),
-                ),
-              }}
-            />
-          ))}
-        </div>
-      )}
+      {/* Danh sách, Bộ lọc đa tiêu chí, Tìm kiếm & Phân trang sản phẩm */}
+      <ShopProductList
+        products={products}
+        categories={categories}
+        initialCategorySlug={initialCategorySlug}
+      />
 
       {/* Cam kết chất lượng */}
       <div className="border-border grid gap-6 border-t pt-12 sm:grid-cols-2 lg:grid-cols-4">

@@ -2,6 +2,7 @@
 
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
+import { isPro } from '@/lib/membership';
 import { revalidatePath } from 'next/cache';
 import { randomUUID } from 'node:crypto';
 import { mkdir, writeFile } from 'node:fs/promises';
@@ -15,6 +16,22 @@ async function requireAdmin(): Promise<void> {
   const session = await auth();
   if (!session?.user || session.user.role !== 'ADMIN') {
     throw new Error('Bạn không có quyền thực hiện thao tác này.');
+  }
+}
+
+async function checkIsUserPro(): Promise<boolean> {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) return false;
+    const user = await db.user.findUnique({
+      where: { id: session.user.id },
+      select: { role: true, proUntil: true },
+    });
+    if (!user) return false;
+    if (user.role === 'ADMIN') return true;
+    return isPro(user);
+  } catch {
+    return false;
   }
 }
 
@@ -198,8 +215,15 @@ export interface AnnouncementItem {
   badge: string | null;
   linkUrl: string | null;
   linkText: string | null;
+  detailContent?: string | null;
+  voucherCode?: string | null;
+  voucherDiscount?: string | null;
+  voucherExpires?: Date | null;
+  gameType?: string | null;
+  gameConfig?: string | null;
   isActive: boolean;
   showBanner: boolean;
+  proOnly: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -211,8 +235,15 @@ const announcementSchema = z.object({
   badge: z.string().trim().max(30).optional().nullable(),
   linkUrl: z.string().trim().max(500).optional().nullable(),
   linkText: z.string().trim().max(50).optional().nullable(),
+  detailContent: z.string().trim().optional().nullable(),
+  voucherCode: z.string().trim().max(50).optional().nullable(),
+  voucherDiscount: z.string().trim().max(50).optional().nullable(),
+  gameType: z.string().trim().optional().nullable(),
+  gameConfig: z.string().trim().optional().nullable(),
   isActive: z.boolean().default(true),
   showBanner: z.boolean().default(true),
+  proOnly: z.boolean().default(false),
+  syncShopCoupon: z.boolean().default(false).optional(),
 });
 
 /** Lấy tất cả thông báo hệ thống cho trang quản trị */
@@ -232,10 +263,27 @@ export async function getAnnouncements(): Promise<AnnouncementItem[]> {
 /** Lấy thông báo banner đang kích hoạt gần nhất để hiển thị thanh top banner */
 export async function getActiveBannerAnnouncement(): Promise<AnnouncementItem | null> {
   try {
+    const isUserPro = await checkIsUserPro();
+
+    // Nếu là thành viên PRO, ưu tiên hiển thị banner đặc quyền dành riêng cho PRO trước
+    if (isUserPro) {
+      const proBanner = await db.systemAnnouncement.findFirst({
+        where: {
+          isActive: true,
+          showBanner: true,
+          proOnly: true,
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+      if (proBanner) return proBanner;
+    }
+
+    // Hiển thị banner chung công khai (chưa/không phải Pro hoặc không có banner Pro riêng)
     const item = await db.systemAnnouncement.findFirst({
       where: {
         isActive: true,
         showBanner: true,
+        proOnly: false,
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -248,8 +296,15 @@ export async function getActiveBannerAnnouncement(): Promise<AnnouncementItem | 
 /** Lấy danh sách các thông báo hệ thống đang kích hoạt để hiển thị trong chuông thông báo (Notification Bell) */
 export async function getPublicActiveAnnouncements(): Promise<AnnouncementItem[]> {
   try {
+    const isUserPro = await checkIsUserPro();
+
+    // Tài khoản PRO và ADMIN xem được cả thông báo chung lẫn thông báo dành riêng cho PRO
+    // Khách vãng lai và tài khoản thường CHỈ xem được thông báo proOnly = false
     const list = await db.systemAnnouncement.findMany({
-      where: { isActive: true },
+      where: {
+        isActive: true,
+        ...(isUserPro ? {} : { proOnly: false }),
+      },
       orderBy: { createdAt: 'desc' },
       take: 20,
     });
@@ -260,9 +315,11 @@ export async function getPublicActiveAnnouncements(): Promise<AnnouncementItem[]
   }
 }
 
+export type AnnouncementInput = z.input<typeof announcementSchema>;
+
 /** Tạo thông báo hệ thống mới (VD: Sản phẩm mới, Voucher ưu đãi, Cập nhật tính năng) */
 export async function createAnnouncement(
-  data: z.infer<typeof announcementSchema>,
+  data: AnnouncementInput,
 ): Promise<{ success: boolean; error?: string; item?: AnnouncementItem }> {
   await requireAdmin();
 
@@ -280,10 +337,52 @@ export async function createAnnouncement(
         badge: validated.data.badge || null,
         linkUrl: validated.data.linkUrl || null,
         linkText: validated.data.linkText || 'Xem ngay',
+        detailContent: validated.data.detailContent || null,
+        voucherCode: validated.data.voucherCode || null,
+        voucherDiscount: validated.data.voucherDiscount || null,
+        gameType: validated.data.gameType || null,
+        gameConfig: validated.data.gameConfig || null,
         isActive: validated.data.isActive,
         showBanner: validated.data.showBanner,
+        proOnly: validated.data.proOnly ?? false,
       },
     });
+
+    // Đồng bộ tạo Voucher trong Shop nếu Admin tích chọn và có nhập mã voucher
+    if (validated.data.syncShopCoupon && validated.data.voucherCode) {
+      try {
+        const normCode = validated.data.voucherCode.toUpperCase().trim();
+        const existingCoupon = await db.coupon.findUnique({
+          where: { code: normCode },
+        });
+
+        if (!existingCoupon) {
+          const discountStr = validated.data.voucherDiscount || '';
+          const numMatch = discountStr.match(/\d+/);
+          const rawNum = numMatch ? parseInt(numMatch[0], 10) : 20;
+          const isPercent =
+            discountStr.includes('%') ||
+            (rawNum >= 1 &&
+              rawNum <= 100 &&
+              !discountStr.toLowerCase().includes('k') &&
+              !discountStr.toLowerCase().includes('đ'));
+
+          await db.coupon.create({
+            data: {
+              code: normCode,
+              name: validated.data.title,
+              type: isPercent ? 'PERCENT' : 'FIXED',
+              value: isPercent ? rawNum : rawNum < 1000 ? rawNum * 1000 : rawNum,
+              proOnly: validated.data.proOnly ?? false,
+              active: true,
+            },
+          });
+          revalidatePath('/admin/vouchers');
+        }
+      } catch (couponErr) {
+        console.warn('Lỗi tự động tạo coupon từ thông báo:', couponErr);
+      }
+    }
 
     revalidatePath('/', 'layout');
     revalidatePath('/admin/settings');
@@ -295,10 +394,31 @@ export async function createAnnouncement(
   }
 }
 
+/** Lấy chi tiết 1 thông báo hệ thống (kèm nội dung bài viết và mini game) */
+export async function getAnnouncementById(id: string): Promise<AnnouncementItem | null> {
+  try {
+    const item = await db.systemAnnouncement.findUnique({
+      where: { id },
+    });
+    if (!item) return null;
+
+    // Nếu thông báo dành riêng cho PRO, kiểm tra quyền xem
+    if (item.proOnly) {
+      const isUserPro = await checkIsUserPro();
+      if (!isUserPro) return null;
+    }
+
+    return item;
+  } catch (err) {
+    console.error('Lỗi lấy thông báo theo ID:', err);
+    return null;
+  }
+}
+
 /** Cập nhật thông báo hệ thống */
 export async function updateAnnouncement(
   id: string,
-  data: Partial<z.infer<typeof announcementSchema>>,
+  data: Partial<AnnouncementInput>,
 ): Promise<{ success: boolean; error?: string }> {
   await requireAdmin();
 
@@ -314,8 +434,20 @@ export async function updateAnnouncement(
         ...(data.linkText !== undefined && {
           linkText: data.linkText ? data.linkText.trim() : null,
         }),
+        ...(data.detailContent !== undefined && {
+          detailContent: data.detailContent ? data.detailContent.trim() : null,
+        }),
+        ...(data.voucherCode !== undefined && {
+          voucherCode: data.voucherCode ? data.voucherCode.trim() : null,
+        }),
+        ...(data.voucherDiscount !== undefined && {
+          voucherDiscount: data.voucherDiscount ? data.voucherDiscount.trim() : null,
+        }),
+        ...(data.gameType !== undefined && { gameType: data.gameType }),
+        ...(data.gameConfig !== undefined && { gameConfig: data.gameConfig }),
         ...(data.isActive !== undefined && { isActive: data.isActive }),
         ...(data.showBanner !== undefined && { showBanner: data.showBanner }),
+        ...(data.proOnly !== undefined && { proOnly: data.proOnly }),
       },
     });
 
@@ -329,10 +461,10 @@ export async function updateAnnouncement(
   }
 }
 
-/** Bật/tắt nhanh trạng thái hoạt động hoặc thanh banner */
+/** Bật/tắt nhanh trạng thái hoạt động, banner hoặc chế độ PRO Only */
 export async function toggleAnnouncementState(
   id: string,
-  field: 'isActive' | 'showBanner',
+  field: 'isActive' | 'showBanner' | 'proOnly',
 ): Promise<{ success: boolean; error?: string; newValue?: boolean }> {
   await requireAdmin();
 
@@ -359,6 +491,43 @@ export async function toggleAnnouncementState(
   } catch (err) {
     console.error('Lỗi chuyển trạng thái thông báo:', err);
     return { success: false, error: 'Không thể cập nhật.' };
+  }
+}
+
+/** Lấy danh sách voucher trong Shop để gợi ý khi tạo thông báo */
+export async function getProCouponsForAnnouncement(): Promise<
+  Array<{
+    id: string;
+    code: string | null;
+    name: string;
+    type: string;
+    value: number;
+    maxDiscountVnd: number | null;
+    endsAt: Date | null;
+    proOnly: boolean;
+  }>
+> {
+  await requireAdmin();
+  try {
+    const coupons = await db.coupon.findMany({
+      where: { active: true },
+      orderBy: [{ proOnly: 'desc' }, { createdAt: 'desc' }],
+      select: {
+        id: true,
+        code: true,
+        name: true,
+        type: true,
+        value: true,
+        maxDiscountVnd: true,
+        endsAt: true,
+        proOnly: true,
+      },
+      take: 50,
+    });
+    return coupons;
+  } catch (err) {
+    console.error('Lỗi lấy danh sách coupon:', err);
+    return [];
   }
 }
 

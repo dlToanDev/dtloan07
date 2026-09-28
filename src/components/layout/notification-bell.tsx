@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { type AnnouncementItem } from '@/server/actions/settings';
+import { type AnnouncementItem, getPublicActiveAnnouncements } from '@/server/actions/settings';
 import {
   Bell,
   CheckCheck,
@@ -13,8 +13,12 @@ import {
   ExternalLink,
   X,
   ArrowRight,
+  Gamepad2,
+  Gift,
+  Crown,
 } from 'lucide-react';
 import Link from 'next/link';
+import { AnnouncementDetailModal } from '@/components/announcements/announcement-detail-modal';
 
 interface NotificationBellProps {
   initialAnnouncements: AnnouncementItem[];
@@ -80,11 +84,46 @@ function getIconAndBadge(type: AnnouncementItem['type']) {
 
 export function NotificationBell({ initialAnnouncements }: NotificationBellProps) {
   const [open, setOpen] = useState(false);
+  const [announcements, setAnnouncements] = useState<AnnouncementItem[]>(initialAnnouncements);
   const [readIds, setReadIds] = useState<string[]>([]);
   const [isClientLoaded, setIsClientLoaded] = useState(false);
   const [showToast, setShowToast] = useState(false);
+  const [selectedAnnouncement, setSelectedAnnouncement] = useState<AnnouncementItem | null>(null);
+  const [detailModalOpen, setDetailModalOpen] = useState(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Đồng bộ khi prop thay đổi
+  useEffect(() => {
+    setAnnouncements(initialAnnouncements);
+  }, [initialAnnouncements]);
+
+  // Đồng bộ phía client để cập nhật theo trạng thái phiên đăng nhập / quyền PRO mới nhất
+  useEffect(() => {
+    getPublicActiveAnnouncements()
+      .then((res) => {
+        if (res && Array.isArray(res)) setAnnouncements(res);
+      })
+      .catch(() => {});
+  }, []);
+
+  const handleOpenDetail = useCallback(
+    (item: AnnouncementItem) => {
+      if (!readIds.includes(item.id)) {
+        const next = [...readIds, item.id];
+        setReadIds(next);
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+        } catch {
+          // Ignore
+        }
+      }
+      setSelectedAnnouncement(item);
+      setDetailModalOpen(true);
+      setOpen(false);
+    },
+    [readIds],
+  );
 
   // Đọc danh sách đã đọc từ localStorage
   useEffect(() => {
@@ -94,7 +133,7 @@ export function NotificationBell({ initialAnnouncements }: NotificationBellProps
       setReadIds(parsed);
 
       // Kiểm tra có thông báo chưa đọc nào không
-      const unread = initialAnnouncements.filter((a) => !parsed.includes(a.id));
+      const unread = announcements.filter((a) => !parsed.includes(a.id));
       if (unread.length > 0) {
         // Kiểm tra xem trong phiên này đã tắt toast chưa
         const toastDismissed = sessionStorage.getItem(TOAST_DISMISSED_KEY);
@@ -110,7 +149,7 @@ export function NotificationBell({ initialAnnouncements }: NotificationBellProps
     } finally {
       setIsClientLoaded(true);
     }
-  }, [initialAnnouncements]);
+  }, [announcements]);
 
   // Click outside để đóng menu
   useEffect(() => {
@@ -128,7 +167,7 @@ export function NotificationBell({ initialAnnouncements }: NotificationBellProps
   }, [open]);
 
   // Đếm thông báo chưa đọc
-  const unreadAnnouncements = initialAnnouncements.filter((a) => !readIds.includes(a.id));
+  const unreadAnnouncements = announcements.filter((a) => !readIds.includes(a.id));
   const unreadCount = isClientLoaded ? unreadAnnouncements.length : 0;
 
   // Đánh dấu 1 thông báo là đã đọc
@@ -149,7 +188,7 @@ export function NotificationBell({ initialAnnouncements }: NotificationBellProps
 
   // Đánh dấu tất cả là đã đọc
   const markAllAsRead = () => {
-    const allIds = initialAnnouncements.map((a) => a.id);
+    const allIds = announcements.map((a) => a.id);
     setReadIds(allIds);
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(allIds));
@@ -175,7 +214,11 @@ export function NotificationBell({ initialAnnouncements }: NotificationBellProps
 
   const handleToastViewNow = () => {
     setShowToast(false);
-    setOpen(true);
+    if (latestUnread) {
+      handleOpenDetail(latestUnread);
+    } else {
+      setOpen(true);
+    }
     try {
       sessionStorage.setItem(TOAST_DISMISSED_KEY, 'true');
     } catch {
@@ -241,7 +284,7 @@ export function NotificationBell({ initialAnnouncements }: NotificationBellProps
 
           {/* Danh sách thông báo */}
           <div className="divide-border/60 max-h-[65vh] divide-y overflow-y-auto">
-            {initialAnnouncements.length === 0 ? (
+            {announcements.length === 0 ? (
               <div className="px-4 py-10 text-center">
                 <Bell className="text-muted-foreground/40 mx-auto mb-2 size-8" />
                 <p className="text-muted-foreground text-xs font-medium">
@@ -249,7 +292,7 @@ export function NotificationBell({ initialAnnouncements }: NotificationBellProps
                 </p>
               </div>
             ) : (
-              initialAnnouncements.map((item) => {
+              announcements.map((item) => {
                 const isUnread = !readIds.includes(item.id);
                 const info = getIconAndBadge(item.type);
                 const IconComponent = info.icon;
@@ -257,26 +300,60 @@ export function NotificationBell({ initialAnnouncements }: NotificationBellProps
                 return (
                   <div
                     key={item.id}
-                    onClick={() => markAsRead(item.id)}
-                    className={`flex items-start gap-3 p-4 text-left transition-colors ${
-                      isUnread ? 'bg-primary/5 hover:bg-primary/10' : 'hover:bg-muted/40 opacity-85'
+                    onClick={() => handleOpenDetail(item)}
+                    className={`group flex cursor-pointer items-start gap-3 p-4 text-left transition-colors ${
+                      item.proOnly
+                        ? isUnread
+                          ? 'border-l-2 border-l-amber-500 bg-amber-500/10 hover:bg-amber-500/15'
+                          : 'opacity-90 hover:bg-amber-500/5'
+                        : isUnread
+                          ? 'bg-primary/5 hover:bg-primary/10'
+                          : 'hover:bg-muted/40 opacity-85'
                     }`}
                   >
                     {/* Icon loại */}
                     <div
-                      className={`flex size-8 shrink-0 items-center justify-center rounded-xl border ${info.color}`}
+                      className={`flex size-8 shrink-0 items-center justify-center rounded-xl border ${
+                        item.proOnly
+                          ? 'border-amber-500/40 bg-amber-500/15 text-amber-600 dark:text-amber-400'
+                          : info.color
+                      }`}
                     >
-                      <IconComponent className="size-4" />
+                      {item.proOnly ? (
+                        <Crown className="size-4" />
+                      ) : (
+                        <IconComponent className="size-4" />
+                      )}
                     </div>
 
                     {/* Nội dung */}
                     <div className="min-w-0 flex-1 space-y-1">
                       <div className="flex items-center justify-between gap-2">
-                        <span
-                          className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold ${info.color}`}
-                        >
-                          {item.badge || info.defaultBadge}
-                        </span>
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          {item.proOnly && (
+                            <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/40 bg-gradient-to-r from-amber-500/20 via-amber-500/10 to-amber-500/20 px-2 py-0.5 text-[10px] font-bold text-amber-600 shadow-xs dark:text-amber-400">
+                              <Crown className="size-2.5 text-amber-500" />
+                              <span>PRO VIP</span>
+                            </span>
+                          )}
+                          <span
+                            className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold ${info.color}`}
+                          >
+                            {item.badge || info.defaultBadge}
+                          </span>
+                          {item.gameType && (
+                            <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-amber-600 dark:text-amber-400">
+                              <Gamepad2 className="size-2.5" />
+                              <span>Mini Game</span>
+                            </span>
+                          )}
+                          {item.voucherCode && (
+                            <span className="inline-flex items-center gap-1 rounded-full border border-rose-500/30 bg-rose-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-rose-600 dark:text-rose-400">
+                              <Gift className="size-2.5" />
+                              <span>Voucher</span>
+                            </span>
+                          )}
+                        </div>
                         <span className="text-muted-foreground shrink-0 text-[11px]">
                           {formatRelativeTime(item.createdAt)}
                         </span>
@@ -285,7 +362,7 @@ export function NotificationBell({ initialAnnouncements }: NotificationBellProps
                       <h3
                         className={`text-xs ${
                           isUnread ? 'text-foreground font-bold' : 'text-foreground/90 font-medium'
-                        }`}
+                        } group-hover:text-primary transition-colors`}
                       >
                         {item.title}
                       </h3>
@@ -294,21 +371,16 @@ export function NotificationBell({ initialAnnouncements }: NotificationBellProps
                         {item.content}
                       </p>
 
-                      {item.linkUrl && (
-                        <div className="pt-1">
-                          <Link
-                            href={item.linkUrl}
-                            onClick={() => {
-                              markAsRead(item.id);
-                              setOpen(false);
-                            }}
-                            className="text-primary inline-flex items-center gap-1 text-[11px] font-semibold hover:underline"
-                          >
-                            <span>{item.linkText || 'Xem chi tiết'}</span>
-                            <ArrowRight className="size-3" />
-                          </Link>
-                        </div>
-                      )}
+                      <div className="pt-1">
+                        <span className="text-primary inline-flex items-center gap-1 text-[11px] font-semibold group-hover:underline">
+                          <span>
+                            {item.voucherCode || item.gameType
+                              ? 'Xem chi tiết & nhận quà'
+                              : item.linkText || 'Xem chi tiết'}
+                          </span>
+                          <ArrowRight className="size-3" />
+                        </span>
+                      </div>
                     </div>
 
                     {/* Chấm tròn chưa đọc */}
@@ -390,6 +462,13 @@ export function NotificationBell({ initialAnnouncements }: NotificationBellProps
           </div>
         </aside>
       )}
+
+      {/* Modal chi tiết thông báo, bài viết voucher và mini game */}
+      <AnnouncementDetailModal
+        announcement={selectedAnnouncement}
+        open={detailModalOpen}
+        onClose={() => setDetailModalOpen(false)}
+      />
     </div>
   );
 }

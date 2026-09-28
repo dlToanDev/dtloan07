@@ -27,10 +27,5 @@ export function PostList({
     return <p className="text-muted-foreground mt-8">Chưa có bài viết nào.</p>;
   }
 
-  return (
-    <>
-      <PostListView posts={posts} />
-      {page && totalPages ? <Pagination current={page} total={totalPages} /> : null}
-    </>
-  );
+  return <PostListView posts={posts} />;
 }

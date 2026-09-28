@@ -8,6 +8,7 @@ import {
   grantVoucher,
   grantVoucherToAllPro,
   revokeGrant,
+  broadcastVoucherToPro,
   type GrantView,
 } from '@/server/actions/voucher';
 
@@ -65,6 +66,24 @@ export function GrantManager({
     });
   };
 
+  const broadcastToPro = () => {
+    if (
+      !window.confirm(
+        'Gửi thông báo hệ thống chứa Voucher này tới toàn bộ tài khoản PRO (chỉ ai nâng PRO mới thấy)?',
+      )
+    )
+      return;
+    startTransition(async () => {
+      setError('');
+      setNotice('');
+      const result = await safeAction(() => broadcastVoucherToPro(couponId));
+      if (!result.ok) return setError(result.error);
+      setNotice(
+        'Đã gửi thông báo kèm Voucher tới chuông thông báo và banner của toàn bộ thành viên PRO!',
+      );
+    });
+  };
+
   const revoke = (grant: GrantView) => {
     if (!window.confirm(`Thu hồi mã ${grant.code} của ${grant.email}?`)) return;
     startTransition(async () => {
@@ -88,15 +107,27 @@ export function GrantManager({
       )}
       <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-sm">
         <span>{proCount} tài khoản Pro đang còn hạn</span>
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          onClick={giveAllPro}
-          disabled={pending || proCount === 0}
-        >
-          Tặng cho tất cả Pro
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={giveAllPro}
+            disabled={pending || proCount === 0}
+          >
+            Tặng mã riêng cho tất cả Pro
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant="primary"
+            className="flex items-center gap-1.5 bg-amber-600 font-semibold text-white hover:bg-amber-700"
+            onClick={broadcastToPro}
+            disabled={pending}
+          >
+            📢 Gửi thông báo kèm Voucher tới PRO
+          </Button>
+        </div>
       </div>
       <div className="grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
         <input

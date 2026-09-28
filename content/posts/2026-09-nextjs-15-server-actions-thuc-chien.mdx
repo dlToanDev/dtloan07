@@ -1,0 +1,83 @@
+---
+title: 'Next.js 15 Server Actions Thực Chiến: Từ Kiến Trúc Đến Production'
+description: 'Hướng dẫn toàn diện về Server Actions trong Next.js 15: xử lý form, validate dữ liệu với Zod, quản lý optimistic updates và bảo mật mutation.'
+publishedAt: '2026-09-28'
+category: 'lap-trinh'
+tags: ['nextjs', 'react', 'typescript', 'server-actions']
+cover: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=800'
+featured: true
+draft: false
+likes: 142
+comments: 28
+shares: 35
+views: 1250
+---
+
+Server Actions trong Next.js 15 không chỉ là một cách viết code tiện hơn, mà là sự thay đổi tư duy căn bản trong cách ứng dụng React giao tiếp với backend. Thay vì phải dựng REST API riêng, viết endpoint `/api/...`, rồi dùng fetch hay React Query để gọi, bạn có thể gọi trực tiếp hàm async chạy trên server ngay từ client component hoặc form native.
+
+## 1. Bản chất của Server Actions
+
+Khi bạn đánh dấu `'use server'` ở đầu file hoặc bên trong một hàm, Next.js sẽ tự động tạo một POST endpoint ẩn với mã băm bảo mật (action ID). Trình duyệt gửi request dưới dạng `multipart/form-data` hoặc `application/json`, Next.js giải mã và thực thi hàm trên máy chủ Node.js.
+
+```typescript title="src/server/actions/user.ts" showLineNumbers
+'use server';
+
+import { z } from 'zod';
+import { db } from '@/lib/db';
+import { revalidatePath } from 'next/cache';
+
+const updateProfileSchema = z.object({
+  name: z.string().min(2, 'Tên phải có ít nhất 2 ký tự'),
+  bio: z.string().max(200).optional(),
+});
+
+export async function updateProfile(formData: FormData) {
+  const parsed = updateProfileSchema.safeParse({
+    name: formData.get('name'),
+    bio: formData.get('bio'),
+  });
+
+  if (!parsed.success) {
+    return { success: false, errors: parsed.error.flatten().fieldErrors };
+  }
+
+  await db.user.update({
+    where: { id: 'current-user-id' },
+    data: parsed.data,
+  });
+
+  revalidatePath('/account');
+  return { success: true };
+}
+```
+
+## 2. Kết hợp với useActionState trong React 19
+
+Next.js 15 đi kèm với React 19, thay thế hook thử nghiệm `useFormState` bằng `useActionState` chuẩn:
+
+```tsx title="src/components/profile-form.tsx" showLineNumbers
+'use client';
+
+import { useActionState } from 'react';
+import { updateProfile } from '@/server/actions/user';
+
+export function ProfileForm() {
+  const [state, formAction, isPending] = useActionState(updateProfile, null);
+
+  return (
+    <form action={formAction} className="space-y-4">
+      <input name="name" placeholder="Họ và tên" className="input" />
+      <textarea name="bio" placeholder="Giới thiệu bản thân" className="textarea" />
+      <button type="submit" disabled={isPending} className="btn-primary">
+        {isPending ? 'Đang cập nhật...' : 'Lưu thay đổi'}
+      </button>
+    </form>
+  );
+}
+```
+
+## 3. Những lưu ý bảo mật P0 khi dùng Server Actions
+
+1. **Luôn kiểm tra quyền (Authorization):** Server Action là public endpoint! Bất kỳ ai biết Action ID đều có thể POST trực tiếp. Vì vậy, bước đầu tiên trong action luôn phải là xác thực session và phân quyền.
+2. **Không tin tưởng input của client:** Luôn validate nghiêm ngặt bằng Zod trước khi ghi vào database.
+3. **Cẩn trọng với closure:** Tránh đưa các biến chứa secret key của server vào bên trong scope hàm client.

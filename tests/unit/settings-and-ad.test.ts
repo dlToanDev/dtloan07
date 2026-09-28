@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 
-const { mockSetting, mockAnnouncement } = vi.hoisted(() => ({
+const { mockSetting, mockAnnouncement, mockUser, mockCoupon } = vi.hoisted(() => ({
   mockSetting: {
     findUnique: vi.fn(),
     upsert: vi.fn(),
@@ -13,12 +13,22 @@ const { mockSetting, mockAnnouncement } = vi.hoisted(() => ({
     update: vi.fn(),
     delete: vi.fn(),
   },
+  mockUser: {
+    findUnique: vi.fn(),
+  },
+  mockCoupon: {
+    findUnique: vi.fn(),
+    create: vi.fn(),
+    findMany: vi.fn(),
+  },
 }));
 
 vi.mock('@/lib/db', () => ({
   db: {
     systemSetting: mockSetting,
     systemAnnouncement: mockAnnouncement,
+    user: mockUser,
+    coupon: mockCoupon,
   },
 }));
 
@@ -37,6 +47,7 @@ import {
   createAnnouncement,
   getActiveBannerAnnouncement,
   getPublicActiveAnnouncements,
+  getAnnouncementById,
   toggleAnnouncementState,
   deleteAnnouncement,
   type LoginAdConfig,
@@ -268,7 +279,7 @@ describe('Admin Settings & Login Ad Popup Unit Tests', () => {
       expect(items.length).toBe(2);
       expect(mockAnnouncement.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: { isActive: true },
+          where: { isActive: true, proOnly: false },
           take: 20,
         }),
       );
@@ -295,6 +306,142 @@ describe('Admin Settings & Login Ad Popup Unit Tests', () => {
       readIds = allAnnouncements.map((a) => a.id);
       unread = allAnnouncements.filter((a) => !readIds.includes(a.id));
       expect(unread.length).toBe(0);
+    });
+  });
+
+  describe('4. Đặc quyền thông báo & Voucher dành riêng cho PRO', () => {
+    it('Tài khoản thường hoặc khách vãng lai chỉ lấy thông báo có proOnly = false', async () => {
+      mockAuth.mockResolvedValueOnce(null);
+      mockAnnouncement.findMany.mockResolvedValueOnce([]);
+
+      await getPublicActiveAnnouncements();
+
+      expect(mockAnnouncement.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { isActive: true, proOnly: false },
+        }),
+      );
+    });
+
+    it('Tài khoản PRO lấy toàn bộ thông báo (bao gồm cả thông báo PRO)', async () => {
+      mockAuth.mockResolvedValueOnce({
+        user: { id: 'pro-user-1', role: 'USER' },
+      });
+      // User còn hạn PRO
+      mockUser.findUnique.mockResolvedValueOnce({
+        role: 'USER',
+        proUntil: new Date(Date.now() + 86400000 * 30),
+      });
+      mockAnnouncement.findMany.mockResolvedValueOnce([]);
+
+      await getPublicActiveAnnouncements();
+
+      // where không bị giới hạn proOnly: false
+      expect(mockAnnouncement.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { isActive: true },
+        }),
+      );
+    });
+
+    it('Banner: Ưu tiên thông báo PRO cho tài khoản PRO nếu có', async () => {
+      mockAuth.mockResolvedValueOnce({
+        user: { id: 'pro-user-1', role: 'USER' },
+      });
+      mockUser.findUnique.mockResolvedValueOnce({
+        role: 'USER',
+        proUntil: new Date(Date.now() + 86400000 * 30),
+      });
+
+      mockAnnouncement.findFirst.mockResolvedValueOnce({
+        id: 'ann-pro-banner',
+        title: 'Ưu đãi dành riêng cho PRO',
+        proOnly: true,
+      });
+
+      const banner = await getActiveBannerAnnouncement();
+      expect(banner?.id).toBe('ann-pro-banner');
+      expect(banner?.proOnly).toBe(true);
+      expect(mockAnnouncement.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { isActive: true, showBanner: true, proOnly: true },
+        }),
+      );
+    });
+
+    it('Xem chi tiết: Chặn tài khoản thường xem bài viết thông báo có proOnly = true', async () => {
+      mockAnnouncement.findUnique.mockResolvedValueOnce({
+        id: 'ann-secret-pro',
+        title: 'Voucher 50% VIP',
+        proOnly: true,
+      });
+      // Người dùng chưa đăng nhập
+      mockAuth.mockResolvedValueOnce(null);
+
+      const result = await getAnnouncementById('ann-secret-pro');
+      expect(result).toBeNull();
+    });
+
+    it('Xem chi tiết: Cho phép tài khoản PRO xem bài viết thông báo có proOnly = true', async () => {
+      mockAnnouncement.findUnique.mockResolvedValueOnce({
+        id: 'ann-secret-pro',
+        title: 'Voucher 50% VIP',
+        proOnly: true,
+      });
+      // Người dùng là PRO
+      mockAuth.mockResolvedValueOnce({
+        user: { id: 'pro-user-1', role: 'USER' },
+      });
+      mockUser.findUnique.mockResolvedValueOnce({
+        role: 'USER',
+        proUntil: new Date(Date.now() + 86400000 * 30),
+      });
+
+      const result = await getAnnouncementById('ann-secret-pro');
+      expect(result).not.toBeNull();
+      expect(result?.title).toBe('Voucher 50% VIP');
+    });
+
+    it('Tạo thông báo PRO đồng bộ tạo Coupon Shop có proOnly = true', async () => {
+      mockAuth.mockResolvedValueOnce({
+        user: { id: 'admin1', role: 'ADMIN' },
+      });
+
+      mockAnnouncement.create.mockResolvedValueOnce({
+        id: 'ann-pro-1',
+        title: 'Tặng voucher PRO 30%',
+        type: 'VOUCHER',
+        voucherCode: 'PROVIP30',
+        voucherDiscount: '30%',
+        proOnly: true,
+      });
+
+      mockCoupon.findUnique.mockResolvedValueOnce(null); // Coupon chưa tồn tại
+      mockCoupon.create.mockResolvedValueOnce({ id: 'c-1', code: 'PROVIP30' });
+
+      const res = await createAnnouncement({
+        title: 'Tặng voucher PRO 30%',
+        content: 'Chỉ dành cho thành viên PRO khi mua sắm.',
+        type: 'VOUCHER',
+        voucherCode: 'PROVIP30',
+        voucherDiscount: 'Giảm 30%',
+        proOnly: true,
+        syncShopCoupon: true,
+        isActive: true,
+        showBanner: true,
+      });
+
+      expect(res.success).toBe(true);
+      expect(mockCoupon.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            code: 'PROVIP30',
+            proOnly: true,
+            type: 'PERCENT',
+            value: 30,
+          }),
+        }),
+      );
     });
   });
 });

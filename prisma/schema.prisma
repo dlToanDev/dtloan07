@@ -824,21 +824,29 @@ enum AnnouncementType {
 }
 
 model SystemAnnouncement {
-  id          String           @id @default(cuid())
-  title       String
-  content     String
-  type        AnnouncementType @default(GENERAL)
-  badge       String?
-  linkUrl     String?
-  linkText    String?
-  isActive    Boolean          @default(true)
-  showBanner  Boolean          @default(true)
-  startsAt    DateTime?
-  expiresAt   DateTime?
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
+  id              String           @id @default(cuid())
+  title           String
+  content         String
+  type            AnnouncementType @default(GENERAL)
+  badge           String?
+  linkUrl         String?
+  linkText        String?
+  detailContent   String?          @db.Text
+  voucherCode     String?
+  voucherDiscount String?
+  voucherExpires  DateTime?
+  gameType        String?
+  gameConfig      String?          @db.Text
+  isActive        Boolean          @default(true)
+  showBanner      Boolean          @default(true)
+  proOnly         Boolean          @default(false)
+  startsAt        DateTime?
+  expiresAt       DateTime?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
 
   @@index([isActive, showBanner])
+  @@index([isActive, proOnly])
   @@index([createdAt])
 }
 

@@ -29,6 +29,7 @@ interface RichTextEditorProps {
   onChange: (value: string) => void;
   placeholder?: string;
   readOnly?: boolean;
+  minHeight?: string;
   onUploadStart?: () => void;
   onUploadEnd?: () => void;
   onError?: (error: string) => void;
@@ -38,6 +39,7 @@ export function RichTextEditor({
   value,
   onChange,
   readOnly = false,
+  minHeight = 'min-h-[36rem]',
   onUploadStart,
   onUploadEnd,
   onError,
@@ -95,7 +97,7 @@ export function RichTextEditor({
       attributes: {
         class: readOnly
           ? 'prose dark:prose-invert max-w-none focus:outline-none leading-relaxed'
-          : 'prose dark:prose-invert max-w-none focus:outline-none min-h-[36rem] px-8 py-6 leading-relaxed selection:bg-primary/20',
+          : `prose dark:prose-invert max-w-none focus:outline-none ${minHeight} px-8 py-6 leading-relaxed selection:bg-primary/20`,
       },
       handlePaste: (_view, event) => {
         const image = Array.from(event.clipboardData?.files || []).find((file) =>

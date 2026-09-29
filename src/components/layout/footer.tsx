@@ -5,7 +5,7 @@ const footerLinks = [
   { label: 'Affiliate', href: '/affiliate' },
   { label: 'Khóa học', href: '/courses' },
   { label: 'Shop', href: '/shop' },
-  { label: 'Tài khoản Pro', href: '/pro' },
+  { label: 'Tài khoản Pro', href: '/account?tab=pro' },
   { label: 'Giới thiệu', href: '/about' },
   { label: 'Tra cứu đơn', href: '/orders/lookup' },
   { label: 'Điều khoản', href: '/terms' },

@@ -7,6 +7,7 @@ import { verifyPayOSSignature, payosClient, generateLicenseKey } from '@/lib/pay
 import { sendAdminManualDeliveryEmail, sendOrderLicenseEmail } from '@/lib/mail';
 import { deliverAutoAccounts } from '@/lib/shop/account-delivery';
 import { siteConfig } from '@/config/site';
+import { USD_TO_VND_RATE } from '@/lib/wallet';
 
 export const runtime = 'nodejs';
 
@@ -148,6 +149,50 @@ export async function POST(req: NextRequest) {
       // c2. Đơn gói Pro: cộng hạn Pro (còn hạn thì cộng dồn)
       if (order.membershipPlan && order.userId)
         await grantProDays(tx, order.userId, PRO_PLANS[order.membershipPlan].days);
+
+      // c2.1. Đơn mua khóa học: tự động ghi danh (enroll)
+      if (order.courseId && order.userId) {
+        await tx.enrollment.upsert({
+          where: { userId_courseId: { userId: order.userId, courseId: order.courseId } },
+          create: { userId: order.userId, courseId: order.courseId },
+          update: {},
+        });
+      }
+
+      // c3. Đơn nạp tiền vào ví (VND hoặc USD)
+      if (order.depositCurrency && order.userId) {
+        const currency = order.depositCurrency;
+        const isUsd = currency === 'USD';
+        const depositAmount =
+          order.depositAmount || (isUsd ? order.totalVnd / USD_TO_VND_RATE : order.totalVnd);
+
+        const currentUser = await tx.user.findUnique({ where: { id: order.userId } });
+        if (currentUser) {
+          const balanceBefore = isUsd ? currentUser.balanceUsd : currentUser.balanceVnd;
+          const balanceAfter = balanceBefore + depositAmount;
+
+          await tx.user.update({
+            where: { id: currentUser.id },
+            data: {
+              ...(isUsd ? { balanceUsd: balanceAfter } : { balanceVnd: Math.round(balanceAfter) }),
+            },
+          });
+
+          await tx.walletTransaction.create({
+            data: {
+              userId: currentUser.id,
+              type: 'DEPOSIT',
+              amount: depositAmount,
+              currency,
+              balanceBefore,
+              balanceAfter,
+              status: 'COMPLETED',
+              orderCode: order.orderCode,
+              description: `Nạp tiền vào ví (${currency}) qua PayOS`,
+            },
+          });
+        }
+      }
 
       // d. Cấp mã bản quyền (License) cho từng OrderItem
       const createdLicenses = [];

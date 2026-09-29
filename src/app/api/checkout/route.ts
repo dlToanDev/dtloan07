@@ -23,6 +23,7 @@ import { isValidProvince } from '@/config/provinces';
 import { createPayOSPaymentLink, generateLicenseKey } from '@/lib/payments/payos';
 import { sendAdminNewOrderEmail, sendOrderLicenseEmail, sendOrderReceivedEmail } from '@/lib/mail';
 import { siteConfig } from '@/config/site';
+import { USD_TO_VND_RATE } from '@/lib/wallet';
 
 /** Đơn có giữ chỗ tồn kho phải thanh toán nhanh để không giam hàng của khách khác. */
 const RESERVED_STOCK_TTL_MS = 30 * 60 * 1000;
@@ -42,7 +43,7 @@ const checkoutSchema = z.object({
     )
     .min(1, 'Giỏ hàng không được để trống.'),
   couponCode: z.string().optional().nullable(),
-  paymentMethod: z.enum(['PAYOS', 'COD']).default('PAYOS'),
+  paymentMethod: z.enum(['PAYOS', 'COD', 'WALLET']).default('PAYOS'),
   shipping: z
     .object({
       province: z.string().trim().max(64).optional().default(''),
@@ -304,6 +305,171 @@ export async function POST(req: NextRequest) {
         orderId: created.id,
         checkoutUrl: `${siteConfig.url}/checkout/success?orderCode=${numericOrderCode}&cod=1`,
         isCOD: true,
+      });
+    }
+
+    // 6.1. Đơn thanh toán bằng Số dư Ví tài khoản: trừ tiền ví và hoàn tất đơn ngay lập tức
+    if (paymentMethod === 'WALLET') {
+      if (!userId) {
+        return NextResponse.json(
+          { error: 'Vui lòng đăng nhập để thanh toán bằng số dư ví tài khoản.' },
+          { status: 401 },
+        );
+      }
+
+      const user = await db.user.findUnique({
+        where: { id: userId },
+        select: { id: true, balanceVnd: true, balanceUsd: true },
+      });
+
+      if (!user) {
+        return NextResponse.json({ error: 'Không tìm thấy tài khoản người dùng.' }, { status: 404 });
+      }
+
+      const totalAvailableVnd = user.balanceVnd + Math.round(user.balanceUsd * USD_TO_VND_RATE);
+      if (totalAvailableVnd < totalVnd) {
+        return NextResponse.json(
+          {
+            error: `Số dư ví không đủ. Đơn hàng cần ${totalVnd.toLocaleString('vi-VN')} đ (Số dư khả dụng: ${totalAvailableVnd.toLocaleString('vi-VN')} đ). Vui lòng nạp thêm tiền hoặc chọn thanh toán PayOS.`,
+          },
+          { status: 400 },
+        );
+      }
+
+      const order = await db.$transaction(async (tx) => {
+        // Trừ tiền ví: ưu tiên trừ VND trước, thiếu trừ tiếp vào USD
+        let newBalanceVnd = user.balanceVnd;
+        let newBalanceUsd = user.balanceUsd;
+        const currencyDeducted: 'VND' | 'USD' = 'VND';
+        const amountDeducted = totalVnd;
+
+        if (user.balanceVnd >= totalVnd) {
+          newBalanceVnd = user.balanceVnd - totalVnd;
+        } else {
+          const remainingVnd = totalVnd - user.balanceVnd;
+          const usdToDeduct = Number((remainingVnd / USD_TO_VND_RATE).toFixed(2));
+          newBalanceVnd = 0;
+          newBalanceUsd = Number((user.balanceUsd - usdToDeduct).toFixed(2));
+        }
+
+        await tx.user.update({
+          where: { id: userId },
+          data: {
+            balanceVnd: newBalanceVnd,
+            balanceUsd: newBalanceUsd,
+          },
+        });
+
+        // Giữ tồn kho biến thể
+        const reserve = await reserveVariantStock(tx, reserveLines);
+        if (!reserve.ok) throw new Error(`STOCK:${reserve.error}`);
+
+        // Tạo Order trạng thái PAID
+        const newOrder = await tx.order.create({
+          data: {
+            ...orderBase,
+            provider: 'WALLET',
+            paymentMethod: 'WALLET',
+            status: 'PAID',
+            paidAt: new Date(),
+            fulfillmentStatus: needsFulfillment ? 'CONFIRMED' : null,
+          },
+          include: { items: true },
+        });
+
+        await reserveOrderAccounts(tx, newOrder.id, null);
+        await reserveOrderCoupon(tx, newOrder.id);
+
+        // Tạo Payment
+        await tx.payment.create({
+          data: {
+            orderId: newOrder.id,
+            providerEventId: `wallet-order-${formattedOrderCode}`,
+            amountVnd: totalVnd,
+            signatureValid: true,
+            rawPayload: { provider: 'WALLET' },
+          },
+        });
+
+        // Tạo biến động số dư WalletTransaction
+        await tx.walletTransaction.create({
+          data: {
+            userId,
+            type: 'PAYMENT',
+            amount: amountDeducted,
+            currency: currencyDeducted,
+            balanceBefore: user.balanceVnd,
+            balanceAfter: newBalanceVnd,
+            status: 'COMPLETED',
+            orderCode: formattedOrderCode,
+            description: `Thanh toán đơn hàng ${formattedOrderCode} bằng Ví tài khoản`,
+          },
+        });
+
+        // Cấp License cho hàng DOWNLOAD
+        const licensesToDeliver = [];
+        for (const orderItem of newOrder.items) {
+          if (orderItem.productTypeSnapshot !== 'DOWNLOAD') continue;
+          const maxDownloads =
+            (
+              await tx.product.findUnique({
+                where: { id: orderItem.productId },
+                select: { maxDownloads: true },
+              })
+            )?.maxDownloads ?? 5;
+          const license = await tx.license.create({
+            data: {
+              key: generateLicenseKey(),
+              userId: userId || null,
+              email,
+              orderItemId: orderItem.id,
+              productId: orderItem.productId,
+              maxDownloads,
+            },
+          });
+
+          licensesToDeliver.push({
+            productName: orderItem.productNameSnapshot,
+            licenseKey: license.key,
+            downloadUrl: `${siteConfig.url}/api/download/${license.id}`,
+          });
+        }
+
+        return { newOrder, licensesToDeliver };
+      });
+
+      if (order.licensesToDeliver.length > 0) {
+        await sendOrderLicenseEmail({
+          to: email,
+          orderCode: formattedOrderCode,
+          licenses: order.licensesToDeliver,
+        }).catch((e) => console.error('Lỗi gửi mail license đơn hàng ví:', e));
+      }
+
+      if (autoAccountVariantIds.size > 0) {
+        await deliverAutoAccounts({
+          id: order.newOrder.id,
+          orderCode: formattedOrderCode,
+          email,
+          userId,
+        }).catch((e) => console.error('Lỗi bàn giao tài khoản đơn ví:', e));
+      }
+
+      if (hasPhysical) {
+        await sendAdminNewOrderEmail({
+          orderCode: formattedOrderCode,
+          totalVnd,
+          customerName: name,
+          phone,
+          paymentMethod: 'WALLET',
+        }).catch((e) => console.error('Lỗi gửi mail báo admin:', e));
+      }
+
+      return NextResponse.json({
+        success: true,
+        orderCode: formattedOrderCode,
+        checkoutUrl: `${siteConfig.url}/checkout/success?orderCode=${numericOrderCode}&wallet=1`,
+        isWallet: true,
       });
     }
 

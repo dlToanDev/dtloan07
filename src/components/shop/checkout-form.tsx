@@ -21,9 +21,13 @@ import {
   ShoppingBag,
   Truck,
   Banknote,
+  Wallet,
+  CheckCircle2,
+  AlertCircle,
 } from 'lucide-react';
 import Link from 'next/link';
 import { PROVINCES } from '@/config/provinces';
+import { getCurrentUserWallet } from '@/server/actions/wallet';
 
 interface ValidatedCartItem {
   productId: string;
@@ -83,9 +87,32 @@ export function CheckoutForm({
   const [province, setProvince] = useState('');
   const [address, setAddress] = useState('');
   const [note, setNote] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState<'PAYOS' | 'COD'>('PAYOS');
+  const [paymentMethod, setPaymentMethod] = useState<'WALLET' | 'PAYOS' | 'COD'>('WALLET');
   const [shippingQuote, setShippingQuote] = useState<ShippingQuote | null>(null);
   const [quoting, setQuoting] = useState(false);
+
+  const [wallet, setWallet] = useState<{
+    balanceVnd: number;
+    balanceUsd: number;
+    totalInVnd: number;
+    totalInUsd: number;
+  } | null>(null);
+  const [loadingWallet, setLoadingWallet] = useState(true);
+
+  // Lấy thông tin ví của người dùng
+  useEffect(() => {
+    getCurrentUserWallet()
+      .then((data) => {
+        setWallet(data);
+        if (data && data.totalInVnd > 0) {
+          setPaymentMethod('WALLET');
+        } else {
+          setPaymentMethod('PAYOS');
+        }
+      })
+      .catch((err) => console.error('Lỗi lấy thông tin ví:', err))
+      .finally(() => setLoadingWallet(false));
+  }, []);
 
   useEffect(() => {
     if (initialEmail && !email) setEmail(initialEmail);
@@ -390,6 +417,82 @@ export function CheckoutForm({
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
+                {/* 1. Thanh toán bằng Ví tài khoản */}
+                <label
+                  className={`flex cursor-pointer items-start gap-3 rounded-lg border p-4 transition ${
+                    paymentMethod === 'WALLET' ? 'border-primary bg-primary/5' : 'border-border'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="paymentMethod"
+                    value="WALLET"
+                    checked={paymentMethod === 'WALLET'}
+                    onChange={() => setPaymentMethod('WALLET')}
+                    className="accent-primary mt-1 size-4"
+                    disabled={submitting}
+                  />
+                  <div className="flex-1 text-sm">
+                    <div className="flex items-center justify-between">
+                      <span className="text-foreground flex items-center gap-2 font-semibold">
+                        <Wallet className="h-4 w-4 text-emerald-500" />
+                        Thanh toán bằng số dư Ví tài khoản
+                      </span>
+                      {wallet && wallet.totalInVnd >= grandTotalVnd && (
+                        <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
+                          Khả dụng
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="text-muted-foreground mt-1.5 text-xs space-y-1">
+                      {loadingWallet ? (
+                        <div className="flex items-center gap-1.5 text-muted-foreground">
+                          <Loader2 className="size-3 animate-spin" />
+                          <span>Đang kiểm tra số dư ví...</span>
+                        </div>
+                      ) : wallet ? (
+                        <div>
+                          <div>
+                            Số dư ví: <strong className="text-foreground">${wallet.balanceUsd.toFixed(2)} USD</strong> (≈ {(wallet.balanceUsd * 25972).toLocaleString('vi-VN')} đ)
+                            {wallet.balanceVnd > 0 && (
+                              <span> + <strong className="text-foreground">{wallet.balanceVnd.toLocaleString('vi-VN')} đ</strong></span>
+                            )}
+                            <span className="text-muted-foreground block text-[11px] mt-0.5">
+                              Tổng khả dụng: <strong className="text-primary">{wallet.totalInVnd.toLocaleString('vi-VN')} đ</strong>
+                            </span>
+                          </div>
+
+                          {wallet.totalInVnd >= grandTotalVnd ? (
+                            <div className="mt-1.5 flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-medium text-[11px]">
+                              <CheckCircle2 className="size-3.5 shrink-0" />
+                              <span>Đủ số dư. Tiền sẽ được trừ trực tiếp và đơn hàng hoàn tất ngay lập tức (không cần quét QR).</span>
+                            </div>
+                          ) : (
+                            <div className="mt-1.5 space-y-1">
+                              <div className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 font-medium text-[11px]">
+                                <AlertCircle className="size-3.5 shrink-0" />
+                                <span>Số dư ví không đủ ({wallet.totalInVnd.toLocaleString('vi-VN')} đ &lt; {grandTotalVnd.toLocaleString('vi-VN')} đ).</span>
+                              </div>
+                              <Link
+                                href="/account?tab=wallet"
+                                target="_blank"
+                                className="inline-flex items-center gap-1 text-[11px] text-primary underline underline-offset-2 hover:opacity-80"
+                              >
+                                Nạp thêm tiền vào ví tại đây
+                                <ArrowRight className="size-3" />
+                              </Link>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <p>Vui lòng đăng nhập để thanh toán bằng số dư ví tài khoản.</p>
+                      )}
+                    </div>
+                  </div>
+                </label>
+
+                {/* 2. Quét mã VietQR PayOS */}
                 <label
                   className={`flex cursor-pointer items-start gap-3 rounded-lg border p-4 transition ${
                     paymentMethod === 'PAYOS' ? 'border-primary bg-primary/5' : 'border-border'
@@ -415,6 +518,7 @@ export function CheckoutForm({
                   </span>
                 </label>
 
+                {/* 3. COD */}
                 {allPhysical && (
                   <label
                     className={`flex cursor-pointer items-start gap-3 rounded-lg border p-4 transition ${
@@ -544,16 +648,33 @@ export function CheckoutForm({
                   type="submit"
                   size="lg"
                   className="w-full font-bold shadow-md"
-                  disabled={submitting || (cartData.errors?.length ?? 0) > 0}
+                  disabled={
+                    submitting ||
+                    (cartData.errors?.length ?? 0) > 0 ||
+                    (paymentMethod === 'WALLET' && (!wallet || wallet.totalInVnd < grandTotalVnd))
+                  }
                 >
                   {submitting ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       Đang xử lý đơn hàng...
                     </>
+                  ) : paymentMethod === 'WALLET' ? (
+                    <>
+                      <Wallet className="mr-2 h-4 w-4" />
+                      Thanh toán bằng Ví ({grandTotalVnd.toLocaleString('vi-VN')} đ)
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </>
+                  ) : paymentMethod === 'COD' ? (
+                    <>
+                      <Banknote className="mr-2 h-4 w-4" />
+                      Đặt hàng (COD)
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </>
                   ) : (
                     <>
-                      {paymentMethod === 'COD' ? 'Đặt hàng (COD)' : 'Thanh toán với VietQR'}
+                      <QrCode className="mr-2 h-4 w-4" />
+                      Thanh toán với VietQR
                       <ArrowRight className="ml-2 h-4 w-4" />
                     </>
                   )}

@@ -59,8 +59,8 @@ export async function POST(req: NextRequest) {
       amount: plan.priceVnd,
       description: orderCode,
       items: [{ name: plan.label, quantity: 1, price: plan.priceVnd }],
-      returnUrl: `${siteConfig.url}/pro?order=${orderCode}`,
-      cancelUrl: `${siteConfig.url}/pro?cancelled=1`,
+      returnUrl: `${siteConfig.url}/account?tab=pro&order=${orderCode}`,
+      cancelUrl: `${siteConfig.url}/account?tab=pro&cancelled=1`,
     });
 
     return NextResponse.json({ success: true, orderCode, checkoutUrl: payos.checkoutUrl });

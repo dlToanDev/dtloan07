@@ -1,11 +1,11 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
-import { Clock3, GraduationCap, MessageCircle, PlayCircle } from 'lucide-react';
+import { Clock3, GraduationCap, MessageCircle, PlayCircle, CheckCircle2, AlertCircle } from 'lucide-react';
 import { Container } from '@/components/layout/container';
 import { Badge } from '@/components/ui/badge';
 import { buttonStyles } from '@/components/ui/button';
-import { EnrollButton } from '@/components/courses/course-actions';
+import { EnrollButton, EnrollPaidCourseButton } from '@/components/courses/course-actions';
 import { LessonList } from '@/components/courses/lesson-list';
 import { getViewer, loadCourseOutline } from '@/lib/courses/access';
 import { nextLessonId } from '@/lib/courses/progress';
@@ -14,7 +14,10 @@ import { db } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 
-type Props = { params: Promise<{ slug: string }> };
+type Props = {
+  params: Promise<{ slug: string }>;
+  searchParams?: Promise<{ orderCode?: string; status?: string; cancelled?: string }>;
+};
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
@@ -31,8 +34,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 const formatVnd = (value: number) => `${value.toLocaleString('vi-VN')} đ`;
 
-export default async function CoursePage({ params }: Props) {
+export default async function CoursePage({ params, searchParams }: Props) {
   const { slug } = await params;
+  const search = searchParams ? await searchParams : {};
   const viewer = await getViewer();
   const outline = await loadCourseOutline(slug, viewer);
   if (!outline) notFound();
@@ -78,15 +82,32 @@ export default async function CoursePage({ params }: Props) {
     cta = <EnrollButton courseId={course.id} firstLessonHref={firstHref} />;
   } else {
     cta = (
-      <Link href="/about#lien-he" className={buttonStyles({ size: 'lg' })}>
-        <MessageCircle className="size-4" /> Liên hệ đăng ký
-      </Link>
+      <EnrollPaidCourseButton
+        courseId={course.id}
+        courseTitle={course.title}
+        priceVnd={course.priceVnd}
+        courseSlug={slug}
+        firstLessonHref={firstHref}
+      />
     );
   }
 
   return (
     <Container className="grid gap-10 py-12 lg:grid-cols-[minmax(0,1fr)_22rem]">
       <div className="min-w-0 space-y-8">
+        {search.status === 'success' && (
+          <div className="flex items-center gap-2.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm font-semibold text-emerald-700 dark:text-emerald-400">
+            <CheckCircle2 className="size-5 shrink-0" />
+            <span>Thanh toán thành công! Bạn đã được kích hoạt khóa học &quot;{course.title}&quot;.</span>
+          </div>
+        )}
+        {search.cancelled && (
+          <div className="flex items-center gap-2.5 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-700 dark:text-amber-400">
+            <AlertCircle className="size-5 shrink-0" />
+            <span>Bạn đã hủy phiên thanh toán PayOS. Bạn có thể chọn thanh toán bằng Ví tài khoản hoặc Quét mã lại bất cứ lúc nào.</span>
+          </div>
+        )}
+
         <div className="space-y-4">
           <Link href="/courses" className="text-muted-foreground text-sm hover:underline">
             ← Khóa học

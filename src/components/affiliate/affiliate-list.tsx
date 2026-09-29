@@ -16,7 +16,7 @@ type AffiliateSort = 'featured' | 'newest' | 'name_asc';
 
 const STORAGE_KEY = 'affiliate-view-mode';
 const VIEW_CHANGE_EVENT = 'affiliate-view-mode-change';
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 12;
 
 function subscribeToView(callback: () => void) {
   window.addEventListener('storage', callback);

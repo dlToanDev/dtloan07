@@ -37,8 +37,14 @@ model User {
   lockedAt      DateTime? // Bị khóa (đủ 3 cảnh báo hoặc admin khóa): không đăng nhập được
   lockReason    String?
   emailVerified DateTime?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  age           Int?
+  address       String?
+  education     String?
+  bio           String?
+  balanceVnd    Int               @default(0) // Số dư ví VND
+  balanceUsd    Float             @default(0) // Số dư ví USD
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
 
   accounts       Account[]
   sessions       Session[]
@@ -46,8 +52,9 @@ model User {
   licenses       License[]
   couponGrants   CouponGrant[]
   communityPosts CommunityPost[]
-  warnings       UserWarning[]   @relation("WarningTarget")
-  warningsIssued UserWarning[]   @relation("WarningIssuer")
+  warnings       UserWarning[]     @relation("WarningTarget")
+  warningsIssued UserWarning[]     @relation("WarningIssuer")
+  walletTransactions WalletTransaction[]
 
   enrollments    Enrollment[]
   lessonProgress LessonProgress[]
@@ -270,11 +277,13 @@ enum PaymentProvider {
   PAYOS
   SEPAY
   LEMONSQUEEZY
+  WALLET
 }
 
 enum PaymentMethod {
   PAYOS
   COD
+  WALLET
 }
 
 /// Vòng đời giao hàng, dùng chung cho đồ vật lý và tài khoản bàn giao thủ công.
@@ -331,11 +340,19 @@ model Order {
   // --- Đơn mua gói Pro (không có OrderItem) ---
   membershipPlan MembershipPlan?
 
+  // --- Đơn nạp tiền ví (không có OrderItem) ---
+  depositCurrency String? // "VND" | "USD"
+  depositAmount   Float?
+
+  // --- Đơn mua khóa học (không có OrderItem) ---
+  courseId        String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   user             User?             @relation(fields: [userId], references: [id], onDelete: SetNull)
   coupon           Coupon?           @relation(fields: [couponId], references: [id], onDelete: SetNull)
+  course           Course?           @relation(fields: [courseId], references: [id], onDelete: SetNull)
   items            OrderItem[]
   payments         Payment[]
   couponRedemption CouponRedemption?
@@ -611,6 +628,7 @@ model Course {
 
   lessons     Lesson[]
   enrollments Enrollment[]
+  orders      Order[]
 
   @@index([status])
 }
@@ -848,5 +866,38 @@ model SystemAnnouncement {
   @@index([isActive, showBanner])
   @@index([isActive, proOnly])
   @@index([createdAt])
+}
+
+enum WalletTxType {
+  DEPOSIT
+  WITHDRAW
+  PAYMENT
+  REFUND
+}
+
+enum WalletTxStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+model WalletTransaction {
+  id            String         @id @default(cuid())
+  userId        String
+  type          WalletTxType   @default(DEPOSIT)
+  amount        Float
+  currency      String         @default("VND") // "VND" hoặc "USD"
+  balanceBefore Float          @default(0)
+  balanceAfter  Float          @default(0)
+  status        WalletTxStatus @default(COMPLETED)
+  orderCode     String?
+  description   String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
 }
 

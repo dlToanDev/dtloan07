@@ -16,13 +16,13 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
+import { POSTS_PER_PAGE } from '@/config/blog';
 
 type FilterTab = 'all' | 'latest' | 'featured' | 'popular';
 type SortOption = 'newest' | 'interactions' | 'views' | 'likes' | 'comments';
 
 const STORAGE_KEY = 'blog-post-view';
 const VIEW_CHANGE_EVENT = 'blog-post-view-change';
-const POSTS_PER_PAGE = 10;
 
 function subscribeToView(callback: () => void) {
   window.addEventListener('storage', callback);

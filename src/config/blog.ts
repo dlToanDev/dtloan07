@@ -1,5 +1,5 @@
 /** Số bài mỗi trang. Đổi ở đây là đổi cả /blog lẫn /blog/page/[page]. */
-export const POSTS_PER_PAGE = 6;
+export const POSTS_PER_PAGE = 12;
 
 /** Ảnh bìa dùng chung khi bài viết chưa khai báo cover trong frontmatter. */
 export const DEFAULT_POST_COVER = '/images/posts/default-cover.svg';

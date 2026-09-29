@@ -1,3 +1,4 @@
+import nodemailer, { type Transporter } from 'nodemailer';
 import { Resend } from 'resend';
 import { siteConfig } from '@/config/site';
 
@@ -5,6 +6,29 @@ const resendApiKey = process.env.RESEND_API_KEY;
 const resend = resendApiKey ? new Resend(resendApiKey) : null;
 const fromEmail =
   process.env.EMAIL_FROM || `${siteConfig.name} <noreply@${new URL(siteConfig.url).hostname}>`;
+
+/**
+ * Khởi tạo Transporter cho Gmail SMTP qua Nodemailer
+ */
+export function getGmailTransporter(): Transporter {
+  const user = process.env.GMAIL_USER?.trim();
+  const pass = process.env.GMAIL_APP_PASSWORD?.replace(/\s+/g, '');
+
+  if (!user || !pass) {
+    throw new Error('Chưa cấu hình GMAIL_USER hoặc GMAIL_APP_PASSWORD trong biến môi trường (.env).');
+  }
+
+  return nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user,
+      pass,
+    },
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 15000,
+  });
+}
 
 export interface SendMailOptions {
   to: string;
@@ -14,29 +38,49 @@ export interface SendMailOptions {
 }
 
 export async function sendEmail({ to, subject, html, text }: SendMailOptions) {
-  if (!resend) {
-    console.log('\n==========================================');
-    console.log(`✉️ [MOCK EMAIL - No RESEND_API_KEY]`);
-    console.log(`To: ${to}`);
-    console.log(`Subject: ${subject}`);
-    console.log(`Content:\n${text || html}`);
-    console.log('==========================================\n');
-    return { success: true, mock: true };
+  if (resend) {
+    try {
+      const data = await resend.emails.send({
+        from: fromEmail,
+        to,
+        subject,
+        html,
+        text,
+      });
+      return { success: true, data };
+    } catch (error) {
+      console.error('❌ Lỗi gửi email qua Resend:', error);
+      throw error;
+    }
   }
 
-  try {
-    const data = await resend.emails.send({
-      from: fromEmail,
-      to,
-      subject,
-      html,
-      text,
-    });
-    return { success: true, data };
-  } catch (error) {
-    console.error('❌ Lỗi gửi email qua Resend:', error);
-    throw error;
+  // Dự phòng gửi qua Gmail SMTP nếu Resend không có key
+  const gmailUser = process.env.GMAIL_USER?.trim();
+  const gmailPass = process.env.GMAIL_APP_PASSWORD?.replace(/\s+/g, '');
+  if (gmailUser && gmailPass) {
+    try {
+      const transporter = getGmailTransporter();
+      const info = await transporter.sendMail({
+        from: `"${siteConfig.name}" <${gmailUser}>`,
+        to,
+        subject,
+        html,
+        text,
+      });
+      return { success: true, data: info };
+    } catch (error) {
+      console.error('❌ Lỗi gửi email qua Gmail SMTP:', error);
+      throw error;
+    }
   }
+
+  console.log('\n==========================================');
+  console.log(`✉️ [MOCK EMAIL - No RESEND_API_KEY / GMAIL_CONFIG]`);
+  console.log(`To: ${to}`);
+  console.log(`Subject: ${subject}`);
+  console.log(`Content:\n${text || html}`);
+  console.log('==========================================\n');
+  return { success: true, mock: true };
 }
 
 /**
@@ -71,6 +115,63 @@ export async function sendMagicLinkEmail({ to, url }: { to: string; url: string 
     html,
     text: `Đăng nhập vào ${siteConfig.name} bằng link: ${url}`,
   });
+}
+
+/**
+ * Gửi email chứa mã xác thực OTP đăng ký tài khoản (6 chữ số) qua Gmail SMTP + Nodemailer
+ * Bắt buộc gửi bằng Gmail SMTP thật; ném lỗi nếu gửi thất bại hoặc chưa cấu hình.
+ */
+export async function sendVerificationEmail(email: string, code: string): Promise<void> {
+  const transporter = getGmailTransporter();
+  const user = process.env.GMAIL_USER?.trim();
+  const from = `"${siteConfig.name}" <${user}>`;
+  const subject = `[${code}] Mã xác nhận đăng ký tài khoản - ${siteConfig.name}`;
+  const text = `Mã xác nhận đăng ký tài khoản ${siteConfig.name} của bạn là: ${code} (hiệu lực trong 10 phút).`;
+  const html = `
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 560px; margin: 0 auto; padding: 32px 24px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #ffffff;">
+      <div style="text-align: center; margin-bottom: 24px;">
+        <h2 style="color: #0f172a; margin: 0; font-size: 22px; font-weight: 700;">Xác thực tài khoản của bạn</h2>
+        <p style="color: #64748b; font-size: 14px; margin-top: 6px;">Chào mừng bạn đến với ${siteConfig.name}</p>
+      </div>
+      <p style="color: #334155; font-size: 15px; line-height: 24px; margin-bottom: 20px;">
+        Cảm ơn bạn đã đăng ký tài khoản. Vui lòng sử dụng mã xác minh 6 chữ số bên dưới để hoàn tất việc đăng ký:
+      </p>
+      <div style="background-color: #f1f5f9; border-radius: 8px; padding: 18px; text-align: center; margin: 24px 0;">
+        <span style="font-family: monospace; font-size: 32px; font-weight: 800; letter-spacing: 8px; color: #2563eb;">${code}</span>
+      </div>
+      <p style="color: #64748b; font-size: 13px; line-height: 20px;">
+        Mã xác minh này có hiệu lực trong vòng <strong>10 phút</strong>. Vì lý do bảo mật, tuyệt đối không chia sẻ mã này cho bất kỳ ai.
+      </p>
+      <p style="color: #64748b; font-size: 13px; line-height: 20px; margin-top: 12px;">
+        Nếu bạn không thực hiện yêu cầu đăng ký này, bạn có thể an tâm bỏ qua email này.
+      </p>
+      <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 28px 0 20px;" />
+      <p style="color: #94a3b8; font-size: 12px; text-align: center; margin: 0;">
+        ${siteConfig.name} &bull; <a href="${siteConfig.url}" style="color: #2563eb; text-decoration: none;">${siteConfig.url}</a>
+      </p>
+    </div>
+  `;
+
+  await transporter.sendMail({
+    from,
+    to: email,
+    subject,
+    text,
+    html,
+  });
+}
+
+/**
+ * Tương thích ngược với interface { to, code } hoặc (email, code)
+ */
+export async function sendVerificationCodeEmail(
+  toOrOptions: string | { to: string; code: string },
+  maybeCode?: string,
+): Promise<void> {
+  if (typeof toOrOptions === 'object') {
+    return sendVerificationEmail(toOrOptions.to, toOrOptions.code);
+  }
+  return sendVerificationEmail(toOrOptions, maybeCode!);
 }
 
 /**
@@ -278,7 +379,7 @@ export async function sendAdminNewOrderEmail({
   totalVnd: number;
   customerName: string;
   phone: string;
-  paymentMethod: 'PAYOS' | 'COD';
+  paymentMethod: 'PAYOS' | 'COD' | 'WALLET';
 }) {
   const to = process.env.ADMIN_NOTIFY_EMAIL;
   if (!to) return { success: true, skipped: true };
@@ -291,7 +392,7 @@ export async function sendAdminNewOrderEmail({
       `<p style="color: #4b5563; font-size: 15px;">
          Mã đơn: <strong>${orderCode}</strong><br />
          Khách: ${customerName} — ${phone}<br />
-         Thanh toán: ${paymentMethod === 'COD' ? 'COD khi nhận hàng' : 'PayOS'}<br />
+         Thanh toán: ${paymentMethod === 'COD' ? 'COD khi nhận hàng' : paymentMethod === 'WALLET' ? 'Ví tài khoản (đã trừ ví)' : 'PayOS'}<br />
          Tổng tiền: <strong>${totalVnd.toLocaleString('vi-VN')} đ</strong>
        </p>
        <p><a href="${siteConfig.url}/admin/orders" style="color: #2563eb;">Mở trang quản lý đơn hàng</a></p>`,

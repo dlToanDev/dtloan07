@@ -28,6 +28,7 @@ const nextConfig = {
   // Source Code đã gộp vào Shop (loại hàng "Source code") — giữ link cũ không bị 404.
   async redirects() {
     return [
+      { source: '/profile', destination: '/account', permanent: true },
       { source: '/source-code', destination: '/shop?c=source-code', permanent: true },
       { source: '/source-code/:slug', destination: '/shop/:slug', permanent: true },
       { source: '/admin/source-code', destination: '/admin/shop', permanent: true },

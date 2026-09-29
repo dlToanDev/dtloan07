@@ -54,6 +54,7 @@ export const postFrontmatterSchema = z
         'Ảnh cover phải là đường dẫn nội bộ (vd: /images/abc.png) hoặc liên kết URL (vd: https://...)',
       )
       .optional(),
+    author: z.string().trim().optional(),
     draft: z.boolean().default(false),
     featured: z.boolean().default(false),
     likes: z.number().int().nonnegative().default(0),
@@ -64,10 +65,12 @@ export const postFrontmatterSchema = z
   .transform(
     (
       data,
-    ): Omit<typeof data, 'category' | 'categories'> & {
+    ): Omit<typeof data, 'category' | 'categories' | 'author'> & {
       category: string;
       categories: string[];
+      authorName?: string;
     } => {
+      const { author, ...rest } = data;
       const categories =
         data.categories && data.categories.length > 0
           ? data.categories
@@ -76,7 +79,8 @@ export const postFrontmatterSchema = z
             : ['lap-trinh'];
       const category: string = data.category || categories[0] || 'lap-trinh';
       return {
-        ...data,
+        ...rest,
+        authorName: author,
         category,
         categories,
       };
@@ -121,7 +125,14 @@ export interface PostMeta extends PostFrontmatter {
   featuredScore: number;
   /** `community`: bài tài khoản Pro đăng, nội dung là HTML đã lọc (KHÔNG biên dịch MDX). */
   source?: 'admin' | 'community';
-  author?: { name: string; pro: boolean };
+  author?: {
+    name: string;
+    pro?: boolean;
+    role?: string;
+    id?: string;
+    email?: string;
+    image?: string | null;
+  };
   /** Bài cộng đồng chưa được admin bật index. */
   noIndex?: boolean;
 }

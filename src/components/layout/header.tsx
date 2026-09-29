@@ -8,13 +8,27 @@ import { getPublicActiveAnnouncements, type AnnouncementItem } from '@/server/ac
 import { siteConfig } from '@/config/site';
 import Link from 'next/link';
 import { User } from 'lucide-react';
+import { auth } from '@/lib/auth';
+import { db } from '@/lib/db';
+import { HeaderWalletBadge } from '@/components/layout/header-wallet-badge';
 
 interface HeaderProps {
   announcements?: AnnouncementItem[];
 }
 
 export async function Header({ announcements: propAnnouncements }: HeaderProps = {}) {
-  const announcements = propAnnouncements ?? (await getPublicActiveAnnouncements());
+  const [announcements, session] = await Promise.all([
+    propAnnouncements ?? getPublicActiveAnnouncements(),
+    auth(),
+  ]);
+
+  let userWallet: { balanceVnd: number; balanceUsd: number } | null = null;
+  if (session?.user?.id) {
+    userWallet = await db.user.findUnique({
+      where: { id: session.user.id },
+      select: { balanceVnd: true, balanceUsd: true },
+    });
+  }
 
   return (
     <header className="border-border bg-background/85 sticky top-0 z-40 border-b backdrop-blur-sm">
@@ -33,11 +47,12 @@ export async function Header({ announcements: propAnnouncements }: HeaderProps =
           </ul>
         </nav>
 
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1.5 sm:gap-2">
           <SearchDialog />
           <ThemeToggle />
           <CartButton />
           <NotificationBell initialAnnouncements={announcements} />
+
           <Link
             href="/account"
             className="hover:bg-muted text-muted-foreground hover:text-foreground inline-flex size-9 items-center justify-center rounded-lg transition-colors"
@@ -46,6 +61,15 @@ export async function Header({ announcements: propAnnouncements }: HeaderProps =
           >
             <User className="size-4" />
           </Link>
+
+          {userWallet && (
+            <HeaderWalletBadge
+              balanceVnd={userWallet.balanceVnd}
+              balanceUsd={userWallet.balanceUsd}
+              className="ml-1"
+            />
+          )}
+
           <MobileNav />
         </div>
       </div>

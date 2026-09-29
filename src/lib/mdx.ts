@@ -13,6 +13,7 @@ import path from 'node:path';
 import readingTime from 'reading-time';
 import { cache } from 'react';
 import { loadCommunityPosts } from '@/lib/community/posts';
+import { siteConfig } from '@/config/site';
 
 const POSTS_DIR = path.join(process.cwd(), 'content', 'posts');
 
@@ -56,6 +57,12 @@ function parsePost(fileName: string, raw: string): Post {
     readingMinutes: Math.max(1, Math.round(stats.minutes)),
     wordCount: stats.words,
     featuredScore,
+    source: 'admin' as const,
+    author: {
+      name: parsed.data.authorName || siteConfig.name,
+      pro: true,
+      role: 'ADMIN',
+    },
   };
 }
 

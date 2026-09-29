@@ -19,7 +19,7 @@ export function PaginationControl({
   onPageChange,
   className,
   totalItems,
-  pageSize = 10,
+  pageSize = 12,
 }: PaginationControlProps) {
   if (totalPages <= 1) return null;
 

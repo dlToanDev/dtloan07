@@ -44,6 +44,8 @@ export async function loadCommunityPosts(): Promise<Post[]> {
       author: {
         name: row.author.name || row.author.email.split('@')[0] || 'Thành viên',
         pro: isPro(row.author),
+        id: row.authorId,
+        email: row.author.email,
       },
       noIndex: !row.indexable,
     };

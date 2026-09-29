@@ -10,6 +10,7 @@ import {
   LogIn,
   MessageSquare,
   Send,
+  Sparkles,
   UserCheck,
 } from 'lucide-react';
 import Link from 'next/link';
@@ -184,13 +185,23 @@ const DEFAULT_COMMENTS_MAP: Record<string, CommentItem[]> = {
   ],
 };
 
+export interface PostCommentsProps {
+  postSlug: string;
+  initialCommentCount?: number;
+  postAuthorName?: string;
+  postAuthorId?: string;
+  postAuthorEmail?: string;
+  postSource?: 'admin' | 'community';
+}
+
 export function PostComments({
   postSlug,
   initialCommentCount = 0,
-}: {
-  postSlug: string;
-  initialCommentCount?: number;
-}) {
+  postAuthorName,
+  postAuthorId,
+  postAuthorEmail,
+  postSource = 'admin',
+}: PostCommentsProps) {
   const pathname = usePathname();
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
   const [checkingAuth, setCheckingAuth] = useState(true);
@@ -201,6 +212,36 @@ export function PostComments({
   const [justSubmitted, setJustSubmitted] = useState(false);
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [loginPromptReason, setLoginPromptReason] = useState<string | null>(null);
+
+  // Kiểm tra xem bình luận/phản hồi có phải của tác giả bài viết
+  const isCommentAuthor = (item: { author: string; badge?: string }) => {
+    if (item.badge === 'Tác giả') return true;
+    const normComment = item.author.trim().toLowerCase();
+    const normPostAuthor = postAuthorName?.trim().toLowerCase();
+
+    if (normPostAuthor && normComment === normPostAuthor) return true;
+    if (
+      (!normPostAuthor || normPostAuthor === 'dltoan07') &&
+      (normComment === 'dltoan07' || normComment === 'toàn nguyễn' || normComment === 'admin')
+    ) {
+      return true;
+    }
+    return false;
+  };
+
+  // Kiểm tra tài khoản hiện tại có phải tác giả bài viết này không
+  const isCurrentUserAuthor = Boolean(
+    currentUser && (
+      (postSource === 'admin' && currentUser.role === 'ADMIN') ||
+      (postAuthorId && currentUser.id === postAuthorId) ||
+      (postAuthorEmail && currentUser.email?.toLowerCase() === postAuthorEmail.toLowerCase()) ||
+      (postAuthorName && (
+        currentUser.name?.trim().toLowerCase() === postAuthorName.trim().toLowerCase() ||
+        currentUser.email?.split('@')[0]?.toLowerCase() === postAuthorName.trim().toLowerCase() ||
+        (postAuthorName.trim().toLowerCase() === 'dltoan07' && currentUser.role === 'ADMIN')
+      ))
+    )
+  );
 
   // 1. Kiểm tra session đăng nhập từ Auth.js
   useEffect(() => {
@@ -301,8 +342,16 @@ export function PostComments({
     const newComment: CommentItem = {
       id: `c_${Date.now()}`,
       author: displayName,
-      badge: currentUser.role === 'ADMIN' ? 'Tác giả' : 'Thành viên',
-      avatarBg: currentUser.role === 'ADMIN' ? 'bg-primary' : 'bg-emerald-600',
+      badge: isCurrentUserAuthor
+        ? 'Tác giả'
+        : currentUser.role === 'ADMIN'
+          ? 'Admin'
+          : 'Thành viên',
+      avatarBg: isCurrentUserAuthor
+        ? 'bg-primary'
+        : currentUser.role === 'ADMIN'
+          ? 'bg-indigo-600'
+          : 'bg-emerald-600',
       createdAt: 'Vừa xong',
       content: content.trim(),
       likes: 0,
@@ -439,17 +488,25 @@ export function PostComments({
               </div>
 
               <div>
-                <div className="flex items-center gap-1.5">
+                <div className="flex flex-wrap items-center gap-1.5">
                   <span className="text-foreground text-xs font-bold">
                     {currentUser?.name || currentUser?.email}
                   </span>
-                  <span className="py-0.2 inline-flex items-center gap-0.5 rounded-full bg-emerald-500/10 px-1.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
-                    <UserCheck className="size-2.5" /> Đã đăng nhập
-                  </span>
-                  {currentUser?.role === 'ADMIN' && (
-                    <span className="text-primary bg-primary/10 py-0.2 border-primary/20 rounded-full border px-1.5 text-[10px] font-semibold">
-                      Tác giả / Admin
+                  {isCurrentUserAuthor ? (
+                    <span className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary shadow-2xs">
+                      <Sparkles className="size-2.5" /> Tác giả bài viết
                     </span>
+                  ) : (
+                    <>
+                      <span className="py-0.2 inline-flex items-center gap-0.5 rounded-full bg-emerald-500/10 px-1.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
+                        <UserCheck className="size-2.5" /> Đã đăng nhập
+                      </span>
+                      {currentUser?.role === 'ADMIN' && (
+                        <span className="text-primary bg-primary/10 py-0.2 border-primary/20 rounded-full border px-1.5 text-[10px] font-semibold">
+                          Admin
+                        </span>
+                      )}
+                    </>
                   )}
                 </div>
                 <div className="text-muted-foreground font-mono text-[11px]">
@@ -538,17 +595,17 @@ export function PostComments({
                       <span className="text-foreground text-sm font-semibold">
                         {comment.author}
                       </span>
-                      {comment.badge && (
-                        <span
-                          className={cn(
-                            'py-0.2 rounded-full border px-2 text-[10px] font-semibold',
-                            comment.badge === 'Tác giả'
-                              ? 'bg-primary/10 border-primary/30 text-primary'
-                              : 'bg-muted border-border text-muted-foreground',
-                          )}
-                        >
-                          {comment.badge}
+                      {isCommentAuthor(comment) ? (
+                        <span className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary shadow-2xs">
+                          <Sparkles className="size-2.5" />
+                          Tác giả
                         </span>
+                      ) : (
+                        comment.badge && (
+                          <span className="bg-muted border-border text-muted-foreground py-0.2 rounded-full border px-2 text-[10px] font-semibold">
+                            {comment.badge}
+                          </span>
+                        )
                       )}
                     </div>
                     <time className="text-muted-foreground text-[11px]">{comment.createdAt}</time>
@@ -612,17 +669,17 @@ export function PostComments({
                             <span className="text-foreground text-xs font-semibold">
                               {reply.author}
                             </span>
-                            {reply.badge && (
-                              <span
-                                className={cn(
-                                  'py-0.2 rounded-full border px-1.5 text-[9px] font-semibold',
-                                  reply.badge === 'Tác giả'
-                                    ? 'bg-primary/15 border-primary/30 text-primary'
-                                    : 'bg-muted border-border text-muted-foreground',
-                                )}
-                              >
-                                {reply.badge}
+                            {isCommentAuthor(reply) ? (
+                              <span className="inline-flex items-center gap-0.5 rounded-full border border-primary/30 bg-primary/10 px-1.5 py-0.5 text-[9px] font-bold text-primary shadow-2xs">
+                                <Sparkles className="size-2.5" />
+                                Tác giả
                               </span>
+                            ) : (
+                              reply.badge && (
+                                <span className="bg-muted border-border text-muted-foreground py-0.2 rounded-full border px-1.5 text-[9px] font-semibold">
+                                  {reply.badge}
+                                </span>
+                              )
                             )}
                           </div>
                           <time className="text-muted-foreground text-[10px]">

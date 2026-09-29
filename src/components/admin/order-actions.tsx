@@ -31,7 +31,7 @@ export function FulfillmentActions({
 }: {
   orderId: string;
   fulfillmentStatus: 'PENDING' | 'CONFIRMED' | 'SHIPPING' | 'DELIVERED' | 'CANCELLED';
-  paymentMethod: 'PAYOS' | 'COD';
+  paymentMethod: 'PAYOS' | 'COD' | 'WALLET';
   trackingCode: string | null;
 }) {
   const [state, action, pending] = useActionState(advanceFulfillment, initialState);

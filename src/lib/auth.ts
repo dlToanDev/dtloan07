@@ -6,9 +6,16 @@ import { db } from '@/lib/db';
 import { sendMagicLinkEmail } from '@/lib/mail';
 import { authConfig } from '@/lib/auth.config';
 import bcrypt from 'bcryptjs';
+import dns from 'node:dns';
 
-/** Phiên đang đăng nhập được kiểm tra lại trạng thái khóa sau mỗi khoảng này. */
-const LOCK_RECHECK_MS = 5 * 60 * 1000;
+// Trên hệ thống mạng có cấu hình IPv6 nhưng không ra ngoài được (vd. mạng cơ quan, VPN),
+// Node.js undici (fetch) mặc định ưu tiên IPv6 dẫn đến lỗi ETIMEDOUT khi gọi Google OAuth API.
+// Ưu tiên IPv4 để kết nối Google OAuth tức thì và ổn định.
+if (dns && typeof dns.setDefaultResultOrder === 'function') {
+  dns.setDefaultResultOrder('ipv4first');
+}
+
+const LOCK_RECHECK_MS = 60 * 1000;
 
 async function isLocked(where: { id?: string | null; email?: string | null }) {
   if (!where.id && !where.email) return false;
@@ -28,19 +35,66 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   callbacks: {
     ...authConfig.callbacks,
     // Tài khoản bị khóa (3 cảnh báo / admin khóa) không đăng nhập được bằng mọi cách.
-    async signIn({ user }) {
+    async signIn({ user, account }) {
       if (await isLocked({ id: user.id, email: user.email })) return '/login?error=AccountLocked';
+
+      const email = user.email?.toLowerCase().trim();
+
+      // Phân biệt rõ ràng giữa Google và GitHub:
+      // 1. Đăng nhập bằng GitHub: Nếu email này đã từng đăng nhập bằng Google thì chỉ cho phép Google (chặn GitHub)
+      if (account?.provider === 'github' && email) {
+        const existingGoogleAccount = await db.account.findFirst({
+          where: {
+            provider: 'google',
+            user: { email },
+          },
+        });
+        if (existingGoogleAccount) {
+          return '/login?error=GitHubBlockedGoogleEmail';
+        }
+      }
+
+      // 2. Đăng nhập bằng Google: Nếu email này đã từng đăng nhập bằng GitHub thì chỉ cho phép GitHub (chặn Google)
+      if (account?.provider === 'google' && email) {
+        const existingGithubAccount = await db.account.findFirst({
+          where: {
+            provider: 'github',
+            user: { email },
+          },
+        });
+        if (existingGithubAccount) {
+          return '/login?error=GoogleBlockedGitHubEmail';
+        }
+      }
+
       return true;
     },
-    // JWT nằm ở trình duyệt nên phải tự kiểm tra lại: bị khóa → trả null để xóa phiên.
+    // JWT nằm ở trình duyệt: đồng bộ quyền role và kiểm tra tài khoản khóa từ DB
     async jwt(params) {
       const token = await authConfig.callbacks!.jwt!(params);
-      if (!token?.id) return token;
-      const checkedAt = typeof token.lockCheckedAt === 'number' ? token.lockCheckedAt : 0;
-      if (params.user || Date.now() - checkedAt > LOCK_RECHECK_MS) {
-        if (await isLocked({ id: token.id as string })) return null;
-        token.lockCheckedAt = Date.now();
+      if (!token) return token;
+
+      if (!token.id && token.sub) {
+        token.id = token.sub;
       }
+      if (!token.id) return token;
+
+      const now = Date.now();
+      const lastChecked = (token.lockCheckedAt as number) || 0;
+      // Chỉ revalidate DB sau 60 giây, tránh query lặp lại 6-8 lần trong cùng 1 request
+      if (token.role && now - lastChecked < LOCK_RECHECK_MS) {
+        return token;
+      }
+
+      const dbUser = await db.user.findUnique({
+        where: { id: token.id as string },
+        select: { lockedAt: true, role: true, name: true, image: true },
+      });
+      if (!dbUser || dbUser.lockedAt) return null;
+      token.role = dbUser.role;
+      token.lockCheckedAt = now;
+      if (dbUser.name && !token.name) token.name = dbUser.name;
+      if (dbUser.image && !token.picture) token.picture = dbUser.image;
       return token;
     },
   },

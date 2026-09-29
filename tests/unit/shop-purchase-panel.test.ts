@@ -55,8 +55,9 @@ describe('VariantPurchasePanel', () => {
         variant({ id: 'b', name: 'Đen / M', stock: 3, sortOrder: 1 }),
       ],
     });
-    expect(mixed).toContain('Lựa chọn: <span class="text-muted-foreground">Đen / M</span>');
-    expect(mixed).toContain('Còn 3 sản phẩm');
+    expect(mixed).toContain('Phân loại / Kích cỡ:');
+    expect(mixed).toContain('Đen / M');
+    expect(mixed).toContain('Còn hàng (3 sản phẩm sẵn có)');
     expect(mixed).toContain('Thêm vào giỏ hàng');
   });
 });

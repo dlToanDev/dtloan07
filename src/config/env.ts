@@ -39,6 +39,10 @@ const serverSchema = z.object({
   EMAIL_FROM: optional(z.string()),
   ADMIN_NOTIFY_EMAIL: optional(z.string().email()),
 
+  // Gmail SMTP (Nodemailer)
+  GMAIL_USER: optional(z.string().email()),
+  GMAIL_APP_PASSWORD: optional(z.string()),
+
   // P9 — Storage (R2)
   R2_ACCOUNT_ID: optional(z.string()),
   R2_ACCESS_KEY_ID: optional(z.string()),

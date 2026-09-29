@@ -141,10 +141,11 @@ export default async function PostPage({ params }: PageProps) {
             {post.author && (
               <>
                 <span className="text-foreground inline-flex items-center gap-1.5 font-medium">
-                  <UserRound className="text-primary/80 size-3.5" />
-                  {post.author.name}
+                  <UserRound className="text-primary size-4" />
+                  <span className="text-muted-foreground font-normal">Tác giả:</span>
+                  <span className="font-semibold text-foreground">{post.author.name}</span>
                   {post.author.pro && (
-                    <Badge className="bg-amber-500 px-1.5 py-0 text-[10px] text-white hover:bg-amber-500">
+                    <Badge className="bg-amber-500 px-1.5 py-0 text-[10px] font-bold text-white hover:bg-amber-500">
                       PRO
                     </Badge>
                   )}
@@ -275,7 +276,14 @@ export default async function PostPage({ params }: PageProps) {
 
           {/* Phần Bình luận bài viết */}
           <div className="border-border/60 mt-14 border-t pt-10">
-            <PostComments postSlug={post.slug} initialCommentCount={post.comments ?? 0} />
+            <PostComments
+              postSlug={post.slug}
+              initialCommentCount={post.comments ?? 0}
+              postAuthorName={post.author?.name}
+              postAuthorId={post.author?.id}
+              postAuthorEmail={post.author?.email}
+              postSource={post.source}
+            />
           </div>
         </div>
       </article>

@@ -2,7 +2,7 @@ import { Badge } from '@/components/ui/badge';
 import { DEFAULT_POST_COVER, getCategoryLabel } from '@/config/blog';
 import { cn } from '@/lib/utils';
 import type { PostMeta } from '@/types/post';
-import { Eye, Heart, MessageSquare, Share2, Sparkles } from 'lucide-react';
+import { Eye, Heart, MessageSquare, Share2, Sparkles, UserRound } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 
@@ -65,9 +65,10 @@ export function PostCard({
           {post.author && (
             <>
               <span className="text-foreground inline-flex items-center gap-1 font-medium">
-                {post.author.name}
+                <UserRound className="text-primary/70 size-3.5" />
+                <span>{post.author.name}</span>
                 {post.author.pro && (
-                  <Badge className="bg-amber-500 px-1.5 py-0 text-[10px] text-white hover:bg-amber-500">
+                  <Badge className="bg-amber-500 px-1.5 py-0 text-[10px] font-bold text-white hover:bg-amber-500">
                     PRO
                   </Badge>
                 )}

@@ -10,7 +10,7 @@ import { GraduationCap, RotateCcw, Search, SlidersHorizontal, ChevronRight } fro
 
 const STORAGE_KEY = 'courses-view-mode';
 const VIEW_CHANGE_EVENT = 'courses-view-mode-change';
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 12;
 
 function subscribeToView(callback: () => void) {
   window.addEventListener('storage', callback);

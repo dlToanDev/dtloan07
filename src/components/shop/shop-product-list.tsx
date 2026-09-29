@@ -11,7 +11,7 @@ import { PackageSearch, RotateCcw, Search, SlidersHorizontal, ChevronRight } fro
 
 const STORAGE_KEY = 'shop-product-view';
 const VIEW_CHANGE_EVENT = 'shop-product-view-change';
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 12;
 
 type ShopProduct = Prisma.ProductGetPayload<{
   include: {

@@ -1,4 +1,4 @@
-import { PrismaClient, Role } from '@prisma/client';
+import { PrismaClient, Role, WalletTxType, WalletTxStatus } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
@@ -40,9 +40,12 @@ async function reset() {
   await prisma.walletTransaction.create({
     data: {
       userId: admin.id,
+      type: WalletTxType.DEPOSIT,
+      status: WalletTxStatus.COMPLETED,
       amount: initialBalance,
+      currency: 'VND',
+      balanceBefore: 0,
       balanceAfter: initialBalance,
-      type: 'ADMIN_ADJUST',
       description: 'Số dư khởi tạo tài khoản Admin',
     },
   });

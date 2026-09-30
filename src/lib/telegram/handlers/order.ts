@@ -21,63 +21,21 @@ export const userCheckoutState = new Map<number, { variantId: string; expiresAt:
 
 /**
  * Khởi động luồng mua hàng cho 1 biến thể:
- * Kiểm tra xem user đã có email cũ hay chưa, nếu chưa thì xin email.
+ * Tự động tạo đơn hàng và hiển thị mã VietQR thanh toán ngay lập tức (không bắt nhập email).
  */
 export async function initiateCheckout(ctx: Context, variantId: string, specifiedEmail?: string) {
   try {
     const chatId = ctx.chat?.id;
     if (!chatId) return;
 
-    // Nếu đã truyền email (từ nút bấm chọn email cũ)
-    if (specifiedEmail) {
-      await processOrderCreation(ctx, variantId, specifiedEmail);
-      return;
-    }
+    // Không cần hỏi email! Tự động tạo email định danh Telegram để khách quét mã QR thanh toán ngay lập tức
+    const email =
+      specifiedEmail ||
+      (ctx.from?.username
+        ? `${ctx.from.username.toLowerCase()}@telegram.org`
+        : `tg_${chatId}@telegram.dltoan.me`);
 
-    // Kiểm tra xem khách đã từng mua hàng chưa
-    const lastOrder = await db.order.findFirst({
-      where: { telegramChatId: String(chatId) },
-      orderBy: { createdAt: 'desc' },
-      select: { email: true },
-    });
-
-    if (lastOrder?.email) {
-      const text =
-        `✉️ <b>Xác nhận Email nhận hàng</b>\n\n` +
-        `Bạn muốn nhận hóa đơn và thông tin bản quyền qua email nào?\n\n` +
-        `Hệ thống thấy bạn từng sử dụng: <code>${escapeHtml(lastOrder.email)}</code>\n` +
-        `Bạn có thể chọn dùng lại email này hoặc nhập email mới:`;
-
-      const markup = emailChoiceKeyboard(variantId, lastOrder.email);
-
-      if (ctx.callbackQuery) {
-        await ctx.editMessageText(text, { parse_mode: 'HTML', reply_markup: markup });
-      } else {
-        await ctx.reply(text, { parse_mode: 'HTML', reply_markup: markup });
-      }
-      return;
-    }
-
-    // Nếu là khách mới: lưu state và yêu cầu nhập email
-    userCheckoutState.set(chatId, {
-      variantId,
-      expiresAt: Date.now() + 10 * 60 * 1000, // 10 phút
-    });
-
-    const promptText =
-      `✉️ <b>Nhập địa chỉ Email nhận hàng</b>\n\n` +
-      `Vui lòng nhập địa chỉ Email của bạn vào ô chat bên dưới.\n` +
-      `<i>(Ví dụ: <code>yourname@gmail.com</code>)</i>\n\n` +
-      `📌 <b>Lưu ý:</b> Hệ thống sẽ gửi hóa đơn điện tử và link tải / thông tin tài khoản bảo hành đến email này.`;
-
-    if (ctx.callbackQuery) {
-      await ctx.editMessageText(promptText, {
-        parse_mode: 'HTML',
-        reply_markup: backToMenuKeyboard(),
-      });
-    } else {
-      await ctx.reply(promptText, { parse_mode: 'HTML', reply_markup: backToMenuKeyboard() });
-    }
+    await processOrderCreation(ctx, variantId, email);
   } catch (error) {
     console.error('Lỗi initiateCheckout:', error);
     await ctx.reply('⚠️ Có lỗi xảy ra khi chuẩn bị đơn hàng.');
@@ -87,12 +45,20 @@ export async function initiateCheckout(ctx: Context, variantId: string, specifie
 /**
  * Xử lý tạo đơn hàng chính thức & sinh mã VietQR PayOS
  */
-export async function processOrderCreation(ctx: Context, variantId: string, email: string) {
+export async function processOrderCreation(ctx: Context, variantId: string, email?: string) {
   try {
     const chatId = ctx.chat?.id;
     if (!chatId) return;
 
-    const trimmedEmail = email.trim().toLowerCase();
+    userCheckoutState.delete(chatId);
+
+    const trimmedEmail =
+      email && email.trim()
+        ? email.trim().toLowerCase()
+        : ctx.from?.username
+          ? `${ctx.from.username.toLowerCase()}@telegram.org`
+          : `tg_${chatId}@telegram.dltoan.me`;
+
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(trimmedEmail)) {
       await ctx.reply('⚠️ Email không đúng định dạng. Vui lòng nhập lại email hợp lệ:');
@@ -229,18 +195,28 @@ export async function processOrderCreation(ctx: Context, variantId: string, emai
     });
 
     // 7. Gửi thông tin đơn hàng và mã VietQR cho người dùng
+    const bankDetails =
+      paymentResult.accountNumber && paymentResult.accountName
+        ? `🏦 <b>THÔNG TIN CHUYỂN KHOẢN (Chạm để copy):</b>\n` +
+          `• Ngân hàng: <b>${escapeHtml(paymentResult.bankName || 'MB Bank')}</b>\n` +
+          `• Số tài khoản: <code>${escapeHtml(paymentResult.accountNumber)}</code>\n` +
+          `• Chủ tài khoản: <b>${escapeHtml(paymentResult.accountName)}</b>\n` +
+          `• Số tiền: <code>${paymentResult.amount || variant.priceVnd}</code>\n` +
+          `• Nội dung CK: <code>${escapeHtml(paymentResult.description || formattedOrderCode)}</code>\n\n`
+        : '';
+
     const caption =
       `🧾 <b>ĐƠN HÀNG MỚI ĐÃ KHỞI TẠO!</b>\n\n` +
       `📦 <b>Sản phẩm:</b> ${escapeHtml(product.name)}\n` +
       `🏷️ <b>Gói:</b> ${escapeHtml(variant.name)}\n` +
-      `💰 <b>Số tiền cần thanh toán:</b> <code>${formatVnd(variant.priceVnd)}</code>\n` +
-      `🔢 <b>Mã đơn hàng:</b> <code>${formattedOrderCode}</code>\n` +
-      `✉️ <b>Email nhận hàng:</b> <code>${escapeHtml(trimmedEmail)}</code>\n` +
+      `💰 <b>Cần thanh toán:</b> <code>${formatVnd(variant.priceVnd)}</code>\n` +
+      `🔢 <b>Mã đơn:</b> <code>${formattedOrderCode}</code>\n` +
       `⏳ <b>Thời gian giữ chỗ:</b> 15 phút\n\n` +
-      `👉 <b>Hướng dẫn thanh toán:</b>\n` +
-      `1. Mở App Ngân hàng bất kỳ quét mã <b>VietQR</b> bên dưới.\n` +
+      bankDetails +
+      `👉 <b>Thanh toán siêu tốc 24/7:</b>\n` +
+      `1. Mở App Ngân hàng bất kỳ quét mã <b>VietQR</b> bên dưới hoặc chuyển đúng nội dung.\n` +
       `2. Hoặc bấm nút <b>"Mở cổng thanh toán PayOS"</b> để thanh toán qua web.\n` +
-      `3. Sau khi chuyển khoản xong, hệ thống Napas 24/7 sẽ tự động gửi hàng vào Telegram của bạn trong 3-5 giây!`;
+      `3. Sau khi chuyển khoản thành công, bot sẽ tự động gửi tài khoản / file tải ngay tại đây trong 3 giây!`;
 
     const keyboard = orderPaymentKeyboard(paymentResult.checkoutUrl, formattedOrderCode);
 

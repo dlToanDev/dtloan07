@@ -11,6 +11,7 @@ import {
   isValidTelegramUrl,
 } from '@/lib/telegram/keyboards';
 import {
+  initiateCheckout,
   processOrderCreation,
   handleCancelOrder,
   handleCheckOrder,
@@ -213,6 +214,62 @@ describe('Telegram Sales Bot (Accounts & Source Code) Unit Tests', () => {
         expect.stringContaining('tạm hết tài khoản trong kho'),
         expect.anything(),
       );
+    });
+
+    it('initiateCheckout tạo đơn và hiển thị mã VietQR ngay lập tức không bắt user gõ email', async () => {
+      const mockVariant = {
+        id: 'var-sourcecode',
+        productId: 'prod-sourcecode',
+        priceVnd: 150000,
+        name: 'Bản quyền Full Source',
+        active: true,
+        product: {
+          id: 'prod-sourcecode',
+          name: 'Next.js SaaS Template',
+          status: 'ACTIVE',
+          type: 'DOWNLOAD',
+          deliveryMode: null,
+        },
+      };
+
+      vi.spyOn(db.productVariant, 'findUnique').mockResolvedValue(mockVariant as any);
+      vi.spyOn(db.order, 'count').mockResolvedValue(0);
+      vi.spyOn(db, '$transaction').mockImplementation(async (cb: any) => {
+        const tx = {
+          order: {
+            create: vi.fn().mockResolvedValue({
+              id: 'order-123',
+              orderCode: 'DH-12345678',
+              items: [{ id: 'item-1' }],
+            }),
+          },
+        };
+        return cb(tx);
+      });
+
+      const replyWithPhotoMock = vi.fn();
+      const replyMock = vi.fn();
+      const mockCtx: any = {
+        chat: { id: 987654321 },
+        from: { id: 987654321, username: 'dltoan_buyer', first_name: 'Toan' },
+        replyWithPhoto: replyWithPhotoMock,
+        reply: replyMock,
+      };
+
+      await initiateCheckout(mockCtx, 'var-sourcecode');
+
+      const sentPhoto = replyWithPhotoMock.mock.calls.length > 0;
+      const sentText = replyMock.mock.calls.length > 0;
+      expect(sentPhoto || sentText).toBe(true);
+
+      const caption = (
+        sentPhoto ? replyWithPhotoMock.mock.calls[0]?.[1]?.caption : replyMock.mock.calls[0]?.[0]
+      ) as string;
+
+      expect(caption).toBeDefined();
+      expect(caption).toContain('ĐƠN HÀNG MỚI ĐÃ KHỞI TẠO');
+      expect(caption).toContain('Next.js SaaS Template');
+      expect(caption).not.toContain('Email nhận hàng:');
     });
   });
 

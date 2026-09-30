@@ -10,7 +10,7 @@ if (typeof process.loadEnvFile === 'function') {
   }
 }
 
-import { bot } from '../src/lib/telegram/bot';
+import { bot, registerBotCommands } from '../src/lib/telegram/bot';
 import { getTelegramConfig } from '../src/lib/telegram/config';
 
 const { token, username, isConfigured } = getTelegramConfig();
@@ -30,7 +30,8 @@ console.log('💳 Cổng thanh toán: PayOS VietQR Napas 24/7');
 console.log('====================================================');
 
 bot.start({
-  onStart: (botInfo) => {
+  onStart: async (botInfo) => {
+    await registerBotCommands();
     console.log(`✅ Bot @${botInfo.username} đã kết nối thành công và đang lắng nghe tin nhắn!`);
     console.log('Nhấn Ctrl+C để dừng bot.');
   },

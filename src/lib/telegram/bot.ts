@@ -1,6 +1,11 @@
 import { Bot } from 'grammy';
 import { getTelegramConfig, escapeHtml } from './config';
-import { mainMenuKeyboard, backToMenuKeyboard } from './keyboards';
+import {
+  mainMenuKeyboard,
+  categoryKeyboard,
+  backToMenuKeyboard,
+  persistentReplyKeyboard,
+} from './keyboards';
 import { showCatalog, showProductDetail } from './handlers/catalog';
 import {
   initiateCheckout,
@@ -10,6 +15,8 @@ import {
   handleMyOrders,
   userCheckoutState,
 } from './handlers/order';
+import { handleWallet, handleDeposit } from './handlers/wallet';
+import { handleSearchPrompt, searchProductsOrOrders } from './handlers/search';
 
 const config = getTelegramConfig();
 const botToken = config.token || '123456789:AAPlaceholderTokenForBuildCheckOnly123';
@@ -17,7 +24,7 @@ const botToken = config.token || '123456789:AAPlaceholderTokenForBuildCheckOnly1
 export const bot = new Bot(botToken);
 
 // ==========================================
-// 0. GLOBAL ERROR HANDLER
+// 0. GLOBAL ERROR HANDLER & REGISTER COMMANDS
 // ==========================================
 
 bot.catch((err) => {
@@ -25,8 +32,30 @@ bot.catch((err) => {
   console.error(`❌ [TELEGRAM ERROR] Lỗi khi xử lý update ${ctx.update?.update_id}:`, err.error);
 });
 
+/**
+ * Đăng ký danh sách lệnh Slash Commands với Telegram API
+ * Sẽ hiển thị thành nút xanh [Menu] góc dưới bên trái ô chat trên ứng dụng Telegram
+ */
+export async function registerBotCommands() {
+  if (!config.isConfigured) return;
+  try {
+    await bot.api.setMyCommands([
+      { command: 'start', description: '🏠 Khởi động bot & Menu chính' },
+      { command: 'menu', description: '📂 Danh mục sản phẩm (Tài khoản & Code)' },
+      { command: 'product', description: '📦 Danh sách tất cả sản phẩm' },
+      { command: 'wallet', description: '💰 Số dư ví & Nạp tiền PayOS' },
+      { command: 'find', description: '🔍 Tìm kiếm sản phẩm hoặc đơn hàng' },
+      { command: 'support', description: '💬 Hỗ trợ kỹ thuật & bảo hành' },
+      { command: 'orders', description: '📋 Lịch sử đơn hàng của bạn' },
+    ]);
+    console.log('✅ Đã đăng ký menu lệnh bot thành công với Telegram API!');
+  } catch (err) {
+    console.warn('Không thể đăng ký menu lệnh Telegram:', err);
+  }
+}
+
 // ==========================================
-// 1. COMMANDS
+// 1. COMMANDS (/start, /menu, /product, /wallet, /find, /support)
 // ==========================================
 
 bot.command('start', async (ctx) => {
@@ -38,22 +67,82 @@ bot.command('start', async (ctx) => {
       `🚀 <b>Ưu điểm khi mua tại Bot:</b>\n` +
       `• Bàn giao tự động qua Telegram & Email trong <b>3 giây</b>\n` +
       `• Thanh toán tự động bằng mã <b>VietQR Napas 24/7</b>\n` +
+      `• Nạp tiền và quản lý ví điện tử tiện lợi\n` +
       `• Bảo hành 1 đổi 1 uy tín\n\n` +
-      `Vui lòng chọn danh mục bạn quan tâm:`;
+      `Vui lòng bấm chọn các nút trên Menu bên dưới để bắt đầu:`;
 
+    // Gửi kèm Persistent Reply Keyboard dưới thanh chat
     await ctx.reply(welcomeText, {
       parse_mode: 'HTML',
+      reply_markup: persistentReplyKeyboard(),
+    });
+
+    // Gửi thêm menu inline card
+    await ctx.reply('👉 Danh mục thao tác nhanh:', {
       reply_markup: mainMenuKeyboard(),
     });
   } catch (error) {
     console.error('Lỗi khi xử lý lệnh /start:', error);
     try {
-      await ctx.reply('👋 Xin chào bạn! Vui lòng chọn danh mục bạn quan tâm:', {
-        reply_markup: mainMenuKeyboard(),
+      await ctx.reply('👋 Xin chào bạn! Vui lòng chọn danh mục:', {
+        reply_markup: categoryKeyboard(),
       });
-    } catch (fallbackError) {
-      console.error('Lỗi fallback /start:', fallbackError);
+    } catch {
+      // Ignored
     }
+  }
+});
+
+bot.command('menu', async (ctx) => {
+  try {
+    await ctx.reply('📂 <b>Chọn danh mục sản phẩm:</b>', {
+      parse_mode: 'HTML',
+      reply_markup: categoryKeyboard(),
+    });
+  } catch (error) {
+    console.error('Lỗi khi xử lý lệnh /menu:', error);
+  }
+});
+
+bot.command(['product', 'products'], async (ctx) => {
+  try {
+    await showCatalog(ctx, 'ACCOUNT');
+  } catch (error) {
+    console.error('Lỗi khi xử lý lệnh /product:', error);
+  }
+});
+
+bot.command('wallet', async (ctx) => {
+  try {
+    await handleWallet(ctx);
+  } catch (error) {
+    console.error('Lỗi khi xử lý lệnh /wallet:', error);
+  }
+});
+
+bot.command('find', async (ctx) => {
+  try {
+    await handleSearchPrompt(ctx);
+  } catch (error) {
+    console.error('Lỗi khi xử lý lệnh /find:', error);
+  }
+});
+
+bot.command('support', async (ctx) => {
+  try {
+    const supportText =
+      `💬 <b>HỖ TRỢ KỸ THUẬT & BẢO HÀNH</b>\n\n` +
+      `• <b>Admin hỗ trợ:</b> @dltoan07\n` +
+      `• <b>Thời gian hỗ trợ:</b> 8h00 - 23h00 hàng ngày\n` +
+      `• <b>Chính sách bảo hành:</b> Cam kết 1 đổi 1 nếu tài khoản lỗi từ phía nhà cung cấp trong thời gian sử dụng.\n\n` +
+      `Nếu bạn có bất kỳ câu hỏi nào về sản phẩm hoặc đơn hàng, đừng ngần ngại nhắn tin cho Admin nhé!`;
+
+    await ctx.reply(supportText, {
+      parse_mode: 'HTML',
+      reply_markup: backToMenuKeyboard(),
+    });
+  } catch (error) {
+    console.error('Lỗi khi xử lý lệnh /support:', error);
   }
 });
 
@@ -67,9 +156,13 @@ bot.command('help', async (ctx) => {
       `4️⃣ Mở App Ngân hàng quét mã <b>VietQR</b> thanh toán tức thì\n` +
       `5️⃣ Hệ thống tự động bàn giao hàng ngay tại cuộc trò chuyện này!\n\n` +
       `📌 <b>Các lệnh nhanh:</b>\n` +
-      `• /start - Mở menu chính\n` +
+      `• /start - Khởi động bot & Menu chính\n` +
+      `• /menu - Danh mục sản phẩm\n` +
+      `• /product - Danh sách sản phẩm\n` +
+      `• /wallet - Số dư ví & Nạp tiền\n` +
+      `• /find - Tìm kiếm sản phẩm hoặc tra cứu đơn\n` +
       `• /orders - Xem lại đơn hàng của bạn\n` +
-      `• /help - Hướng dẫn sử dụng\n` +
+      `• /support - Hỗ trợ kỹ thuật\n` +
       `• /cancel - Hủy thao tác đang làm dở`;
 
     await ctx.reply(helpText, {
@@ -131,10 +224,22 @@ bot.on('callback_query:data', async (ctx) => {
       return;
     }
 
+    if (data === 'nav:wallet') {
+      await handleWallet(ctx);
+      await ctx.answerCallbackQuery();
+      return;
+    }
+
+    if (data === 'nav:find') {
+      await handleSearchPrompt(ctx);
+      await ctx.answerCallbackQuery();
+      return;
+    }
+
     if (data === 'nav:support') {
       const supportText =
         `💬 <b>HỖ TRỢ KỸ THUẬT & BẢO HÀNH</b>\n\n` +
-        `• <b>Admin hỗ trợ:</b> @toan_developer\n` +
+        `• <b>Admin hỗ trợ:</b> @dltoan07\n` +
         `• <b>Thời gian hỗ trợ:</b> 8h00 - 23h00 hàng ngày\n` +
         `• <b>Chính sách bảo hành:</b> Cam kết 1 đổi 1 nếu tài khoản lỗi từ phía nhà cung cấp trong thời gian sử dụng.\n\n` +
         `Nếu bạn có bất kỳ câu hỏi nào về sản phẩm hoặc đơn hàng, đừng ngần ngại nhắn tin cho Admin nhé!`;
@@ -143,6 +248,18 @@ bot.on('callback_query:data', async (ctx) => {
         parse_mode: 'HTML',
         reply_markup: backToMenuKeyboard(),
       });
+      await ctx.answerCallbackQuery();
+      return;
+    }
+
+    if (data.startsWith('deposit:')) {
+      // Format: deposit:<amount>:<userId>
+      const parts = data.split(':');
+      const amount = Number(parts[1]);
+      const userId = parts[2];
+      if (amount && userId) {
+        await handleDeposit(ctx, amount, userId);
+      }
       await ctx.answerCallbackQuery();
       return;
     }
@@ -174,7 +291,6 @@ bot.on('callback_query:data', async (ctx) => {
     }
 
     if (data.startsWith('use_email:')) {
-      // Format: use_email:<variantId>:<email>
       const parts = data.split(':');
       const variantId = parts[1];
       const email = parts.slice(2).join(':');
@@ -232,17 +348,51 @@ bot.on('callback_query:data', async (ctx) => {
 });
 
 // ==========================================
-// 3. TEXT MESSAGES (Xử lý nhập Email hoặc mã đơn)
+// 3. TEXT MESSAGES (Menu cố định, Tìm kiếm, Email)
 // ==========================================
 
 bot.on('message:text', async (ctx) => {
   const text = ctx.message.text.trim();
   const chatId = ctx.chat.id;
 
-  // Nếu là lệnh (/...) thì bỏ qua vì grammY đã có bot.command
+  // 1. Phím tắt từ Persistent Keyboard
+  if (text === '📂 Sản phẩm') {
+    await showCatalog(ctx, 'ACCOUNT');
+    return;
+  }
+
+  if (text === '💰 Ví tiền') {
+    await handleWallet(ctx);
+    return;
+  }
+
+  if (text === '🔍 Tìm kiếm') {
+    await handleSearchPrompt(ctx);
+    return;
+  }
+
+  if (text === '💬 Hỗ trợ') {
+    await ctx.reply(
+      `💬 <b>HỖ TRỢ KỸ THUẬT & BẢO HÀNH</b>\n\n` +
+        `• <b>Admin hỗ trợ:</b> @dltoan07\n` +
+        `• <b>Thời gian hỗ trợ:</b> 8h00 - 23h00 hàng ngày\n` +
+        `• <b>Chính sách bảo hành:</b> Cam kết 1 đổi 1 nhanh chóng.`,
+      { parse_mode: 'HTML', reply_markup: backToMenuKeyboard() },
+    );
+    return;
+  }
+
+  if (text === '🏠 Menu chính') {
+    await ctx.reply('👋 Danh mục thao tác chính:', {
+      reply_markup: mainMenuKeyboard(),
+    });
+    return;
+  }
+
+  // Nếu là lệnh (/...) thì grammY command handler xử lý
   if (text.startsWith('/')) return;
 
-  // Kiểm tra xem user có đang ở trạng thái nhập Email hay không
+  // 2. Kiểm tra xem user có đang ở trạng thái nhập Email hay không
   const pendingState = userCheckoutState.get(chatId);
   if (pendingState && pendingState.expiresAt > Date.now()) {
     const emailMatch = text.match(/[\w.+-]+@[\w-]+\.[\w.-]+/);
@@ -261,19 +411,6 @@ bot.on('message:text', async (ctx) => {
     }
   }
 
-  // Nếu user gõ mã đơn hàng dạng DH-xxxxxx để tra cứu
-  if (text.toUpperCase().startsWith('DH-')) {
-    await handleCheckOrder(ctx, text.toUpperCase());
-    return;
-  }
-
-  // Trường hợp mặc định: Hướng dẫn người dùng
-  await ctx.reply(
-    `Xin chào <b>${escapeHtml(ctx.from?.first_name || 'bạn')}</b>!\n` +
-      `Bấm nút bên dưới để khám phá kho tài khoản và mã nguồn của shop nhé:`,
-    {
-      parse_mode: 'HTML',
-      reply_markup: mainMenuKeyboard(),
-    },
-  );
+  // 3. Tra cứu nhanh hoặc tìm kiếm sản phẩm theo từ khóa
+  await searchProductsOrOrders(ctx, text);
 });

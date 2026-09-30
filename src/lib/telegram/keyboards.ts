@@ -1,5 +1,21 @@
-import { InlineKeyboard } from 'grammy';
+import { InlineKeyboard, Keyboard } from 'grammy';
 import { siteConfig } from '@/config/site';
+
+/**
+ * Bàn phím điều hướng cố định dưới thanh chat Telegram (Persistent Menu)
+ */
+export function persistentReplyKeyboard(): Keyboard {
+  return new Keyboard()
+    .text('📂 Sản phẩm')
+    .text('💰 Ví tiền')
+    .row()
+    .text('🔍 Tìm kiếm')
+    .text('💬 Hỗ trợ')
+    .row()
+    .text('🏠 Menu chính')
+    .resized()
+    .persistent();
+}
 
 /**
  * Format tiền tệ VND gọn gàng

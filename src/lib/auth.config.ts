@@ -1,7 +1,11 @@
 import type { NextAuthConfig } from 'next-auth';
 import Google from 'next-auth/providers/google';
 import GitHub from 'next-auth/providers/github';
-import { Role } from '@prisma/client';
+const Role = {
+  USER: 'USER',
+  ADMIN: 'ADMIN',
+} as const;
+type Role = (typeof Role)[keyof typeof Role];
 
 const googleClientId = (process.env.AUTH_GOOGLE_ID || process.env.GOOGLE_CLIENT_ID || '').trim();
 const googleClientSecret = (

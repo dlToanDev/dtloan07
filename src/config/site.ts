@@ -9,6 +9,7 @@ export const siteConfig = {
   shortName: 'dltoan07',
   description:
     'Blog chuyên sâu về lập trình, quản trị server Linux, Nginx, Docker và bán sản phẩm số cho lập trình viên.',
+  logo: '/images/logo.jpeg',
   url: clientEnv.NEXT_PUBLIC_SITE_URL,
   locale: 'vi_VN',
   timeZone: 'Asia/Ho_Chi_Minh',

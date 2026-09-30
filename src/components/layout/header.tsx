@@ -7,6 +7,7 @@ import { NotificationBell } from '@/components/layout/notification-bell';
 import { getPublicActiveAnnouncements, type AnnouncementItem } from '@/server/actions/settings';
 import { siteConfig } from '@/config/site';
 import Link from 'next/link';
+import Image from 'next/image';
 import { User } from 'lucide-react';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
@@ -33,8 +34,16 @@ export async function Header({ announcements: propAnnouncements }: HeaderProps =
   return (
     <header className="border-border bg-background/85 sticky top-0 z-40 border-b backdrop-blur-sm">
       <div className="container-page flex h-16 items-center justify-between gap-4">
-        <Link href="/" className="font-semibold tracking-tight">
-          {siteConfig.shortName}
+        <Link href="/" className="flex items-center gap-2.5 font-semibold tracking-tight">
+          <Image
+            src={siteConfig.logo}
+            alt={siteConfig.name}
+            width={72}
+            height={40}
+            className="h-8 w-auto rounded object-contain"
+            priority
+          />
+          <span className="hidden sm:inline-block">{siteConfig.shortName}</span>
         </Link>
 
         <nav aria-label="Điều hướng chính" className="hidden md:block">

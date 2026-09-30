@@ -11,6 +11,10 @@ import { USD_TO_VND_RATE } from '@/lib/wallet';
 
 export const runtime = 'nodejs';
 
+export async function GET() {
+  return NextResponse.json({ status: 'ok', message: 'PayOS webhook endpoint is active' });
+}
+
 export async function POST(req: NextRequest) {
   try {
     const rawBody = await req.json().catch(() => null);
@@ -52,6 +56,12 @@ export async function POST(req: NextRequest) {
     const numericOrderCode = data.orderCode;
     const paymentAmount = data.amount;
     const formattedOrderCode = `DH-${numericOrderCode}`;
+
+    // Xử lý request test từ PayOS khi kiểm tra / lưu Webhook URL trên Dashboard (orderCode 123 hoặc VQRIO123)
+    if (numericOrderCode === 123 || String(data.description || '').includes('VQRIO123')) {
+      console.log('✅ [PAYOS WEBHOOK TEST] Xác thực Webhook URL từ PayOS thành công.');
+      return NextResponse.json({ success: true, message: 'Webhook URL verified successfully' });
+    }
 
     // 2. Idempotency check: khoá chống xử lý lặp
     const providerEventId =

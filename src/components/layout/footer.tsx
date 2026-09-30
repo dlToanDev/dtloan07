@@ -1,5 +1,6 @@
 import { siteConfig } from '@/config/site';
 import Link from 'next/link';
+import Image from 'next/image';
 
 const footerLinks = [
   { label: 'Affiliate', href: '/affiliate' },
@@ -17,9 +18,18 @@ export function Footer() {
   return (
     <footer className="border-border mt-16 border-t">
       <div className="container-page flex flex-col gap-4 py-8 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-muted-foreground text-sm">
-          © {new Date().getFullYear()} {siteConfig.name}
-        </p>
+        <div className="flex items-center gap-2">
+          <Image
+            src={siteConfig.logo}
+            alt={siteConfig.name}
+            width={48}
+            height={26}
+            className="h-6 w-auto rounded object-contain"
+          />
+          <p className="text-muted-foreground text-sm">
+            © {new Date().getFullYear()} {siteConfig.name}
+          </p>
+        </div>
 
         <nav aria-label="Liên kết chân trang">
           <ul className="flex flex-wrap gap-x-5 gap-y-2">

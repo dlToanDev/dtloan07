@@ -24,16 +24,24 @@ const serverSchema = z.object({
 
   // P5 — Database
   DATABASE_URL: optional(z.string().url()),
+  DIRECT_URL: optional(z.string().url()),
 
   // P6 — Auth
   AUTH_SECRET: optional(z.string().min(32)),
   AUTH_URL: optional(z.string().url()),
   AUTH_GOOGLE_ID: optional(z.string()),
   AUTH_GOOGLE_SECRET: optional(z.string()),
+  AUTH_GITHUB_ID: optional(z.string()),
+  AUTH_GITHUB_SECRET: optional(z.string()),
 
   // P6 — Email
   RESEND_API_KEY: optional(z.string().startsWith('re_')),
   EMAIL_FROM: optional(z.string()),
+  ADMIN_NOTIFY_EMAIL: optional(z.string().email()),
+
+  // Gmail SMTP (Nodemailer)
+  GMAIL_USER: optional(z.string().email()),
+  GMAIL_APP_PASSWORD: optional(z.string()),
 
   // P9 — Storage (R2)
   R2_ACCOUNT_ID: optional(z.string()),
@@ -41,14 +49,26 @@ const serverSchema = z.object({
   R2_SECRET_ACCESS_KEY: optional(z.string()),
   R2_BUCKET: optional(z.string()),
 
+  // P3 Shop — Mã hóa thông tin tài khoản số (32 byte, mã hóa base64)
+  ACCOUNT_ENCRYPTION_KEY: optional(z.string().min(44)),
+
   // P8 — Payment (PayOS)
   PAYOS_CLIENT_ID: optional(z.string()),
   PAYOS_API_KEY: optional(z.string()),
   PAYOS_CHECKSUM_KEY: optional(z.string()),
+
+  // Affiliate — Rút gọn link kiếm tiền (MegaURL, Ouo.io, Shorte.st, etc.)
+  SHORTENER_API_URL: optional(z.string().url()),
+  SHORTENER_API_KEY: optional(z.string()),
+
+  // Affiliate — Bảo mật URL động xoay vòng ngẫu nhiên
+  AFFILIATE_ROTATION_MINUTES: optional(z.coerce.number().positive()).default(30),
+  AFFILIATE_TOKEN_SECRET: optional(z.string()),
 });
 
 const clientSchema = z.object({
   NEXT_PUBLIC_SITE_URL: z.string().url(),
+  NEXT_PUBLIC_SHOP_PATH: optional(z.string()).default('/afiuafhu283an'),
 });
 
 /**
@@ -56,7 +76,8 @@ const clientSchema = z.object({
  * tĩnh đầy đủ, nên phải liệt kê tường minh — không destructure `process.env`.
  */
 const clientRuntime = {
-  NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000',
+  NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:5000',
+  NEXT_PUBLIC_SHOP_PATH: process.env.NEXT_PUBLIC_SHOP_PATH ?? '/afiuafhu283an',
 };
 
 function parse<T extends z.ZodTypeAny>(schema: T, source: unknown, label: string): z.infer<T> {

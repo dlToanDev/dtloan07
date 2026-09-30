@@ -1,0 +1,96 @@
+---
+title: 'Tự động hóa deploy lên VPS với GitHub Actions và Docker'
+description: 'Thiết lập pipeline CI/CD zero-downtime: build multi-arch Docker image, đẩy lên private registry và trigger deploy qua SSH an toàn.'
+publishedAt: '2026-09-12'
+category: 'devops'
+tags: ['cicd', 'github-actions', 'docker', 'vps']
+cover: '/images/posts/github-actions-vps-cicd.svg'
+featured: false
+likes: 178
+comments: 31
+shares: 45
+views: 1540
+---
+
+Deploy thủ công bằng cách SSH vào máy chủ, gõ `git pull` rồi chạy build trực tiếp trên VPS là thói quen mà nhiều lập trình viên mắc phải. Cách này gây nghẽn CPU lúc build và tiềm ẩn rủi ro sập web nếu phát sinh lỗi giữa chừng.
+
+## Mô hình CI/CD hiện đại
+
+Thay vì build code trên VPS chạy production, chúng ta sử dụng runner miễn phí của GitHub Actions để kiểm thử, đóng gói Docker image, rồi chỉ kéo image hoàn chỉnh về VPS:
+
+```
+[Git Push] ➜ [GitHub Actions Runner] ➜ [GitHub Container Registry]
+                                               │
+                                               ▼ (SSH Trigger)
+                                    [Production VPS Docker]
+```
+
+## File cấu hình workflow GitHub Actions
+
+```yaml title=".github/workflows/deploy.yml" showLineNumbers
+name: Deploy Production
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout mã nguồn
+        uses: actions/checkout@v4
+
+      - name: Thiết lập Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Đăng nhập GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build và Push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ghcr.io/${{ github.repository }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Kích hoạt triển khai trên VPS qua SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            cd /home/deploy/app
+            docker compose pull app
+            docker compose up -d --no-deps app
+            docker image prune -f
+```
+
+<Callout type="warning" title="Bảo mật khóa SSH">
+  Chỉ tạo riêng một SSH Key pair có quyền giới hạn cho deployment, không bao giờ dùng trực tiếp private key của tài khoản root.
+</Callout>
+
+## Kiểm tra sau khi triển khai
+
+<Terminal title="deploy@vps">
+
+```bash
+# Xem logs container sau khi vừa kéo image mới
+docker compose logs -f --tail=50 app
+
+# Kiểm tra trạng thái healthcheck
+docker inspect --format='{{json .State.Health}}' app_container
+```
+
+</Terminal>
+
+## Kết luận
+
+Với quy trình này, bạn hoàn toàn tự tin nhấn nút `Merge` trên pull request. Mọi bài test được chạy tự động, image được cache tăng tốc và website được cập nhật trơn tru mà người dùng không gặp bất kỳ gián đoạn nào.

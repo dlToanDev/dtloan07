@@ -1,0 +1,80 @@
+---
+title: 'Giám sát tài nguyên VPS toàn diện với Prometheus & Grafana'
+description: 'Cài đặt Node Exporter, thu thập metrics CPU, RAM, Disk I/O và thiết lập cảnh báo Telegram bot khi máy chủ gặp sự cố bất thường.'
+publishedAt: '2026-09-02'
+category: 'server'
+tags: ['server', 'prometheus', 'grafana', 'monitoring']
+cover: '/images/posts/linux-prometheus-grafana.svg'
+featured: false
+likes: 96
+comments: 19
+shares: 22
+views: 920
+---
+
+Vận hành website trên VPS tự quản lý mang lại sự tự do và tiết kiệm chi phí, nhưng đi kèm trách nhiệm tự theo dõi sức khỏe hệ thống. Nếu không có hệ thống cảnh báo sớm, bạn chỉ biết máy chủ bị tràn RAM hay nghẽn CPU khi khách hàng nhắn tin phàn nàn.
+
+## Kiến trúc giám sát nhẹ cho VPS 1-2GB RAM
+
+Thay vì dựng cụm giám sát cồng kềnh, chúng ta sử dụng bộ công cụ kinh điển tối ưu tài nguyên:
+
+- **Node Exporter:** Service siêu nhẹ viết bằng Go, đọc thông số kernel Linux và expose ra endpoint `/metrics` tốn chưa đầy 15MB RAM.
+- **Prometheus:** Định kỳ cào dữ liệu (scrape) theo chu kỳ 15 giây và lưu vào time-series DB.
+- **Grafana:** Trực quan hóa dữ liệu bằng dashboard trực quan, hỗ trợ dark mode đẹp mắt.
+
+## Cấu hình Prometheus Scrape Job
+
+```yaml title="/etc/prometheus/prometheus.yml" showLineNumbers
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  - 'alerts.yml'
+
+scrape_configs:
+  - job_name: 'node_exporter'
+    static_configs:
+      - targets: ['localhost:9100']
+```
+
+<Callout type="info" title="Mẹo tối ưu disk">
+  Trên VPS dung lượng nhỏ (20-40GB SSD), hãy đặt cờ `--storage.tsdb.retention.time=15d` để Prometheus tự động dọn dẹp dữ liệu cũ hơn 15 ngày.
+</Callout>
+
+## Quy tắc cảnh báo khi CPU & RAM vượt ngưỡng
+
+Dưới đây là rule cảnh báo khi CPU máy chủ duy trì mức sử dụng trên 85% trong liên tục 5 phút:
+
+```yaml title="/etc/prometheus/alerts.yml" showLineNumbers
+groups:
+  - name: HostAlerts
+    rules:
+      - alert: HighCpuUsage
+        expr: 100 - (avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Cảnh báo: Máy chủ CPU cao (> 85%)"
+          description: "Instance {{ $labels.instance }} đang duy trì tải CPU cao liên tục."
+```
+
+## Khởi chạy dịch vụ
+
+<Terminal title="bash">
+
+```bash
+# Kiểm tra Node Exporter đã hoạt động chưa
+curl -s http://localhost:9100/metrics | grep node_cpu_seconds_total | head -n 5
+
+# Khởi động Prometheus bằng systemd
+sudo systemctl enable --now prometheus
+sudo systemctl status prometheus
+```
+
+</Terminal>
+
+## Kết luận
+
+Hệ thống giám sát này tiêu thụ không quá 100MB RAM của VPS, nhưng đem lại sự an tâm tuyệt đối. Bạn sẽ luôn biết chính xác tình trạng tài nguyên và xử lý kịp thời trước khi hệ thống rơi vào trạng thái tê liệt.

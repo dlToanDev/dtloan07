@@ -32,3 +32,6 @@ npm-debug.log*
 
 # db
 /prisma/*.db
+
+# Dữ liệu ngôn ngữ của máy chấm Piston (1–2 GB)
+deploy/piston/data/

@@ -1,0 +1,76 @@
+---
+title: 'Tối ưu Nginx làm reverse proxy cho Next.js trên VPS'
+description: 'Cấu hình Nginx reverse proxy cho Next.js: cache asset, nén gzip, giới hạn request và những lỗi timeout thường gặp khi chạy trên VPS nhỏ.'
+publishedAt: '2026-09-10'
+category: 'server'
+tags: ['nginx', 'vps', 'nextjs', 'performance']
+cover: '/images/posts/nginx-reverse-proxy.svg'
+featured: true
+likes: 142
+comments: 28
+shares: 35
+views: 1280
+---
+
+Next.js tự phục vụ được HTTP, nhưng đặt Nginx phía trước vẫn đáng làm: SSL, nén, cache asset tĩnh và rate limit đều rẻ hơn khi làm ở tầng Nginx thay vì trong Node.
+
+## Vì sao không để Node chạy trần
+
+Node xử lý mỗi request bằng event loop đơn luồng. Mỗi byte asset tĩnh mà nó phải đẩy ra là thời gian event loop không dùng để render trang.
+
+<Callout type="warning" title="Đừng mở port 3000 ra internet">
+  Luôn cho Next.js listen trên `127.0.0.1:3000` và chỉ Nginx nói chuyện với nó. Mở thẳng port 3000
+  nghĩa là bỏ qua toàn bộ rate limit và SSL của Nginx.
+</Callout>
+
+## Cấu hình tối thiểu nhưng đủ dùng
+
+```nginx title="/etc/nginx/sites-available/blog" showLineNumbers {5-9}
+server {
+    listen 80;
+    server_name yourdomain.com;
+
+    location /_next/static/ {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_cache_valid 200 365d;
+        add_header Cache-Control "public, max-age=31536000, immutable";
+    }
+
+    location / {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 60s;
+    }
+}
+```
+
+Phần được tô sáng là điểm ăn tiền: file trong `/_next/static/` có hash trong tên, nên đổi nội dung là đổi luôn URL. Cache vĩnh viễn hoàn toàn an toàn.
+
+## Kiểm tra trước khi reload
+
+<Terminal title="deploy@vps">
+
+```bash
+sudo nginx -t
+sudo systemctl reload nginx
+curl -I https://yourdomain.com/_next/static/chunks/main.js
+```
+
+</Terminal>
+
+`nginx -t` là bước không được bỏ. Reload với config sai sẽ giữ nguyên tiến trình cũ, nhưng `restart` thì làm sập site.
+
+## Lỗi hay gặp
+
+| Triệu chứng | Nguyên nhân thường gặp |
+| --- | --- |
+| 502 Bad Gateway | App chưa chạy, hoặc sai port trong `proxy_pass` |
+| 504 Gateway Timeout | `proxy_read_timeout` quá ngắn so với route render chậm |
+| Mất IP thật của khách | Thiếu `proxy_set_header X-Forwarded-For` |
+| WebSocket đứt | Thiếu header `Upgrade` và `Connection` |
+
+## Kết
+
+Cấu hình trên đủ cho một site đọc nhiều ghi ít. Khi lưu lượng tăng, bước tiếp theo là bật `proxy_cache` cho HTML của trang tĩnh — nhưng chỉ làm sau khi đã đo, không làm theo cảm tính.

@@ -1,0 +1,76 @@
+---
+title: 'Validate biến môi trường bằng Zod để app fail ngay lúc khởi động'
+description: 'Đọc thẳng process.env khiến lỗi cấu hình chỉ lộ ra khi khách đã bấm thanh toán. Dùng Zod để app crash ngay lúc boot, kèm thông báo chỉ rõ biến nào sai.'
+publishedAt: '2026-09-05'
+category: 'lap-trinh'
+tags: ['typescript', 'zod', 'nextjs']
+cover: '/images/posts/zod-env-validation.svg'
+featured: true
+likes: 215
+comments: 42
+shares: 68
+views: 1820
+---
+
+`process.env.FOO` trong TypeScript có kiểu `string | undefined`. Phần lớn code bỏ qua nhánh `undefined` bằng dấu `!`, và thế là lỗi cấu hình bị đẩy xuống tận runtime.
+
+## Vấn đề cụ thể
+
+```ts title="lib/payment.ts" /!/
+// Thiếu PAYOS_API_KEY thì dòng này vẫn chạy bình thường...
+const apiKey = process.env.PAYOS_API_KEY!;
+
+// ...và chỉ nổ khi khách đã bấm "Thanh toán".
+await fetch(url, { headers: { 'x-api-key': apiKey } });
+```
+
+<Callout type="danger" title="Lỗi cấu hình luôn đắt nhất ở luồng tiền">
+  Server khởi động thành công tạo cảm giác an toàn giả. Thà không boot được còn hơn boot rồi hỏng
+  giữa lúc khách trả tiền.
+</Callout>
+
+## Giải pháp: validate một lần, ở một chỗ
+
+```ts title="src/config/env.ts" showLineNumbers {12-16}
+import { z } from 'zod';
+
+const serverSchema = z.object({
+  NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+  DATABASE_URL: z.string().url(),
+  AUTH_SECRET: z.string().min(32),
+});
+
+const parsed = serverSchema.safeParse(process.env);
+
+if (!parsed.success) {
+  const issues = parsed.error.issues
+    .map((issue) => `  - ${issue.path.join('.')}: ${issue.message}`)
+    .join('\n');
+  throw new Error(`Biến môi trường không hợp lệ:\n${issues}`);
+}
+
+export const serverEnv = parsed.data;
+```
+
+Từ đây trở đi `serverEnv.DATABASE_URL` có kiểu `string`, không phải `string | undefined`. Không còn dấu `!` nào cần thiết.
+
+## Hai cái bẫy
+
+**Chuỗi rỗng không phải là undefined.** `FOO=""` trong `.env` vẫn là một giá trị, và nó sẽ rớt vào validate:
+
+```ts
+function optional<T extends z.ZodTypeAny>(schema: T) {
+  return z.preprocess((value) => (value === '' ? undefined : value), schema.optional());
+}
+```
+
+**Biến `NEXT_PUBLIC_*` phải viết đủ đường dẫn.** Next.js thay thế chuỗi `process.env.NEXT_PUBLIC_X` lúc build bằng phép thế văn bản, nên destructure sẽ ra `undefined`:
+
+```diff
+- const { NEXT_PUBLIC_SITE_URL } = process.env;
++ const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
+```
+
+## Kết
+
+Chi phí là mười lăm phút cấu hình. Đổi lại, mọi lỗi thiếu biến môi trường chuyển từ lỗi runtime ngẫu nhiên thành lỗi build có thông báo chỉ đúng tên biến.

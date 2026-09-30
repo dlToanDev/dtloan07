@@ -1,0 +1,59 @@
+---
+title: 'Cẩm Nang Bảo Mật VPS Linux Toàn Diện: UFW, Fail2ban và Docker Hardening'
+description: 'Hướng dẫn các bước thiết yếu để thiết lập một máy chủ VPS Linux an toàn trước các cuộc tấn công dò quét brute-force và DDoS.'
+publishedAt: '2026-09-27'
+category: 'devops'
+tags: ['linux', 'security', 'vps', 'ufw', 'fail2ban']
+cover: 'https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=800'
+featured: false
+draft: false
+likes: 112
+comments: 19
+shares: 24
+views: 890
+---
+
+Khi bạn vừa mua một chiếc VPS mới và nhận IP public từ nhà cung cấp, chỉ sau vài phút các bot quét tự động trên toàn cầu sẽ bắt đầu gửi hàng ngàn request dò tìm mật khẩu SSH. Nếu bạn không có biện pháp phòng vệ ngay từ đầu, máy chủ của bạn sẽ trở thành một phần của mạng botnet.
+
+## 1. Vô hiệu hóa SSH Password và Root Login
+
+Cách bảo mật SSH tốt nhất là không sử dụng mật khẩu mà chuyển hoàn toàn sang SSH Key Ed25519:
+
+```bash title="Terminal" showLineNumbers
+# Tạo cặp khóa SSH trên máy dev
+ssh-keygen -t ed25519 -C "admin@yourdomain.com"
+
+# Đẩy public key lên VPS
+ssh-copy-id -i ~/.ssh/id_ed25519.pub user@vps-ip
+```
+
+Sau đó chỉnh sửa file cấu hình `/etc/ssh/sshd_config`:
+
+```ini title="/etc/ssh/sshd_config"
+PermitRootLogin no
+PasswordAuthentication no
+PubkeyAuthentication yes
+```
+
+Khởi động lại dịch vụ SSH để áp dụng:
+
+```bash
+sudo systemctl restart ssh
+```
+
+## 2. Thiết lập Tường lửa UFW (Uncomplicated Firewall)
+
+Nguyên tắc vàng: Chỉ mở những cổng bạn thực sự cung cấp dịch vụ ra ngoài Internet.
+
+```bash title="Terminal" showLineNumbers
+sudo ufw default deny incoming
+sudo ufw default allow outgoing
+sudo ufw allow 22/tcp
+sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
+sudo ufw enable
+```
+
+## 3. Cài đặt Fail2ban chống dò quét mật khẩu
+
+Fail2ban sẽ liên tục giám sát log hệ thống. Khi phát hiện một IP nhập sai mật khẩu quá số lần quy định, nó sẽ tự động thêm IP đó vào danh sách đen của iptables để chặn kết nối tạm thời hoặc vĩnh viễn.

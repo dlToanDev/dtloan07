@@ -1,0 +1,83 @@
+---
+title: 'Chiến lược Cache đa tầng với Redis và Next.js App Router'
+description: 'Hướng dẫn xây dựng cache layer với Redis cho API và Server Components: xử lý cache stampede, eviction policy và cơ chế invalidate dữ liệu realtime.'
+publishedAt: '2026-09-15'
+category: 'database'
+tags: ['redis', 'nextjs', 'caching', 'performance']
+cover: '/images/posts/redis-cache-strategy.svg'
+featured: true
+likes: 320
+comments: 56
+shares: 94
+views: 2450
+---
+
+Khi ứng dụng web bắt đầu nhận hàng chục nghìn lượt truy cập mỗi phút, cơ sở dữ liệu quan hệ (PostgreSQL hay MySQL) sẽ nhanh chóng trở thành nút thắt cổ chai lớn nhất. Triển khai tầng Redis Cache ở giữa ứng dụng Next.js và Database giúp giảm độ trễ từ vài chục mili-giây xuống chỉ còn dưới 1ms.
+
+## Kiến trúc Cache 2 tầng (L1 Memory & L2 Redis)
+
+Không phải mọi truy vấn đều cần chọc thẳng vào Redis qua mạng nội bộ. Bằng cách kết hợp cache bộ nhớ cục bộ của tiến trình Node.js (L1) và Redis cụm tập trung (L2), chúng ta đạt được tốc độ phản hồi tối ưu:
+
+1. **L1 Local In-Memory:** Lưu dữ liệu đọc cực nhiều nhưng ít thay đổi trong 5-15 giây.
+2. **L2 Distributed Redis:** Lưu session, số lượng giỏ hàng, kết quả truy vấn nặng với TTL 5-60 phút.
+
+<Callout type="info" title="Lợi ích rõ ràng">
+  Giảm hơn 92% số lượng query vào database chính, duy trì uptime ổn định ngay cả trong các đợt flash sale.
+</Callout>
+
+## Phòng chống thảm họa Cache Stampede
+
+Hiện tượng **Cache Stampede** (hay Cache Avalanche) xảy ra khi một key cực hot hết hạn (TTL expire) cùng lúc có hàng nghìn request đổ về. Cả nghìn request đó cùng thấy cache miss và đồng loạt gọi vào database, khiến Postgres quá tải và sập toàn bộ hệ thống.
+
+```ts title="lib/redis-cache.ts" showLineNumbers
+import Redis from 'ioredis';
+
+const redis = new Redis(process.env.REDIS_URL!);
+
+export async function getCachedWithLock<T>(
+  key: string,
+  fetcher: () => Promise<T>,
+  ttlSeconds = 300
+): Promise<T> {
+  const cached = await redis.get(key);
+  if (cached) {
+    return JSON.parse(cached) as T;
+  }
+
+  // Khóa phân tán đơn giản bằng SET NX PX
+  const lockKey = `lock:${key}`;
+  const acquired = await redis.set(lockKey, '1', 'PX', 3000, 'NX');
+
+  if (acquired) {
+    try {
+      const data = await fetcher();
+      await redis.setex(key, ttlSeconds, JSON.stringify(data));
+      return data;
+    } finally {
+      await redis.del(lockKey);
+    }
+  }
+
+  // Nếu không giành được lock, đợi 50ms rồi đọc lại cache
+  await new Promise((r) => setTimeout(r, 50));
+  return getCachedWithLock(key, fetcher, ttlSeconds);
+}
+```
+
+## Kiểm tra hiệu năng thực tế
+
+<Terminal title="redis-cli benchmark">
+
+```bash
+# Kiểm tra latency của cụm Redis
+redis-cli --latency -h 127.0.0.1 -p 6379
+
+# Đo lường số lượng phép toán mỗi giây (QPS)
+redis-benchmark -q -n 100000 -c 50 -P 16
+```
+
+</Terminal>
+
+## Kết luận
+
+Một chiến lược caching tốt không chỉ là `SET` và `GET`. Hãy luôn tính trước các kịch bản stale data, thiết lập eviction policy dạng `volatile-lru` và sử dụng locking khi tính toán các truy vấn phân tích nặng.

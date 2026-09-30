@@ -17,58 +17,90 @@ const botToken = config.token || '123456789:AAPlaceholderTokenForBuildCheckOnly1
 export const bot = new Bot(botToken);
 
 // ==========================================
+// 0. GLOBAL ERROR HANDLER
+// ==========================================
+
+bot.catch((err) => {
+  const ctx = err.ctx;
+  console.error(`❌ [TELEGRAM ERROR] Lỗi khi xử lý update ${ctx.update?.update_id}:`, err.error);
+});
+
+// ==========================================
 // 1. COMMANDS
 // ==========================================
 
 bot.command('start', async (ctx) => {
-  const name = ctx.from?.first_name || 'bạn';
-  const welcomeText =
-    `👋 <b>Xin chào ${escapeHtml(name)}!</b>\n\n` +
-    `Chào mừng bạn đến với Cửa Hàng <b>Mã Nguồn & Tài Khoản Bản Quyền</b>.\n\n` +
-    `🚀 <b>Ưu điểm khi mua tại Bot:</b>\n` +
-    `• Bàn giao tự động qua Telegram & Email trong <b>3 giây</b>\n` +
-    `• Thanh toán tự động bằng mã <b>VietQR Napas 24/7</b>\n` +
-    `• Bảo hành 1 đổi 1 uy tín\n\n` +
-    `Vui lòng chọn danh mục bạn quan tâm:`;
+  try {
+    const name = ctx.from?.first_name || 'bạn';
+    const welcomeText =
+      `👋 <b>Xin chào ${escapeHtml(name)}!</b>\n\n` +
+      `Chào mừng bạn đến với Cửa Hàng <b>Mã Nguồn & Tài Khoản Bản Quyền</b>.\n\n` +
+      `🚀 <b>Ưu điểm khi mua tại Bot:</b>\n` +
+      `• Bàn giao tự động qua Telegram & Email trong <b>3 giây</b>\n` +
+      `• Thanh toán tự động bằng mã <b>VietQR Napas 24/7</b>\n` +
+      `• Bảo hành 1 đổi 1 uy tín\n\n` +
+      `Vui lòng chọn danh mục bạn quan tâm:`;
 
-  await ctx.reply(welcomeText, {
-    parse_mode: 'HTML',
-    reply_markup: mainMenuKeyboard(),
-  });
+    await ctx.reply(welcomeText, {
+      parse_mode: 'HTML',
+      reply_markup: mainMenuKeyboard(),
+    });
+  } catch (error) {
+    console.error('Lỗi khi xử lý lệnh /start:', error);
+    try {
+      await ctx.reply('👋 Xin chào bạn! Vui lòng chọn danh mục bạn quan tâm:', {
+        reply_markup: mainMenuKeyboard(),
+      });
+    } catch (fallbackError) {
+      console.error('Lỗi fallback /start:', fallbackError);
+    }
+  }
 });
 
 bot.command('help', async (ctx) => {
-  const helpText =
-    `📖 <b>HƯỚNG DẪN MUA HÀNG TRÊN TELEGRAM BOT:</b>\n\n` +
-    `1️⃣ Chọn danh mục: 📁 <b>File Code</b> hoặc 🔐 <b>Tài Khoản</b>\n` +
-    `2️⃣ Xem thông tin chi tiết và chọn gói phù hợp\n` +
-    `3️⃣ Nhập Email nhận hóa đơn và thông tin bảo hành\n` +
-    `4️⃣ Mở App Ngân hàng quét mã <b>VietQR</b> thanh toán tức thì\n` +
-    `5️⃣ Hệ thống tự động bàn giao hàng ngay tại cuộc trò chuyện này!\n\n` +
-    `📌 <b>Các lệnh nhanh:</b>\n` +
-    `• /start - Mở menu chính\n` +
-    `• /orders - Xem lại đơn hàng của bạn\n` +
-    `• /help - Hướng dẫn sử dụng\n` +
-    `• /cancel - Hủy thao tác đang làm dở`;
+  try {
+    const helpText =
+      `📖 <b>HƯỚNG DẪN MUA HÀNG TRÊN TELEGRAM BOT:</b>\n\n` +
+      `1️⃣ Chọn danh mục: 📁 <b>File Code</b> hoặc 🔐 <b>Tài Khoản</b>\n` +
+      `2️⃣ Xem thông tin chi tiết và chọn gói phù hợp\n` +
+      `3️⃣ Nhập Email nhận hóa đơn và thông tin bảo hành\n` +
+      `4️⃣ Mở App Ngân hàng quét mã <b>VietQR</b> thanh toán tức thì\n` +
+      `5️⃣ Hệ thống tự động bàn giao hàng ngay tại cuộc trò chuyện này!\n\n` +
+      `📌 <b>Các lệnh nhanh:</b>\n` +
+      `• /start - Mở menu chính\n` +
+      `• /orders - Xem lại đơn hàng của bạn\n` +
+      `• /help - Hướng dẫn sử dụng\n` +
+      `• /cancel - Hủy thao tác đang làm dở`;
 
-  await ctx.reply(helpText, {
-    parse_mode: 'HTML',
-    reply_markup: mainMenuKeyboard(),
-  });
+    await ctx.reply(helpText, {
+      parse_mode: 'HTML',
+      reply_markup: mainMenuKeyboard(),
+    });
+  } catch (error) {
+    console.error('Lỗi khi xử lý lệnh /help:', error);
+  }
 });
 
 bot.command('orders', async (ctx) => {
-  await handleMyOrders(ctx);
+  try {
+    await handleMyOrders(ctx);
+  } catch (error) {
+    console.error('Lỗi khi xử lý lệnh /orders:', error);
+  }
 });
 
 bot.command('cancel', async (ctx) => {
-  const chatId = ctx.chat.id;
-  if (userCheckoutState.has(chatId)) {
-    userCheckoutState.delete(chatId);
+  try {
+    const chatId = ctx.chat.id;
+    if (userCheckoutState.has(chatId)) {
+      userCheckoutState.delete(chatId);
+    }
+    await ctx.reply('✅ Đã hủy thao tác hiện tại.', {
+      reply_markup: mainMenuKeyboard(),
+    });
+  } catch (error) {
+    console.error('Lỗi khi xử lý lệnh /cancel:', error);
   }
-  await ctx.reply('✅ Đã hủy thao tác hiện tại.', {
-    reply_markup: mainMenuKeyboard(),
-  });
 });
 
 // ==========================================

@@ -8,6 +8,7 @@ import {
   productsListKeyboard,
   productDetailKeyboard,
   orderPaymentKeyboard,
+  isValidTelegramUrl,
 } from '@/lib/telegram/keyboards';
 import {
   processOrderCreation,
@@ -45,6 +46,13 @@ describe('Telegram Sales Bot (Accounts & Source Code) Unit Tests', () => {
   });
 
   describe('2. Inline Keyboards UI', () => {
+    it('isValidTelegramUrl lọc bỏ các URL localhost hoặc IP nội bộ không hợp lệ với Telegram', () => {
+      expect(isValidTelegramUrl('http://localhost:5000')).toBe(false);
+      expect(isValidTelegramUrl('http://127.0.0.1:3000')).toBe(false);
+      expect(isValidTelegramUrl('https://dltoan07.com')).toBe(true);
+      expect(isValidTelegramUrl('')).toBe(false);
+    });
+
     it('mainMenuKeyboard chứa các nút điều hướng danh mục ACCOUNT, DOWNLOAD và hỗ trợ', () => {
       const kb = mainMenuKeyboard();
       const buttons = kb.inline_keyboard.flat();
@@ -54,9 +62,6 @@ describe('Telegram Sales Bot (Accounts & Source Code) Unit Tests', () => {
       expect(callbackDatas).toContain('cat:ACCOUNT');
       expect(callbackDatas).toContain('nav:orders');
       expect(callbackDatas).toContain('nav:support');
-
-      const urlButtons = buttons.map((b: any) => b.url).filter(Boolean);
-      expect(urlButtons.length).toBeGreaterThan(0);
     });
 
     it('categoryKeyboard chỉ cho phép chọn 2 danh mục hàng số: DOWNLOAD và ACCOUNT', () => {
@@ -82,11 +87,11 @@ describe('Telegram Sales Bot (Accounts & Source Code) Unit Tests', () => {
       const buttons = kb.inline_keyboard.flat();
       const buyBtn = buttons.find((b: any) => b.callback_data === 'buy:var-1');
       expect(buyBtn).toBeDefined();
-      expect(buyBtn.text).toContain('Gói 1 tháng');
+      expect(buyBtn?.text).toContain('Gói 1 tháng');
 
       const outOfStockBtn = buttons.find((b: any) => b.callback_data === 'noop');
       expect(outOfStockBtn).toBeDefined();
-      expect(outOfStockBtn.text).toContain('Hết hàng');
+      expect(outOfStockBtn?.text).toContain('Hết hàng');
     });
 
     it('orderPaymentKeyboard chứa URL thanh toán PayOS và nút kiểm tra / hủy đơn', () => {

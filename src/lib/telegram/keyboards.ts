@@ -8,19 +8,33 @@ export function formatVnd(amount: number): string {
   return `${amount.toLocaleString('vi-VN')} đ`;
 }
 
+export function isValidTelegramUrl(url?: string | null): boolean {
+  if (!url) return false;
+  return (
+    /^https?:\/\//i.test(url) &&
+    !url.includes('localhost') &&
+    !url.includes('127.0.0.1') &&
+    !url.includes('0.0.0.0')
+  );
+}
+
 /**
  * Menu chính khi gõ /start hoặc bấm Menu
  */
 export function mainMenuKeyboard(): InlineKeyboard {
-  return new InlineKeyboard()
+  const keyboard = new InlineKeyboard()
     .text('📁 File Code & Dự án mẫu', 'cat:DOWNLOAD')
     .row()
     .text('🔐 Tài khoản Bản quyền', 'cat:ACCOUNT')
     .row()
     .text('🔍 Đơn hàng của tôi', 'nav:orders')
-    .text('💬 Hỗ trợ kỹ thuật', 'nav:support')
-    .row()
-    .url('🌐 Ghé thăm Website', siteConfig.url);
+    .text('💬 Hỗ trợ kỹ thuật', 'nav:support');
+
+  if (isValidTelegramUrl(siteConfig.url)) {
+    keyboard.row().url('🌐 Ghé thăm Website', siteConfig.url);
+  }
+
+  return keyboard;
 }
 
 /**
@@ -110,14 +124,20 @@ export function emailChoiceKeyboard(
  * Bàn phím thanh toán PayOS VietQR
  */
 export function orderPaymentKeyboard(checkoutUrl: string, orderCode: string): InlineKeyboard {
-  return new InlineKeyboard()
-    .url('💳 Mở cổng thanh toán PayOS', checkoutUrl)
-    .row()
+  const keyboard = new InlineKeyboard();
+
+  if (isValidTelegramUrl(checkoutUrl)) {
+    keyboard.url('💳 Mở cổng thanh toán PayOS', checkoutUrl).row();
+  }
+
+  keyboard
     .text('🔄 Kiểm tra thanh toán', `check:${orderCode}`)
     .row()
     .text('❌ Hủy đơn hàng', `cancel:${orderCode}`)
     .row()
     .text('🏠 Menu chính', 'nav:menu');
+
+  return keyboard;
 }
 
 /**

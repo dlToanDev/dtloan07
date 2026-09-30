@@ -6,13 +6,20 @@ const emptyToNull = (value: unknown) => (value === '' || value === undefined ? n
 const variantSchema = z
   .object({
     id: z.string().min(1).optional(),
-    name: z.string().trim().min(1, 'Tên biến thể không được để trống.').max(100),
+    name: z
+      .string({ required_error: 'Tên biến thể không được để trống.' })
+      .trim()
+      .min(1, 'Tên biến thể không được để trống.')
+      .max(100),
     sku: z.preprocess(emptyToNull, z.string().trim().max(64).nullable()),
-    priceVnd: z.coerce
-      .number()
-      .int()
-      .min(0, 'Giá biến thể không được âm.')
-      .max(MAX_INT, 'Giá quá lớn (tối đa khoảng 2,1 tỷ đ).'),
+    priceVnd: z.preprocess(
+      (v) => (v === '' || v === null || v === undefined ? 0 : v),
+      z.coerce
+        .number({ invalid_type_error: 'Giá biến thể không hợp lệ.' })
+        .int()
+        .min(0, 'Giá biến thể không được âm.')
+        .max(MAX_INT, 'Giá quá lớn (tối đa khoảng 2,1 tỷ đ).'),
+    ),
     compareAtVnd: z.preprocess(emptyToNull, z.coerce.number().int().min(0).max(MAX_INT).nullable()),
     stock: z.preprocess(
       emptyToNull,
@@ -30,17 +37,31 @@ export type VariantInput = z.infer<typeof variantSchema>;
 export function parseVariantsInput(
   raw: unknown,
 ): { ok: true; variants: VariantInput[] } | { ok: false; error: string } {
+  if (!raw) {
+    return { ok: false, error: 'Vui lòng nhập giá cho sản phẩm.' };
+  }
   let json: unknown;
   try {
     json = typeof raw === 'string' ? JSON.parse(raw) : raw;
   } catch {
     return { ok: false, error: 'Dữ liệu biến thể không hợp lệ.' };
   }
-  const parsed = z.array(variantSchema).min(1, 'Cần ít nhất 1 biến thể.').safeParse(json);
+  if (!Array.isArray(json) || json.length === 0) {
+    return { ok: false, error: 'Cần ít nhất 1 biến thể hoặc giá bán.' };
+  }
+  const parsed = z
+    .array(variantSchema, { required_error: 'Cần ít nhất 1 biến thể hoặc giá bán.' })
+    .min(1, 'Cần ít nhất 1 biến thể.')
+    .safeParse(json);
   if (!parsed.success) {
+    const firstError = parsed.error.errors[0];
+    const msg =
+      firstError?.message === 'Required'
+        ? 'Vui lòng nhập đầy đủ giá bán cho sản phẩm.'
+        : firstError?.message;
     return {
       ok: false,
-      error: parsed.error.errors[0]?.message ?? 'Dữ liệu biến thể không hợp lệ.',
+      error: msg ?? 'Dữ liệu biến thể không hợp lệ.',
     };
   }
   const seen = new Set<string>();

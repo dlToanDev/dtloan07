@@ -12,6 +12,7 @@ import {
   splitCredentialLines,
 } from '@/lib/crypto/credentials';
 import { parseVariantsInput, planVariantSync, type VariantInput } from '@/lib/shop/variant-input';
+import { slugifyPostTitle } from '@/lib/utils';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { siteConfig } from '@/config/site';
@@ -29,28 +30,46 @@ const optionalEnum = <T extends z.ZodTypeAny>(schema: T) =>
 
 const schema = z.object({
   name: z
-    .string()
+    .string({ required_error: 'Vui lòng nhập tên sản phẩm.' })
     .trim()
     .min(1, 'Vui lòng nhập tên sản phẩm.')
     .max(200, 'Tên sản phẩm tối đa 200 ký tự.'),
   slug: z
-    .string()
+    .string({ required_error: 'Vui lòng nhập đường dẫn (slug) sản phẩm.' })
+    .trim()
+    .min(1, 'Vui lòng nhập đường dẫn (slug) sản phẩm.')
     .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Slug chỉ gồm chữ thường, số và dấu gạch ngang.'),
   shortDesc: z
-    .string()
+    .string({ required_error: 'Vui lòng nhập mô tả ngắn.' })
     .trim()
     .min(1, 'Vui lòng nhập mô tả ngắn.')
     .max(500, 'Mô tả ngắn tối đa 500 ký tự.'),
   // Mô tả chi tiết không bắt buộc — trang sản phẩm ẩn khung mô tả khi trống.
   description: z.string().trim().default(''),
-  version: z.string().trim().min(1, 'Vui lòng nhập phiên bản.').max(50),
-  saleMode: z.enum(['FREE', 'CONTACT', 'PAID']),
-  status: z.enum(['DRAFT', 'ACTIVE', 'ARCHIVED']),
-  priceVnd: z.coerce
-    .number()
-    .int()
-    .min(0, 'Giá không hợp lệ.')
-    .max(2147483647, 'Giá quá lớn (tối đa khoảng 2,1 tỷ đ).'),
+  version: z.preprocess(
+    (value) => (!value ? '1.0.0' : value),
+    z
+      .string({ required_error: 'Vui lòng nhập phiên bản.' })
+      .trim()
+      .min(1, 'Vui lòng nhập phiên bản.')
+      .max(50),
+  ),
+  saleMode: z.preprocess(
+    (value) => (value === '' || value === undefined || value === null ? 'PAID' : value),
+    z.enum(['FREE', 'CONTACT', 'PAID'], { required_error: 'Vui lòng chọn hình thức bán.' }),
+  ),
+  status: z.preprocess(
+    (value) => (value === '' || value === undefined || value === null ? 'ACTIVE' : value),
+    z.enum(['DRAFT', 'ACTIVE', 'ARCHIVED'], { required_error: 'Trạng thái không hợp lệ.' }),
+  ),
+  priceVnd: z.preprocess(
+    (val) => (val === '' || val === null || val === undefined ? 0 : val),
+    z.coerce
+      .number({ invalid_type_error: 'Giá không hợp lệ.' })
+      .int()
+      .min(0, 'Giá không hợp lệ.')
+      .max(2147483647, 'Giá quá lớn (tối đa khoảng 2,1 tỷ đ).'),
+  ),
   coverUrl: z
     .string()
     .trim()
@@ -61,7 +80,12 @@ const schema = z.object({
     .default(''),
 
   // --- Shop ---
-  type: z.enum(['DOWNLOAD', 'PHYSICAL', 'ACCOUNT']).default('DOWNLOAD'),
+  type: z.preprocess(
+    (value) => (!value ? 'ACCOUNT' : value),
+    z.enum(['DOWNLOAD', 'PHYSICAL', 'ACCOUNT'], {
+      required_error: 'Vui lòng chọn loại sản phẩm.',
+    }),
+  ),
   categoryId: z.string().trim().max(50).optional().default(''),
   condition: optionalEnum(z.enum(['NEW', 'LIKE_NEW', 'USED'])),
   conditionNote: z.string().trim().max(300).optional().default(''),
@@ -81,7 +105,35 @@ const gallerySchema = z
 
 export async function saveProduct(_state: { error?: string; success?: string }, form: FormData) {
   await requireProductAdmin();
-  const parsed = schema.safeParse(Object.fromEntries(form));
+  const rawData: Record<string, unknown> = Object.fromEntries(form);
+
+  // Fallbacks thông minh và tự động tạo slug nếu thiếu
+  if (!rawData.slug && typeof rawData.name === 'string' && rawData.name.trim()) {
+    rawData.slug = slugifyPostTitle(rawData.name);
+  }
+  if (!rawData.status) {
+    rawData.status = 'ACTIVE';
+  }
+  if (!rawData.version) {
+    rawData.version = '1.0.0';
+  }
+  if (!rawData.type) {
+    rawData.type = 'ACCOUNT';
+  }
+  if (!rawData.saleMode) {
+    rawData.saleMode = rawData.type === 'DOWNLOAD' ? 'FREE' : 'PAID';
+  }
+  if (!rawData.priceVnd) {
+    rawData.priceVnd = '0';
+  }
+  if (!rawData.coverUrl) {
+    rawData.coverUrl = '';
+  }
+  if (!rawData.description) {
+    rawData.description = '';
+  }
+
+  const parsed = schema.safeParse(rawData);
   if (!parsed.success)
     return { error: parsed.error.errors[0]?.message || 'Thông tin không hợp lệ.' };
   const data = parsed.data;
@@ -288,6 +340,7 @@ export async function saveProduct(_state: { error?: string; success?: string }, 
     for (const path of [
       '/',
       '/admin/shop',
+      '/admin/products',
       siteConfig.shopPath,
       `${siteConfig.shopPath}/${data.slug}`,
     ])
@@ -296,6 +349,7 @@ export async function saveProduct(_state: { error?: string; success?: string }, 
       revalidatePath(`${siteConfig.shopPath}/${existing.slug}`);
     }
     revalidatePath(`/admin/shop/${savedId}/edit`);
+    revalidatePath(`/admin/products/${savedId}/edit`);
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002')
       return { error: 'SKU bị trùng với biến thể khác.' };

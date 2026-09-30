@@ -219,17 +219,28 @@ export function ProductForm({
   const [shortDesc, setShortDesc] = useState(product?.shortDesc || '');
   const [editorError, setEditorError] = useState('');
   const [uploadCount, setUploadCount] = useState(0);
+  const searchParams = useSearchParams();
+  const justSaved = searchParams.get('saved') === '1';
+  const queryType = searchParams.get('type');
+  const initialType: 'DOWNLOAD' | 'PHYSICAL' | 'ACCOUNT' =
+    product?.type ??
+    (queryType === 'DOWNLOAD' || queryType === 'PHYSICAL' || queryType === 'ACCOUNT'
+      ? queryType
+      : 'ACCOUNT');
+
   const [shop, setShop] = useState<ShopDetailsValue>({
-    type: product?.type ?? '',
+    type: initialType,
     category: product?.category ?? '',
     condition: (product?.condition as ShopDetailsValue['condition']) ?? '',
     conditionNote: product?.conditionNote ?? '',
     warrantyNote: product?.warrantyNote ?? '',
-    deliveryMode: product?.deliveryMode ?? '',
+    deliveryMode: product?.deliveryMode ?? (initialType === 'ACCOUNT' ? 'AUTO' : ''),
   });
   const [categoryList, setCategoryList] = useState(categories);
-  const searchParams = useSearchParams();
-  const justSaved = searchParams.get('saved') === '1';
+  const statusInputRef = useRef<HTMLInputElement>(null);
+  const [submitStatus, setSubmitStatus] = useState<'DRAFT' | 'ACTIVE'>(
+    product?.status === 'DRAFT' ? 'DRAFT' : 'ACTIVE',
+  );
 
   const isSource = shop.type === 'DOWNLOAD';
   const typeChosen = shop.type !== '';
@@ -281,6 +292,7 @@ export function ProductForm({
     <div className="mx-auto max-w-3xl space-y-5">
       <form action={action} onKeyDown={blockEnterSubmit} className="space-y-5">
         <input type="hidden" name="id" value={product?.id || ''} />
+        <input ref={statusInputRef} type="hidden" name="status" value={submitStatus} />
 
         {state.error && (
           <p role="alert" className="rounded-lg bg-red-500/10 p-3 text-sm text-red-600">
@@ -588,6 +600,10 @@ export function ProductForm({
               variant="outline"
               formNoValidate
               disabled={busy}
+              onClick={() => {
+                setSubmitStatus('DRAFT');
+                if (statusInputRef.current) statusInputRef.current.value = 'DRAFT';
+              }}
             >
               {isPublished ? 'Chuyển về nháp' : 'Lưu nháp'}
             </Button>
@@ -597,6 +613,10 @@ export function ProductForm({
               value="ACTIVE"
               className="bg-emerald-600 text-white hover:bg-emerald-700"
               disabled={busy}
+              onClick={() => {
+                setSubmitStatus('ACTIVE');
+                if (statusInputRef.current) statusInputRef.current.value = 'ACTIVE';
+              }}
             >
               {submitLabel}
             </Button>

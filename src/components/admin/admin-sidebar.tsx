@@ -55,11 +55,12 @@ const navGroups: NavGroup[] = [
         iconBg: 'bg-rose-500/10',
       },
       {
-        title: 'Trợ giúp & Hỗ trợ',
-        href: '/admin/support',
-        icon: Headset,
-        iconColor: 'text-violet-500',
-        iconBg: 'bg-violet-500/10',
+        title: 'Quản lý sản phẩm',
+        href: '/admin/products',
+        icon: ShoppingBag,
+        badge: 'Shop & Bot',
+        iconColor: 'text-amber-500',
+        iconBg: 'bg-amber-500/10',
       },
       {
         title: 'Đơn hàng',
@@ -74,6 +75,13 @@ const navGroups: NavGroup[] = [
         icon: KeyRound,
         iconColor: 'text-amber-500',
         iconBg: 'bg-amber-500/10',
+      },
+      {
+        title: 'Trợ giúp & Hỗ trợ',
+        href: '/admin/support',
+        icon: Headset,
+        iconColor: 'text-violet-500',
+        iconBg: 'bg-violet-500/10',
       },
       {
         title: 'Subscribers',
@@ -127,14 +135,6 @@ const navGroups: NavGroup[] = [
         title: 'Affiliate TikTok & Shopee',
         href: '/admin/affiliate-shopping',
         icon: ShoppingBag,
-        iconColor: 'text-amber-500',
-        iconBg: 'bg-amber-500/10',
-      },
-      {
-        title: 'Shop',
-        href: '/admin/shop',
-        icon: ShoppingBag,
-        exact: true,
         iconColor: 'text-amber-500',
         iconBg: 'bg-amber-500/10',
       },
@@ -198,6 +198,15 @@ export function AdminSidebar({
     const targetHref = getLinkHref(item.href);
     if (item.exact || item.href === '/admin') {
       return pathname === targetHref || pathname === item.href;
+    }
+    // Hỗ trợ highlight Quản lý sản phẩm cho cả /admin/products và /admin/shop
+    if (item.href === '/admin/products' || item.href === '/admin/shop') {
+      const isProductRoute =
+        pathname.includes('/products') ||
+        (pathname.includes('/shop') &&
+          !pathname.includes('/shop/categories') &&
+          !pathname.includes('/shop/shipping'));
+      if (isProductRoute) return true;
     }
     return (
       pathname === targetHref ||

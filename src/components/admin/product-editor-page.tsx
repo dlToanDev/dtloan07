@@ -7,7 +7,13 @@ import { AccountStockManager } from '@/components/admin/shop/account-stock-manag
 import { FormSection } from '@/components/admin/shop/form-section';
 import { isCredentialKeyConfigured } from '@/lib/crypto/credentials';
 
-export async function ProductEditorPage({ id }: { id?: string }) {
+export async function ProductEditorPage({
+  id,
+  basePath = '/admin/products',
+}: {
+  id?: string;
+  basePath?: string;
+}) {
   await requireProductAdmin();
   const product = id
     ? await db.product.findUnique({
@@ -42,8 +48,8 @@ export async function ProductEditorPage({ id }: { id?: string }) {
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <div className="space-y-1">
-        <Link href="/admin/shop" className="text-muted-foreground text-sm hover:underline">
-          ← Shop
+        <Link href={basePath} className="text-muted-foreground text-sm hover:underline">
+          ← Danh sách sản phẩm
         </Link>
         <h1 className="text-2xl font-bold">
           {id ? product?.name || 'Chỉnh sửa sản phẩm' : 'Thêm sản phẩm'}

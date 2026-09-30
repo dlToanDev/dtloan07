@@ -51,6 +51,9 @@ import {
   toggleAnnouncementState,
   deleteAnnouncement,
   type LoginAdConfig,
+  getHeroBannerConfig,
+  getPublicHeroBannerConfig,
+  saveHeroBannerConfig,
 } from '@/server/actions/settings';
 
 // `auth` của NextAuth là hàm overload nên vi.mocked() không suy ra được kiểu trả về.
@@ -442,6 +445,91 @@ describe('Admin Settings & Login Ad Popup Unit Tests', () => {
           }),
         }),
       );
+    });
+  });
+
+  describe('Hero Banner Advertising Carousel (3 Banner Đối Tác)', () => {
+    it('Lấy cấu hình banner mặc định khi chưa có trong DB', async () => {
+      mockAuth.mockResolvedValueOnce({
+        user: { id: 'admin1', role: 'ADMIN' },
+      });
+      mockSetting.findUnique.mockResolvedValueOnce(null);
+
+      const config = await getHeroBannerConfig();
+      expect(config.enabled).toBe(true);
+      expect(config.autoPlay).toBe(true);
+      expect(config.banners.length).toBe(3);
+      expect(config.banners[0]?.linkUrl).toBe('https://vietnix.vn');
+    });
+
+    it('getPublicHeroBannerConfig hoạt động mà không cần đăng nhập admin', async () => {
+      mockSetting.findUnique.mockResolvedValueOnce(null);
+
+      const config = await getPublicHeroBannerConfig();
+      expect(config.enabled).toBe(true);
+      expect(config.banners.length).toBeGreaterThanOrEqual(3);
+    });
+
+    it('Admin lưu cấu hình banner thành công', async () => {
+      mockAuth.mockResolvedValueOnce({
+        user: { id: 'admin1', role: 'ADMIN' },
+      });
+
+      const now = new Date();
+      mockSetting.upsert.mockResolvedValueOnce({
+        key: 'hero_banner_config',
+        value: JSON.stringify({
+          enabled: true,
+          autoPlay: true,
+          intervalSeconds: 4,
+          banners: [
+            {
+              id: 'b-1',
+              title: 'Quảng cáo đối tác A',
+              imageUrl: '/images/ads/banner-a.png',
+              linkUrl: 'https://partner-a.com',
+              active: true,
+              targetBlank: true,
+            },
+          ],
+        }),
+        updatedAt: now,
+      });
+
+      const res = await saveHeroBannerConfig({
+        enabled: true,
+        autoPlay: true,
+        intervalSeconds: 4,
+        banners: [
+          {
+            id: 'b-1',
+            title: 'Quảng cáo đối tác A',
+            imageUrl: '/images/ads/banner-a.png',
+            linkUrl: 'https://partner-a.com',
+            active: true,
+            targetBlank: true,
+          },
+        ],
+      });
+
+      expect(res.success).toBe(true);
+      expect(res.config?.banners[0]?.title).toBe('Quảng cáo đối tác A');
+      expect(res.config?.banners[0]?.linkUrl).toBe('https://partner-a.com');
+    });
+
+    it('Chặn người dùng không phải ADMIN lưu banner', async () => {
+      mockAuth.mockResolvedValueOnce({
+        user: { id: 'user1', role: 'USER' },
+      });
+
+      await expect(
+        saveHeroBannerConfig({
+          enabled: true,
+          autoPlay: true,
+          intervalSeconds: 5,
+          banners: [],
+        }),
+      ).rejects.toThrow('Bạn không có quyền thực hiện thao tác này.');
     });
   });
 });

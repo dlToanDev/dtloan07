@@ -59,6 +59,7 @@ model User {
   enrollments    Enrollment[]
   lessonProgress LessonProgress[]
   submissions    Submission[]
+  supportTickets SupportTicket[]
 }
 
 model Account {
@@ -899,5 +900,42 @@ model WalletTransaction {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, createdAt])
+}
+
+enum SupportTicketStatus {
+  PENDING      // Chờ duyệt / Chờ tiếp nhận
+  IN_PROGRESS  // Đang xử lý (đã xác nhận tiếp nhận, 2 bên chat với nhau)
+  RESOLVED     // Xử lý hoàn tất (đã đóng, user không thể chat nữa trừ khi admin mở lại)
+}
+
+model SupportTicket {
+  id           String              @id @default(cuid())
+  userId       String?
+  guestName    String?
+  guestContact String?
+  subject      String
+  status       SupportTicketStatus @default(PENDING)
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+
+  user         User?               @relation(fields: [userId], references: [id], onDelete: SetNull)
+  messages     SupportMessage[]
+
+  @@index([status, createdAt])
+  @@index([userId])
+}
+
+model SupportMessage {
+  id         String        @id @default(cuid())
+  ticketId   String
+  senderRole Role          @default(USER) // USER hoặc ADMIN
+  senderName String
+  content    String
+  imageUrl   String?       // Ảnh đính kèm (URL / screenshot)
+  createdAt  DateTime      @default(now())
+
+  ticket     SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId, createdAt])
 }
 

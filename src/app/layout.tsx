@@ -1,4 +1,5 @@
 import { Footer } from '@/components/layout/footer';
+import { ConditionalFooter } from '@/components/layout/conditional-footer';
 import { Header } from '@/components/layout/header';
 import { ThemeProvider } from '@/components/theme-provider';
 import { ProgressBar } from '@/components/layout/progress-bar';
@@ -6,6 +7,7 @@ import { ExitIntentPopup } from '@/components/marketing/exit-intent-popup';
 import { LoginAdPopup } from '@/components/marketing/login-ad-popup';
 import { AnnouncementBar } from '@/components/layout/announcement-bar';
 import { CartDrawer } from '@/components/shop/cart-drawer';
+import { FloatingContactWidget } from '@/components/layout/floating-contact-widget';
 import { siteConfig } from '@/config/site';
 import { fontMono, fontSans } from '@/lib/fonts';
 import { cn } from '@/lib/utils';
@@ -65,11 +67,14 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
             <main id="main" className="flex-1">
               {children}
             </main>
-            <Footer />
+            <ConditionalFooter>
+              <Footer />
+            </ConditionalFooter>
           </div>
           <ExitIntentPopup />
           <LoginAdPopup initialConfig={adConfig} />
           <CartDrawer />
+          <FloatingContactWidget />
         </ThemeProvider>
       </body>
     </html>

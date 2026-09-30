@@ -3,6 +3,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardFooter } from '@/comp
 import { buttonStyles } from '@/components/ui/button';
 import { XCircle, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
+import { siteConfig } from '@/config/site';
 
 export default function CheckoutCancelPage() {
   return (
@@ -25,7 +26,7 @@ export default function CheckoutCancelPage() {
             <ArrowLeft className="mr-2 h-4 w-4" />
             Thử thanh toán lại
           </Link>
-          <Link href="/shop" className={buttonStyles({ variant: 'outline' })}>
+          <Link href={siteConfig.shopPath} className={buttonStyles({ variant: 'outline' })}>
             Quay lại cửa hàng
           </Link>
         </CardFooter>

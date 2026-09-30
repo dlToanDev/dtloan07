@@ -11,6 +11,7 @@ import { conditionLabel } from '@/lib/shop/labels';
 import type { VariantSummary } from '@/lib/shop/variants';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
+import { siteConfig } from '@/config/site';
 
 export interface ProductCardProps {
   product: {
@@ -67,7 +68,7 @@ export function ProductCard({ product, shop, variant = 'grid' }: ProductCardProp
       )}
     >
       <CardHeader className={cn('p-0', isList && 'w-full shrink-0 sm:w-64 md:w-72')}>
-        <Link href={`/shop/${product.slug}`} className="relative block h-full">
+        <Link href={`${siteConfig.shopPath}/${product.slug}`} className="relative block h-full">
           <ProductCover
             name={product.name}
             slug={product.slug}
@@ -112,7 +113,7 @@ export function ProductCard({ product, shop, variant = 'grid' }: ProductCardProp
         <CardContent className={cn('space-y-3', isList ? 'p-0 md:flex-1' : 'flex-1 p-5')}>
           <div>
             <Link
-              href={`/shop/${product.slug}`}
+              href={`${siteConfig.shopPath}/${product.slug}`}
               className="text-foreground hover:text-primary line-clamp-2 text-lg font-bold transition-colors"
             >
               {product.name}
@@ -146,7 +147,7 @@ export function ProductCard({ product, shop, variant = 'grid' }: ProductCardProp
         >
           <div className="grid w-full grid-cols-2 gap-2">
             <Link
-              href={`/shop/${product.slug}`}
+              href={`${siteConfig.shopPath}/${product.slug}`}
               className={buttonStyles({
                 variant: 'outline',
                 className: 'w-full text-xs font-medium',
@@ -155,20 +156,20 @@ export function ProductCard({ product, shop, variant = 'grid' }: ProductCardProp
               Chi tiết
             </Link>
             {mode !== 'PAID' ? (
-              <a
-                href={mode === 'FREE' ? `/shop/${product.slug}` : '/about#lien-he'}
+              <Link
+                href={mode === 'FREE' ? `${siteConfig.shopPath}/${product.slug}` : '/about#lien-he'}
                 className={buttonStyles({ className: 'w-full text-xs' })}
               >
                 {mode === 'FREE' ? 'Tải miễn phí' : 'Liên hệ'}
-              </a>
+              </Link>
             ) : soldOut ? (
-              <a href="/about#lien-he" className={buttonStyles({ className: 'w-full text-xs' })}>
+              <Link href="/about#lien-he" className={buttonStyles({ className: 'w-full text-xs' })}>
                 <MessageCircle className="mr-1.5 h-3.5 w-3.5" />
                 Liên hệ
-              </a>
+              </Link>
             ) : needsDetail ? (
               <Link
-                href={`/shop/${product.slug}`}
+                href={`${siteConfig.shopPath}/${product.slug}`}
                 className={buttonStyles({ className: 'w-full text-xs font-semibold' })}
               >
                 Chọn mua

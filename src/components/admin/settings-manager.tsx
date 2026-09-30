@@ -11,7 +11,13 @@ import {
   toggleAnnouncementState,
   deleteAnnouncement,
   getProCouponsForAnnouncement,
+  saveHeroBannerConfig,
 } from '@/server/actions/settings';
+import {
+  type HeroBannerConfig,
+  type HeroBannerItem,
+  DEFAULT_HERO_BANNER_CONFIG,
+} from '@/config/hero-banner';
 import {
   Sparkles,
   Megaphone,
@@ -43,21 +49,44 @@ import {
   List,
   Crown,
   Globe,
+  LayoutTemplate,
+  Sliders,
+  ArrowUpRight,
 } from 'lucide-react';
 import Link from 'next/link';
 import { AnnouncementDetailModal } from '@/components/announcements/announcement-detail-modal';
 import { markdownToHtml } from '@/lib/editor-converter';
 import { RichTextEditor } from '@/components/admin/rich-text-editor';
+import { HeroBannerCarousel } from '@/components/marketing/hero-banner-carousel';
 
 interface SettingsManagerProps {
   initialAdConfig: LoginAdConfig;
   initialAnnouncements: AnnouncementItem[];
+  initialHeroBannerConfig?: HeroBannerConfig;
 }
 
 type WheelSegment = { id: string; label: string; code: string; color: string; isWin: boolean };
 
-export function SettingsManager({ initialAdConfig, initialAnnouncements }: SettingsManagerProps) {
-  const [activeTab, setActiveTab] = useState<'ad' | 'announcements'>('ad');
+export function SettingsManager({
+  initialAdConfig,
+  initialAnnouncements,
+  initialHeroBannerConfig,
+}: SettingsManagerProps) {
+  const [activeTab, setActiveTab] = useState<'hero_banner' | 'ad' | 'announcements'>('hero_banner');
+
+  // ==========================================
+  // STATE: BANNER QUẢNG CÁO HERO TRANG CHỦ
+  // ==========================================
+  const [heroBannerConfig, setHeroBannerConfig] = useState<HeroBannerConfig>(
+    initialHeroBannerConfig || DEFAULT_HERO_BANNER_CONFIG,
+  );
+  const [isSavingHeroBanner, setIsSavingHeroBanner] = useState(false);
+  const [uploadingBannerIndex, setUploadingBannerIndex] = useState<number | null>(null);
+  const [heroBannerMsg, setHeroBannerMsg] = useState<{
+    type: 'success' | 'error';
+    text: string;
+  } | null>(null);
+  const bannerFileInputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   // ==========================================
   // STATE: CẤU HÌNH QUẢNG CÁO ĐĂNG NHẬP
@@ -203,6 +232,127 @@ export function SettingsManager({ initialAdConfig, initialAnnouncements }: Setti
       setAdMessage({ type: 'error', text: 'Có lỗi xảy ra khi lưu cấu hình.' });
     } finally {
       setIsSavingAd(false);
+    }
+  };
+
+  // ==========================================
+  // HANDLERS: BANNER QUẢNG CÁO HERO TRANG CHỦ
+  // ==========================================
+  const handleSaveHeroBannerConfig = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSavingHeroBanner(true);
+    setHeroBannerMsg(null);
+
+    try {
+      const res = await saveHeroBannerConfig(heroBannerConfig);
+      if (res.success && res.config) {
+        setHeroBannerConfig(res.config);
+        setHeroBannerMsg({
+          type: 'success',
+          text: 'Đã lưu cấu hình banner quảng cáo trang chủ thành công!',
+        });
+      } else {
+        setHeroBannerMsg({
+          type: 'error',
+          text: res.error || 'Lỗi khi lưu banner quảng cáo.',
+        });
+      }
+    } catch {
+      setHeroBannerMsg({
+        type: 'error',
+        text: 'Có lỗi xảy ra khi kết nối máy chủ.',
+      });
+    } finally {
+      setIsSavingHeroBanner(false);
+    }
+  };
+
+  const handleUploadBannerImage = async (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingBannerIndex(index);
+    setHeroBannerMsg(null);
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const res = await uploadAdImage(formData);
+      if (res.success && res.url) {
+        setHeroBannerConfig((prev) => {
+          const updated = [...prev.banners];
+          const target = updated[index];
+          if (target) {
+            updated[index] = { ...target, imageUrl: res.url! };
+          }
+          return { ...prev, banners: updated };
+        });
+        setHeroBannerMsg({
+          type: 'success',
+          text: `Đã tải ảnh cho Banner #${index + 1} thành công!`,
+        });
+      } else {
+        setHeroBannerMsg({
+          type: 'error',
+          text: res.error || 'Lỗi khi tải ảnh banner.',
+        });
+      }
+    } catch {
+      setHeroBannerMsg({
+        type: 'error',
+        text: 'Không thể kết nối máy chủ để tải ảnh.',
+      });
+    } finally {
+      setUploadingBannerIndex(null);
+    }
+  };
+
+  const handleUpdateBannerField = <K extends keyof HeroBannerItem>(
+    index: number,
+    field: K,
+    value: HeroBannerItem[K],
+  ) => {
+    setHeroBannerConfig((prev) => {
+      const updated = [...prev.banners];
+      const target = updated[index];
+      if (target) {
+        updated[index] = { ...target, [field]: value };
+      }
+      return { ...prev, banners: updated };
+    });
+  };
+
+  const handleAddBanner = () => {
+    const newId = `banner-${Date.now()}`;
+    const newBanner: HeroBannerItem = {
+      id: newId,
+      title: 'Tên nhà tài trợ / Tiêu đề quảng cáo',
+      subtitle: 'Mô tả ưu đãi hoặc tính năng nổi bật...',
+      imageUrl: '/images/banners/banner-1.svg',
+      linkUrl: 'https://',
+      active: true,
+      badge: 'Đối tác',
+      ctaText: 'Xem ngay',
+      targetBlank: true,
+    };
+
+    setHeroBannerConfig((prev) => ({
+      ...prev,
+      banners: [...prev.banners, newBanner],
+    }));
+  };
+
+  const handleDeleteBanner = (index: number) => {
+    if (heroBannerConfig.banners.length <= 1) {
+      alert('Phải giữ lại ít nhất 1 banner trong hệ thống.');
+      return;
+    }
+    if (confirm(`Bạn có chắc muốn xóa Banner #${index + 1}?`)) {
+      setHeroBannerConfig((prev) => ({
+        ...prev,
+        banners: prev.banners.filter((_, i) => i !== index),
+      }));
     }
   };
 
@@ -566,52 +716,471 @@ export function SettingsManager({ initialAdConfig, initialAnnouncements }: Setti
   return (
     <div className="space-y-8">
       {/* Tiêu đề trang */}
-      <div className="flex flex-col gap-2 border-b pb-5 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <div className="bg-primary/10 text-primary rounded-xl p-2">
-              <Settings className="size-6" />
-            </div>
-            <div>
-              <h1 className="text-foreground text-2xl font-bold tracking-tight">
-                Cài đặt hệ thống
-              </h1>
-              <p className="text-muted-foreground text-sm">
-                Quản lý banner quảng cáo đăng nhập đếm ngược 5s và các thông báo tính năng, voucher
-                hệ thống.
-              </p>
-            </div>
+      <div className="border-border flex flex-col gap-4 border-b pb-6 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3">
+          <div className="bg-primary/10 text-primary border-primary/20 flex size-12 shrink-0 items-center justify-center rounded-2xl border">
+            <Settings className="size-6" />
+          </div>
+          <div>
+            <h1 className="text-foreground text-2xl font-bold tracking-tight">Cài đặt hệ thống</h1>
+            <p className="text-muted-foreground mt-0.5 text-sm">
+              Quản lý banner quảng cáo Hero trang chủ, popup đăng nhập và các thông báo, voucher hệ
+              thống.
+            </p>
           </div>
         </div>
-
-        {/* Tab switch */}
-        <div className="bg-muted/60 border-border flex items-center rounded-xl border p-1">
-          <button
-            type="button"
-            onClick={() => setActiveTab('ad')}
-            className={`flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-all ${
-              activeTab === 'ad'
-                ? 'bg-card text-foreground shadow-sm'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            <Megaphone className="size-4 text-amber-500" />
-            <span>Popup quảng cáo (5s)</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('announcements')}
-            className={`flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-all ${
-              activeTab === 'announcements'
-                ? 'bg-card text-foreground shadow-sm'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            <Sparkles className="size-4 text-blue-500" />
-            <span>Thông báo tính năng / Voucher</span>
-          </button>
-        </div>
       </div>
+
+      {/* Tab switch bar - bố cục thoáng đãng, không bị cuộn ngang */}
+      <div className="flex flex-wrap items-center gap-2.5">
+        <button
+          type="button"
+          onClick={() => setActiveTab('hero_banner')}
+          className={`flex items-center gap-2.5 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all ${
+            activeTab === 'hero_banner'
+              ? 'bg-primary text-primary-foreground shadow-primary/25 ring-primary/20 shadow-md ring-2'
+              : 'bg-card text-muted-foreground hover:bg-muted hover:text-foreground border-border/80 border'
+          }`}
+        >
+          <LayoutTemplate
+            className={`size-4.5 ${activeTab === 'hero_banner' ? 'text-primary-foreground' : 'text-indigo-500'}`}
+          />
+          <span>Banner Hero Trang Chủ ({heroBannerConfig.banners.length} ảnh)</span>
+          {heroBannerConfig.enabled && (
+            <span
+              className={`inline-block size-2 rounded-full ${activeTab === 'hero_banner' ? 'bg-primary-foreground' : 'bg-emerald-500'}`}
+            />
+          )}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('ad')}
+          className={`flex items-center gap-2.5 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all ${
+            activeTab === 'ad'
+              ? 'bg-primary text-primary-foreground shadow-primary/25 ring-primary/20 shadow-md ring-2'
+              : 'bg-card text-muted-foreground hover:bg-muted hover:text-foreground border-border/80 border'
+          }`}
+        >
+          <Megaphone
+            className={`size-4.5 ${activeTab === 'ad' ? 'text-primary-foreground' : 'text-amber-500'}`}
+          />
+          <span>Popup Quảng Cáo (5s)</span>
+          {adConfig.enabled && (
+            <span
+              className={`inline-block size-2 rounded-full ${activeTab === 'ad' ? 'bg-primary-foreground' : 'bg-emerald-500'}`}
+            />
+          )}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('announcements')}
+          className={`flex items-center gap-2.5 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all ${
+            activeTab === 'announcements'
+              ? 'bg-primary text-primary-foreground shadow-primary/25 ring-primary/20 shadow-md ring-2'
+              : 'bg-card text-muted-foreground hover:bg-muted hover:text-foreground border-border/80 border'
+          }`}
+        >
+          <Sparkles
+            className={`size-4.5 ${activeTab === 'announcements' ? 'text-primary-foreground' : 'text-blue-500'}`}
+          />
+          <span>Thông Báo Tính Năng / Voucher</span>
+          {announcements.some((a) => a.isActive) && (
+            <span
+              className={`inline-block size-2 rounded-full ${activeTab === 'announcements' ? 'bg-primary-foreground' : 'bg-emerald-500'}`}
+            />
+          )}
+        </button>
+      </div>
+
+      {/* ========================================================================= */}
+      {/* TAB 0: CÀI ĐẶT BANNER QUẢNG CÁO HERO TRANG CHỦ (CAROUSEL 3 ẢNH ĐỐI TÁC)    */}
+      {/* ========================================================================= */}
+      {activeTab === 'hero_banner' && (
+        <form onSubmit={handleSaveHeroBannerConfig} className="space-y-8">
+          {heroBannerMsg && (
+            <div
+              className={`flex items-center gap-2.5 rounded-xl border p-4 text-sm ${
+                heroBannerMsg.type === 'success'
+                  ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                  : 'border-destructive/30 bg-destructive/10 text-destructive'
+              }`}
+            >
+              {heroBannerMsg.type === 'success' ? (
+                <CheckCircle2 className="size-5 shrink-0" />
+              ) : (
+                <AlertCircle className="size-5 shrink-0" />
+              )}
+              <span>{heroBannerMsg.text}</span>
+            </div>
+          )}
+
+          {/* VÙNG XEM TRƯỚC TRỰC QUAN (LIVE PREVIEW) */}
+          <div className="bg-muted/15 space-y-3 rounded-2xl border border-indigo-500/20 p-4 sm:p-6">
+            <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-center">
+              <div className="flex items-center gap-2 text-sm font-bold text-indigo-600 dark:text-indigo-400">
+                <Eye className="size-4" />
+                <span>Xem trước trực tiếp (Live Preview) trên trang chủ</span>
+              </div>
+              <span className="text-muted-foreground text-xs">
+                (Click vào banner để thử mở đường link nhà tài trợ)
+              </span>
+            </div>
+
+            <div className="pt-2">
+              <HeroBannerCarousel config={heroBannerConfig} />
+            </div>
+          </div>
+
+          {/* CẤU HÌNH TỔNG QUAN */}
+          <div className="border-border bg-card space-y-4 rounded-2xl border p-5 shadow-xs sm:p-6">
+            <div className="text-foreground border-border flex items-center gap-2 border-b pb-3 text-sm font-bold sm:text-base">
+              <Sliders className="text-primary size-4.5" />
+              <span>Thiết lập hoạt động của Carousel</span>
+            </div>
+
+            <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
+              <div className="border-border bg-muted/20 flex items-center justify-between rounded-xl border p-3.5">
+                <div>
+                  <p className="text-foreground text-xs font-semibold">Bật Banner Trang Chủ</p>
+                  <p className="text-muted-foreground mt-0.5 text-[11px]">
+                    Hiển thị thay thế phần giới thiệu Hero
+                  </p>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={heroBannerConfig.enabled}
+                  onChange={(e) =>
+                    setHeroBannerConfig((prev) => ({ ...prev, enabled: e.target.checked }))
+                  }
+                  className="accent-primary size-5 cursor-pointer"
+                />
+              </div>
+
+              <div className="border-border bg-muted/20 flex items-center justify-between rounded-xl border p-3.5">
+                <div>
+                  <p className="text-foreground text-xs font-semibold">Tự động chuyển ảnh</p>
+                  <p className="text-muted-foreground mt-0.5 text-[11px]">
+                    Tự trượt slide xoay vòng liên tục
+                  </p>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={heroBannerConfig.autoPlay}
+                  onChange={(e) =>
+                    setHeroBannerConfig((prev) => ({ ...prev, autoPlay: e.target.checked }))
+                  }
+                  className="accent-primary size-5 cursor-pointer"
+                />
+              </div>
+
+              <div className="border-border bg-muted/20 flex items-center justify-between rounded-xl border p-3.5">
+                <div>
+                  <p className="text-foreground text-xs font-semibold">Thời gian chuyển slide</p>
+                  <p className="text-muted-foreground mt-0.5 text-[11px]">
+                    Mặc định 5 giây mỗi ảnh
+                  </p>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <input
+                    type="number"
+                    min={2}
+                    max={30}
+                    value={heroBannerConfig.intervalSeconds}
+                    onChange={(e) =>
+                      setHeroBannerConfig((prev) => ({
+                        ...prev,
+                        intervalSeconds: Math.max(2, parseInt(e.target.value) || 5),
+                      }))
+                    }
+                    className="border-border bg-background text-foreground focus:ring-primary w-16 rounded-lg border px-2.5 py-1 text-center text-xs font-bold focus:ring-2"
+                  />
+                  <span className="text-muted-foreground text-xs">giây</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* DANH SÁCH CHI TIẾT CÁC BANNER */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-foreground flex items-center gap-2 text-base font-bold sm:text-lg">
+                  <LayoutTemplate className="size-5 text-indigo-500" />
+                  <span>
+                    Danh sách các Banner quảng cáo ({heroBannerConfig.banners.length} ảnh)
+                  </span>
+                </h2>
+                <p className="text-muted-foreground mt-0.5 text-xs">
+                  Bạn có thể thay đổi ảnh, đường link web, thông tin ưu đãi hoặc tải ảnh banner mới
+                  của các đối tác liên hệ.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleAddBanner}
+                className="bg-muted/60 hover:bg-muted border-border text-foreground flex items-center gap-1.5 rounded-xl border px-3.5 py-2 text-xs font-semibold shadow-2xs transition"
+              >
+                <Plus className="size-4" />
+                <span>Thêm banner mới</span>
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {heroBannerConfig.banners.map((banner, index) => (
+                <div
+                  key={banner.id || index}
+                  className="border-border bg-card space-y-4 rounded-2xl border p-5 shadow-xs sm:p-6"
+                >
+                  <div className="border-border flex items-center justify-between border-b pb-3.5">
+                    <div className="flex items-center gap-2.5">
+                      <span className="bg-primary/10 text-primary flex size-6 items-center justify-center rounded-full font-mono text-xs font-bold">
+                        {index + 1}
+                      </span>
+                      <span className="text-foreground max-w-[280px] truncate text-sm font-bold sm:max-w-md">
+                        {banner.title || `Banner #${index + 1}`}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <label className="text-muted-foreground hover:text-foreground flex cursor-pointer items-center gap-1.5 text-xs font-medium">
+                        <input
+                          type="checkbox"
+                          checked={banner.active}
+                          onChange={(e) =>
+                            handleUpdateBannerField(index, 'active', e.target.checked)
+                          }
+                          className="accent-primary size-4"
+                        />
+                        <span>Hiển thị</span>
+                      </label>
+
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteBanner(index)}
+                        disabled={heroBannerConfig.banners.length <= 1}
+                        className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg p-1 transition disabled:opacity-40"
+                        title="Xóa banner này"
+                      >
+                        <Trash2 className="size-4" />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-5 lg:grid-cols-12">
+                    {/* Cột trái: Xem trước ảnh & Tải lên */}
+                    <div className="space-y-2.5 lg:col-span-4">
+                      <label className="text-foreground text-xs font-semibold">
+                        Hình ảnh Banner:
+                      </label>
+                      <div className="border-border bg-muted/40 group relative aspect-[21/9] w-full overflow-hidden rounded-xl border shadow-inner">
+                        {banner.imageUrl ? (
+                          <img
+                            src={banner.imageUrl}
+                            alt={banner.title}
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <div className="text-muted-foreground flex h-full items-center justify-center text-xs">
+                            Chưa có ảnh
+                          </div>
+                        )}
+                        <a
+                          href={banner.imageUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="absolute inset-0 flex items-center justify-center gap-1 bg-black/40 text-xs font-medium text-white opacity-0 transition group-hover:opacity-100"
+                        >
+                          <Eye className="size-3.5" />
+                          <span>Mở xem ảnh gốc</span>
+                        </a>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          ref={(el) => {
+                            bannerFileInputRefs.current[index] = el;
+                          }}
+                          onChange={(e) => handleUploadBannerImage(e, index)}
+                          className="hidden"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => bannerFileInputRefs.current[index]?.click()}
+                          disabled={uploadingBannerIndex === index}
+                          className="border-border hover:bg-muted text-foreground flex w-full items-center justify-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-medium transition"
+                        >
+                          {uploadingBannerIndex === index ? (
+                            <>
+                              <Loader2 className="size-3.5 animate-spin" />
+                              <span>Đang tải ảnh lên...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Upload className="text-primary size-3.5" />
+                              <span>Tải ảnh từ máy tính</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+
+                      <div>
+                        <input
+                          type="text"
+                          placeholder="Hoặc dán URL ảnh (https://...)"
+                          value={banner.imageUrl}
+                          onChange={(e) =>
+                            handleUpdateBannerField(index, 'imageUrl', e.target.value)
+                          }
+                          className="border-border bg-muted/40 text-foreground focus:ring-primary w-full rounded-lg border px-3 py-1.5 text-xs focus:ring-2 focus:outline-none"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Cột phải: Thông tin nội dung & Link chuyển hướng */}
+                    <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:col-span-8">
+                      <div className="space-y-1 sm:col-span-2">
+                        <label className="text-foreground flex items-center gap-1 text-xs font-semibold">
+                          <span>Đường link website nhà quảng cáo:</span>
+                          <span className="font-bold text-rose-500">*</span>
+                          <span className="text-muted-foreground ml-1 text-[11px] font-normal">
+                            (Người dùng ấn vào banner sẽ chuyển sang trang này)
+                          </span>
+                        </label>
+                        <div className="relative">
+                          <input
+                            type="text"
+                            placeholder="https://vietnix.vn hoặc link tiếp thị"
+                            value={banner.linkUrl}
+                            onChange={(e) =>
+                              handleUpdateBannerField(index, 'linkUrl', e.target.value)
+                            }
+                            required
+                            className="border-border bg-muted/40 text-foreground focus:ring-primary w-full rounded-xl border py-2 pr-8 pl-3 font-mono text-xs focus:ring-2 focus:outline-none sm:text-sm"
+                          />
+                          <a
+                            href={banner.linkUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-muted-foreground hover:text-primary absolute top-2.5 right-2.5 transition"
+                            title="Thử mở link"
+                          >
+                            <ExternalLink className="size-4" />
+                          </a>
+                        </div>
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-foreground text-xs font-semibold">
+                          Tiêu đề / Tên nhà tài trợ:
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="Ví dụ: Vietnix Cloud Server NVMe"
+                          value={banner.title}
+                          onChange={(e) => handleUpdateBannerField(index, 'title', e.target.value)}
+                          className="border-border bg-muted/40 text-foreground focus:ring-primary w-full rounded-xl border px-3 py-2 text-xs focus:ring-2 focus:outline-none sm:text-sm"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-foreground text-xs font-semibold">
+                          Nhãn / Tag đối tác:
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="Ví dụ: Đối tác DevOps, Giảm 50%"
+                          value={banner.badge || ''}
+                          onChange={(e) => handleUpdateBannerField(index, 'badge', e.target.value)}
+                          className="border-border bg-muted/40 text-foreground focus:ring-primary w-full rounded-xl border px-3 py-2 text-xs focus:ring-2 focus:outline-none sm:text-sm"
+                        />
+                      </div>
+
+                      <div className="space-y-1 sm:col-span-2">
+                        <label className="text-foreground text-xs font-semibold">
+                          Mô tả ngắn / Ưu đãi nổi bật:
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="Ví dụ: Tối ưu cho Docker & Nginx, tặng kèm DirectAdmin & Chống DDoS"
+                          value={banner.subtitle || ''}
+                          onChange={(e) =>
+                            handleUpdateBannerField(index, 'subtitle', e.target.value)
+                          }
+                          className="border-border bg-muted/40 text-foreground focus:ring-primary w-full rounded-xl border px-3 py-2 text-xs focus:ring-2 focus:outline-none sm:text-sm"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-foreground text-xs font-semibold">
+                          Chữ trên nút CTA:
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="Ví dụ: Khám Phá Dịch Vụ, Đăng Ký Ngay"
+                          value={banner.ctaText || ''}
+                          onChange={(e) =>
+                            handleUpdateBannerField(index, 'ctaText', e.target.value)
+                          }
+                          className="border-border bg-muted/40 text-foreground focus:ring-primary w-full rounded-xl border px-3 py-2 text-xs focus:ring-2 focus:outline-none sm:text-sm"
+                        />
+                      </div>
+
+                      <div className="flex items-center pt-5">
+                        <label className="text-foreground flex cursor-pointer items-center gap-2 text-xs font-medium">
+                          <input
+                            type="checkbox"
+                            checked={banner.targetBlank !== false}
+                            onChange={(e) =>
+                              handleUpdateBannerField(index, 'targetBlank', e.target.checked)
+                            }
+                            className="accent-primary size-4"
+                          />
+                          <span>Mở link trong tab mới (_blank)</span>
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* THANH LƯU CẤU HÌNH */}
+          <div className="border-border bg-card/95 sticky bottom-4 z-20 flex items-center justify-between rounded-2xl border p-4 shadow-xl backdrop-blur-md">
+            <button
+              type="button"
+              onClick={handleAddBanner}
+              className="border-border bg-muted/40 hover:bg-muted text-foreground flex items-center gap-1.5 rounded-xl border px-4 py-2.5 text-xs font-semibold transition"
+            >
+              <Plus className="size-4" />
+              <span>Thêm banner quảng cáo</span>
+            </button>
+
+            <button
+              type="submit"
+              disabled={isSavingHeroBanner}
+              className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 px-6 py-2.5 text-sm font-bold text-white shadow-lg shadow-indigo-500/25 transition hover:from-blue-700 hover:via-indigo-700 hover:to-violet-700 active:scale-[0.99] disabled:opacity-50"
+            >
+              {isSavingHeroBanner ? (
+                <>
+                  <Loader2 className="size-4 animate-spin" />
+                  <span>Đang lưu banner...</span>
+                </>
+              ) : (
+                <>
+                  <Check className="size-4" />
+                  <span>Lưu cài đặt banner quảng cáo</span>
+                </>
+              )}
+            </button>
+          </div>
+        </form>
+      )}
 
       {/* ========================================================================= */}
       {/* TAB 1: CÀI ĐẶT POPUP QUẢNG CÁO (5s Countdown)                             */}

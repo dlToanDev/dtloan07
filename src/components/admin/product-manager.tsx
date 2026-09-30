@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button, buttonStyles } from '@/components/ui/button';
 import { revalidatePath } from 'next/cache';
 import Link from 'next/link';
+import { siteConfig } from '@/config/site';
 
 export async function ProductManager() {
   const basePath = '/admin/shop';
@@ -53,10 +54,9 @@ export async function ProductManager() {
       where: { id: productId },
       data: { status: newStatus as 'ACTIVE' | 'DRAFT' },
     });
-    revalidatePath('/products/[slug]', 'page');
     revalidatePath('/admin/shop');
-    revalidatePath('/shop/[slug]', 'page');
-    revalidatePath('/shop');
+    revalidatePath(`${siteConfig.shopPath}/[slug]`, 'page');
+    revalidatePath(siteConfig.shopPath);
     revalidatePath('/');
   }
 

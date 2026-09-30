@@ -1,0 +1,96 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 480" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bg-grad-3" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#140727" />
+      <stop offset="50%" stop-color="#0f172a" />
+      <stop offset="100%" stop-color="#311042" />
+    </linearGradient>
+    <linearGradient id="accent-grad-3" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#ec4899" />
+      <stop offset="50%" stop-color="#f43f5e" />
+      <stop offset="100%" stop-color="#fb923c" />
+    </linearGradient>
+    <linearGradient id="btn-grad-3" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#e11d48" />
+      <stop offset="100%" stop-color="#c026d3" />
+    </linearGradient>
+    <radialGradient id="glow-az" cx="80%" cy="40%" r="50%">
+      <stop offset="0%" stop-color="#ec4899" stop-opacity="0.25" />
+      <stop offset="100%" stop-color="#140727" stop-opacity="0" />
+    </radialGradient>
+    <filter id="shadow-3" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="16" flood-color="#000" flood-opacity="0.5" />
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="480" fill="url(#bg-grad-3)" rx="24" />
+  <rect width="1200" height="480" fill="url(#glow-az)" rx="24" />
+
+  <!-- Abstract Speed Lines -->
+  <g stroke="#f43f5e" stroke-opacity="0.15" stroke-width="1.5">
+    <path d="M700 80 Q900 120 1150 100" fill="none" />
+    <path d="M680 180 Q920 220 1180 180" fill="none" />
+    <path d="M720 280 Q950 320 1160 290" fill="none" />
+    <path d="M690 380 Q910 400 1190 390" fill="none" />
+  </g>
+
+  <!-- Left Content -->
+  <g transform="translate(80, 75)">
+    <!-- Top Sponsor Badge -->
+    <rect width="210" height="34" rx="17" fill="#4c0519" stroke="#f43f5e" stroke-width="1" stroke-opacity="0.5" />
+    <circle cx="18" cy="17" r="4" fill="#fb7185" />
+    <text x="32" y="22" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="700" fill="#fb7185" letter-spacing="1">HOSTING CAO CẤP SỐ 1</text>
+
+    <!-- Main Headline -->
+    <text x="0" y="95" font-family="system-ui, -apple-system, sans-serif" font-size="44" font-weight="900" fill="#ffffff" letter-spacing="-1">
+      AZDIGI Turbo Cloud Hosting
+    </text>
+    <text x="0" y="145" font-family="system-ui, -apple-system, sans-serif" font-size="34" font-weight="800" fill="url(#accent-grad-3)" letter-spacing="-0.5">
+      Tăng Tốc Website Lên 300%
+    </text>
+
+    <!-- Description -->
+    <text x="0" y="195" font-family="system-ui, -apple-system, sans-serif" font-size="16" fill="#94a3b8">
+      Sử dụng 100% LiteSpeed Web Server Enterprise và ổ cứng NVMe U.2 cao cấp.
+    </text>
+    <text x="0" y="222" font-family="system-ui, -apple-system, sans-serif" font-size="16" fill="#94a3b8">
+      Bảo mật với Imunify360, backup hằng ngày, tặng bộ theme &amp; plugin bản quyền $1500.
+    </text>
+
+    <!-- Feature tags -->
+    <g transform="translate(0, 248)">
+      <rect width="140" height="28" rx="8" fill="#1e293b" />
+      <text x="14" y="18" font-family="system-ui, sans-serif" font-size="12" font-weight="600" fill="#e2e8f0">🚀 LiteSpeed Ent.</text>
+
+      <rect x="152" width="135" height="28" rx="8" fill="#1e293b" />
+      <text x="166" y="18" font-family="system-ui, sans-serif" font-size="12" font-weight="600" fill="#e2e8f0">🛡️ Imunify360 AI</text>
+
+      <rect x="299" width="130" height="28" rx="8" fill="#1e293b" />
+      <text x="313" y="18" font-family="system-ui, sans-serif" font-size="12" font-weight="600" fill="#e2e8f0">🎁 Tặng Plugin $1500</text>
+    </g>
+
+    <!-- CTA Button -->
+    <g transform="translate(0, 305)">
+      <rect width="210" height="48" rx="14" fill="url(#btn-grad-3)" filter="url(#shadow-3)" />
+      <text x="30" y="30" font-family="system-ui, -apple-system, sans-serif" font-size="15" font-weight="700" fill="#ffffff">Đăng Ký Hosting ➔</text>
+      <text x="235" y="30" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="600" fill="#fb7185">Mã giảm 50%: DLTOAN50</text>
+    </g>
+  </g>
+
+  <!-- Right Visual Card (Speed Meter Graphic) -->
+  <g transform="translate(790, 80)">
+    <rect x="0" y="0" width="330" height="320" rx="24" fill="#0f172a" fill-opacity="0.85" stroke="#ec4899" stroke-width="1.5" stroke-opacity="0.3" filter="url(#shadow-3)" />
+    
+    <g transform="translate(30, 40)">
+      <circle cx="135" cy="110" r="85" fill="none" stroke="#334155" stroke-width="14" stroke-linecap="round" />
+      <circle cx="135" cy="110" r="85" fill="none" stroke="url(#accent-grad-3)" stroke-width="14" stroke-dasharray="400" stroke-dashoffset="90" stroke-linecap="round" />
+      
+      <text x="135" y="105" text-anchor="middle" font-family="system-ui, sans-serif" font-size="42" font-weight="900" fill="#ffffff">300%</text>
+      <text x="135" y="130" text-anchor="middle" font-family="system-ui, sans-serif" font-size="12" font-weight="700" fill="#fb7185">TỐC ĐỘ VƯỢT TRỘI</text>
+
+      <rect y="210" width="270" height="44" rx="12" fill="#1e293b" />
+      <text x="135" y="237" text-anchor="middle" font-family="monospace" font-size="13" font-weight="700" fill="#38bdf8">NVMe GEN 4 x LITESPEED</text>
+    </g>
+  </g>
+</svg>

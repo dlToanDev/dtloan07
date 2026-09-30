@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { db } from '@/lib/db';
 import { slugifyPostTitle } from '@/lib/utils';
 import { requireProductAdmin } from '@/server/actions/product';
+import { siteConfig } from '@/config/site';
 
 export interface CategoryView {
   id: string;
@@ -34,7 +35,7 @@ async function uniqueSlug(name: string, excludeId?: string) {
 }
 
 function revalidateShop() {
-  revalidatePath('/shop');
+  revalidatePath(siteConfig.shopPath);
   revalidatePath('/admin/shop/categories');
 }
 

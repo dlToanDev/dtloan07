@@ -75,7 +75,7 @@ export async function createAffiliateItem(formData: FormData) {
   });
 
   revalidatePath('/admin/affiliates');
-  revalidatePath('/affiliate');
+  revalidatePath('/[token]', 'page');
   revalidatePath('/');
 }
 
@@ -117,7 +117,7 @@ export async function updateAffiliateItem(id: string, formData: FormData) {
   });
 
   revalidatePath('/admin/affiliates');
-  revalidatePath('/affiliate');
+  revalidatePath('/[token]', 'page');
   revalidatePath('/');
 }
 
@@ -128,7 +128,7 @@ export async function deleteAffiliateItem(id: string) {
   await requireAdmin();
   await db.affiliateItem.delete({ where: { id } });
   revalidatePath('/admin/affiliates');
-  revalidatePath('/affiliate');
+  revalidatePath('/[token]', 'page');
   revalidatePath('/');
 }
 
@@ -142,7 +142,7 @@ export async function toggleAffiliateStatus(id: string, currentActive: boolean) 
     data: { active: !currentActive },
   });
   revalidatePath('/admin/affiliates');
-  revalidatePath('/affiliate');
+  revalidatePath('/[token]', 'page');
   revalidatePath('/');
 }
 
@@ -156,7 +156,7 @@ export async function toggleAffiliateFeatured(id: string, currentFeatured: boole
     data: { featured: !currentFeatured },
   });
   revalidatePath('/admin/affiliates');
-  revalidatePath('/affiliate');
+  revalidatePath('/[token]', 'page');
   revalidatePath('/');
 }
 
@@ -170,6 +170,6 @@ export async function setAffiliateActiveLinkType(id: string, newType: AffiliateL
     data: { activeUrlType: newType },
   });
   revalidatePath('/admin/affiliates');
-  revalidatePath('/affiliate');
+  revalidatePath('/[token]', 'page');
   revalidatePath('/');
 }

@@ -1,4 +1,4 @@
-﻿import { ProductDescription } from '@/components/shop/product-description';
+import { ProductDescription } from '@/components/shop/product-description';
 import { buttonStyles } from '@/components/ui/button';
 import { db } from '@/lib/db';
 import { Container } from '@/components/layout/container';
@@ -28,6 +28,7 @@ import { ProductCard } from '@/components/shop/product-card';
 import { conditionLabel } from '@/lib/shop/labels';
 import { pickDefaultVariant, summarizeVariants } from '@/lib/shop/variants';
 import type { Prisma } from '@prisma/client';
+import { siteConfig } from '@/config/site';
 
 interface Props {
   params: Promise<{
@@ -58,7 +59,8 @@ export async function productMetadata({ params }: Props): Promise<Metadata> {
   return buildMetadata({
     title: product.name,
     description: product.shortDesc,
-    pathname: `/shop/${slug}`,
+    pathname: `${siteConfig.shopPath}/${slug}`,
+    noIndex: true,
   });
 }
 
@@ -161,14 +163,14 @@ export async function ProductDetailPage({ params }: Props) {
           <span>Trang chủ</span>
         </Link>
         <ChevronRight className="h-3.5 w-3.5 shrink-0 opacity-40" />
-        <Link href="/shop" className="hover:text-foreground transition-colors">
+        <Link href={siteConfig.shopPath} className="hover:text-foreground transition-colors">
           Shop
         </Link>
         {product.category && (
           <>
             <ChevronRight className="h-3.5 w-3.5 shrink-0 opacity-40" />
             <Link
-              href={`/shop?category=${product.category.slug}`}
+              href={`${siteConfig.shopPath}?category=${product.category.slug}`}
               className="hover:text-foreground transition-colors"
             >
               {product.category.name}
@@ -422,7 +424,7 @@ export async function ProductDetailPage({ params }: Props) {
               </p>
             </div>
             <Link
-              href="/shop"
+              href={siteConfig.shopPath}
               className="text-primary hidden items-center gap-1 text-sm font-semibold hover:underline sm:inline-flex"
             >
               Xem tất cả <ChevronRight className="h-4 w-4" />

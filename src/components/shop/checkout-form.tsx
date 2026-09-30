@@ -26,6 +26,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import Link from 'next/link';
+import { siteConfig } from '@/config/site';
 import { PROVINCES } from '@/config/provinces';
 import { getCurrentUserWallet } from '@/server/actions/wallet';
 
@@ -253,7 +254,7 @@ export function CheckoutForm({
             </CardDescription>
           </CardHeader>
           <CardFooter className="flex justify-center pt-4">
-            <Link href="/shop" className={buttonStyles()}>
+            <Link href={siteConfig.shopPath} className={buttonStyles()}>
               Khám phá sản phẩm
             </Link>
           </CardFooter>
@@ -445,39 +446,58 @@ export function CheckoutForm({
                       )}
                     </div>
 
-                    <div className="text-muted-foreground mt-1.5 text-xs space-y-1">
+                    <div className="text-muted-foreground mt-1.5 space-y-1 text-xs">
                       {loadingWallet ? (
-                        <div className="flex items-center gap-1.5 text-muted-foreground">
+                        <div className="text-muted-foreground flex items-center gap-1.5">
                           <Loader2 className="size-3 animate-spin" />
                           <span>Đang kiểm tra số dư ví...</span>
                         </div>
                       ) : wallet ? (
                         <div>
                           <div>
-                            Số dư ví: <strong className="text-foreground">${wallet.balanceUsd.toFixed(2)} USD</strong> (≈ {(wallet.balanceUsd * 25972).toLocaleString('vi-VN')} đ)
+                            Số dư ví:{' '}
+                            <strong className="text-foreground">
+                              ${wallet.balanceUsd.toFixed(2)} USD
+                            </strong>{' '}
+                            (≈ {(wallet.balanceUsd * 25972).toLocaleString('vi-VN')} đ)
                             {wallet.balanceVnd > 0 && (
-                              <span> + <strong className="text-foreground">{wallet.balanceVnd.toLocaleString('vi-VN')} đ</strong></span>
+                              <span>
+                                {' '}
+                                +{' '}
+                                <strong className="text-foreground">
+                                  {wallet.balanceVnd.toLocaleString('vi-VN')} đ
+                                </strong>
+                              </span>
                             )}
-                            <span className="text-muted-foreground block text-[11px] mt-0.5">
-                              Tổng khả dụng: <strong className="text-primary">{wallet.totalInVnd.toLocaleString('vi-VN')} đ</strong>
+                            <span className="text-muted-foreground mt-0.5 block text-[11px]">
+                              Tổng khả dụng:{' '}
+                              <strong className="text-primary">
+                                {wallet.totalInVnd.toLocaleString('vi-VN')} đ
+                              </strong>
                             </span>
                           </div>
 
                           {wallet.totalInVnd >= grandTotalVnd ? (
-                            <div className="mt-1.5 flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-medium text-[11px]">
+                            <div className="mt-1.5 flex items-center gap-1.5 text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
                               <CheckCircle2 className="size-3.5 shrink-0" />
-                              <span>Đủ số dư. Tiền sẽ được trừ trực tiếp và đơn hàng hoàn tất ngay lập tức (không cần quét QR).</span>
+                              <span>
+                                Đủ số dư. Tiền sẽ được trừ trực tiếp và đơn hàng hoàn tất ngay lập
+                                tức (không cần quét QR).
+                              </span>
                             </div>
                           ) : (
                             <div className="mt-1.5 space-y-1">
-                              <div className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 font-medium text-[11px]">
+                              <div className="flex items-center gap-1.5 text-[11px] font-medium text-amber-600 dark:text-amber-400">
                                 <AlertCircle className="size-3.5 shrink-0" />
-                                <span>Số dư ví không đủ ({wallet.totalInVnd.toLocaleString('vi-VN')} đ &lt; {grandTotalVnd.toLocaleString('vi-VN')} đ).</span>
+                                <span>
+                                  Số dư ví không đủ ({wallet.totalInVnd.toLocaleString('vi-VN')} đ
+                                  &lt; {grandTotalVnd.toLocaleString('vi-VN')} đ).
+                                </span>
                               </div>
                               <Link
                                 href="/account?tab=wallet"
                                 target="_blank"
-                                className="inline-flex items-center gap-1 text-[11px] text-primary underline underline-offset-2 hover:opacity-80"
+                                className="text-primary inline-flex items-center gap-1 text-[11px] underline underline-offset-2 hover:opacity-80"
                               >
                                 Nạp thêm tiền vào ví tại đây
                                 <ArrowRight className="size-3" />

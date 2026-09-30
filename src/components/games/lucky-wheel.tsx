@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Sparkles, Gift, Copy, Check, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
+import { siteConfig } from '@/config/site';
 
 export interface WheelSegment {
   label: string; // VD: 10%, 10k, 20%, 50k, Freeship, May mắn...
@@ -216,7 +217,7 @@ export function LuckyWheel({
 
               <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
                 <Link
-                  href="/shop"
+                  href={siteConfig.shopPath}
                   className="text-primary inline-flex items-center gap-1 text-xs font-semibold hover:underline"
                 >
                   Đến Shop để áp dụng mã ngay <ArrowRight className="size-3.5" />

@@ -364,3 +364,12 @@ h4:hover > .heading-anchor,
 .callout-inner-content > *:last-child {
   margin-bottom: 0;
 }
+
+/* Ẩn hoàn toàn thanh cuộn nhưng vẫn cho phép cuộn */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

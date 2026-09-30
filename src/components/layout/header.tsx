@@ -12,6 +12,7 @@ import { User } from 'lucide-react';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { HeaderWalletBadge } from '@/components/layout/header-wallet-badge';
+import { getAffiliatePath } from '@/lib/affiliate-token';
 
 interface HeaderProps {
   announcements?: AnnouncementItem[];
@@ -22,6 +23,11 @@ export async function Header({ announcements: propAnnouncements }: HeaderProps =
     propAnnouncements ?? getPublicActiveAnnouncements(),
     auth(),
   ]);
+
+  const affiliatePath = getAffiliatePath();
+  const navItems = siteConfig.nav.map((item) =>
+    item.href === '/affiliate' ? { ...item, href: affiliatePath } : item,
+  );
 
   let userWallet: { balanceVnd: number; balanceUsd: number } | null = null;
   if (session?.user?.id) {
@@ -48,8 +54,8 @@ export async function Header({ announcements: propAnnouncements }: HeaderProps =
 
         <nav aria-label="Điều hướng chính" className="hidden md:block">
           <ul className="flex items-center gap-1">
-            {siteConfig.nav.map((item) => (
-              <li key={item.href}>
+            {navItems.map((item) => (
+              <li key={item.label}>
                 <NavLink href={item.href}>{item.label}</NavLink>
               </li>
             ))}
@@ -79,7 +85,7 @@ export async function Header({ announcements: propAnnouncements }: HeaderProps =
             />
           )}
 
-          <MobileNav />
+          <MobileNav navItems={navItems} />
         </div>
       </div>
     </header>

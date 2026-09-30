@@ -10,6 +10,9 @@ import { siteConfig } from '@/config/site';
 import { getAllCategories, getCategoryLabel, getPostMetas } from '@/lib/mdx';
 import { buildMetadata, personJsonLd } from '@/lib/seo';
 import { db } from '@/lib/db';
+import { getAffiliatePath } from '@/lib/affiliate-token';
+import { getPublicHeroBannerConfig } from '@/server/actions/settings';
+import { HeroBannerCarousel } from '@/components/marketing/hero-banner-carousel';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ArrowRight, Sparkles, Server, ShieldCheck, Zap, Tag, BookOpen } from 'lucide-react';
@@ -23,7 +26,12 @@ export const metadata: Metadata = buildMetadata({
 export const revalidate = 60; // 60s ISR
 
 export default async function HomePage() {
-  const [posts, categories] = await Promise.all([getPostMetas(), getAllCategories()]);
+  const affiliatePath = getAffiliatePath();
+  const [posts, categories, heroBannerConfig] = await Promise.all([
+    getPostMetas(),
+    getAllCategories(),
+    getPublicHeroBannerConfig(),
+  ]);
 
   let products: Awaited<ReturnType<typeof db.product.findMany>> = [];
   let affiliateDeals: Awaited<ReturnType<typeof db.affiliateItem.findMany>> = [];
@@ -53,45 +61,84 @@ export default async function HomePage() {
   const latestPosts = posts.slice(0, 3);
 
   return (
-    <Container className="space-y-20 py-12 sm:py-20">
+    <Container className="space-y-16 py-8 sm:space-y-20 sm:py-16">
       <JsonLd data={personJsonLd()} />
 
-      {/* 1. HERO SECTION */}
-      <section className="flex max-w-3xl flex-col items-start gap-6">
-        <div className="border-primary/20 bg-primary/10 text-primary inline-flex items-center gap-2 rounded-full border px-3.5 py-1 text-xs font-semibold">
-          <Sparkles className="size-3.5" />
-          <span>Kinh nghiệm DevOps thực chiến & Giải pháp máy chủ tự vận hành</span>
-        </div>
+      {/* 1. HERO SECTION - BANNER QUẢNG CÁO TƯƠNG TÁC (CHUYỂN 3 ẢNH ĐỐI TÁC CÓ LINK) */}
+      {heroBannerConfig?.enabled && heroBannerConfig.banners.some((b) => b.active) ? (
+        <section aria-label="Banner quảng cáo chính" className="space-y-6">
+          <HeroBannerCarousel config={heroBannerConfig} />
 
-        <h1 className="text-foreground text-4xl font-extrabold tracking-tight text-balance sm:text-5xl lg:text-6xl">
-          {siteConfig.name}
-        </h1>
+          {/* 3 Nút CTA Phễu & Nhãn trạng thái */}
+          <div className="flex flex-wrap items-center justify-between gap-4 pt-1">
+            <div className="flex flex-wrap items-center gap-3">
+              <Link
+                href={`${siteConfig.shopPath}?c=source-code`}
+                className={buttonStyles({ size: 'md' })}
+              >
+                Xem sản phẩm số <ArrowRight className="ml-1.5 size-4" />
+              </Link>
+              <Link href="/blog" className={buttonStyles({ variant: 'outline', size: 'md' })}>
+                <BookOpen className="mr-1.5 size-4" /> Đọc bài viết
+              </Link>
+              <Link
+                href={affiliatePath}
+                className={buttonStyles({
+                  variant: 'ghost',
+                  size: 'md',
+                  className: 'text-amber-600 hover:bg-amber-500/10 dark:text-amber-400',
+                })}
+              >
+                <Tag className="mr-1.5 size-4" /> Ưu đãi Hosting & Tools
+              </Link>
+            </div>
 
-        <p className="text-muted-foreground text-lg leading-relaxed text-pretty sm:text-xl">
-          {siteConfig.description} Tối ưu chi phí hạ tầng máy chủ, làm chủ Nginx, Docker và tận dụng
-          các giải pháp template chuẩn hoá cho production.
-        </p>
+            <div className="text-muted-foreground bg-muted/40 border-border/60 hidden items-center gap-2 rounded-full border px-3.5 py-1.5 text-xs sm:flex">
+              <span className="size-2 animate-pulse rounded-full bg-emerald-500" />
+              <span>Đối tác hạ tầng &amp; công nghệ chính thức của {siteConfig.name}</span>
+            </div>
+          </div>
+        </section>
+      ) : (
+        <section className="flex max-w-3xl flex-col items-start gap-6">
+          <div className="border-primary/20 bg-primary/10 text-primary inline-flex items-center gap-2 rounded-full border px-3.5 py-1 text-xs font-semibold">
+            <Sparkles className="size-3.5" />
+            <span>Kinh nghiệm DevOps thực chiến & Giải pháp máy chủ tự vận hành</span>
+          </div>
 
-        {/* 3 Nút CTA Phễu */}
-        <div className="flex flex-wrap items-center gap-3 pt-2">
-          <Link href="/shop?c=source-code" className={buttonStyles({ size: 'lg' })}>
-            Xem sản phẩm số <ArrowRight className="ml-1.5 size-4" />
-          </Link>
-          <Link href="/blog" className={buttonStyles({ variant: 'outline', size: 'lg' })}>
-            <BookOpen className="mr-1.5 size-4" /> Đọc bài viết
-          </Link>
-          <Link
-            href="/affiliate"
-            className={buttonStyles({
-              variant: 'ghost',
-              size: 'lg',
-              className: 'text-amber-600 hover:bg-amber-500/10 dark:text-amber-400',
-            })}
-          >
-            <Tag className="mr-1.5 size-4" /> Ưu đãi Hosting & Tools
-          </Link>
-        </div>
-      </section>
+          <h1 className="text-foreground text-4xl font-extrabold tracking-tight text-balance sm:text-5xl lg:text-6xl">
+            {siteConfig.name}
+          </h1>
+
+          <p className="text-muted-foreground text-lg leading-relaxed text-pretty sm:text-xl">
+            {siteConfig.description} Tối ưu chi phí hạ tầng máy chủ, làm chủ Nginx, Docker và tận
+            dụng các giải pháp template chuẩn hoá cho production.
+          </p>
+
+          {/* 3 Nút CTA Phễu */}
+          <div className="flex flex-wrap items-center gap-3 pt-2">
+            <Link
+              href={`${siteConfig.shopPath}?c=source-code`}
+              className={buttonStyles({ size: 'lg' })}
+            >
+              Xem sản phẩm số <ArrowRight className="ml-1.5 size-4" />
+            </Link>
+            <Link href="/blog" className={buttonStyles({ variant: 'outline', size: 'lg' })}>
+              <BookOpen className="mr-1.5 size-4" /> Đọc bài viết
+            </Link>
+            <Link
+              href={affiliatePath}
+              className={buttonStyles({
+                variant: 'ghost',
+                size: 'lg',
+                className: 'text-amber-600 hover:bg-amber-500/10 dark:text-amber-400',
+              })}
+            >
+              <Tag className="mr-1.5 size-4" /> Ưu đãi Hosting & Tools
+            </Link>
+          </div>
+        </section>
+      )}
 
       {/* 2. GIÁ TRỊ CỐT LÕI (VALUE STRIP) */}
       <section aria-label="Giá trị cốt lõi" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -157,7 +204,7 @@ export default async function HomePage() {
               </p>
             </div>
             <Link
-              href="/shop?c=source-code"
+              href={`${siteConfig.shopPath}?c=source-code`}
               className="text-primary inline-flex items-center gap-1 text-sm font-semibold hover:underline"
             >
               Xem tất cả <ArrowRight className="size-3.5" />
@@ -189,7 +236,7 @@ export default async function HomePage() {
               </p>
             </div>
             <Link
-              href="/affiliate"
+              href={affiliatePath}
               className="text-primary inline-flex items-center gap-1 text-sm font-semibold hover:underline"
             >
               Xem tất cả ưu đãi <ArrowRight className="size-3.5" />

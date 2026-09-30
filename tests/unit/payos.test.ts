@@ -72,4 +72,22 @@ describe('PayOS Security & License Helper (src/lib/payments/payos.ts)', () => {
     }
     expect(keys.size).toBe(100);
   });
+
+  it('6. buildVietQRImageUrl sinh đúng đường link ảnh chuẩn VietQR NAPAS', async () => {
+    const { buildVietQRImageUrl, BANK_BIN_NAMES } = await import('@/lib/payments/payos');
+
+    const url = buildVietQRImageUrl({
+      bin: '970422',
+      accountNumber: '0359876543',
+      accountName: 'TRAN MINH TOAN',
+      amount: 100000,
+      description: 'NAP 123456',
+    });
+
+    expect(url).toContain('https://img.vietqr.io/image/970422-0359876543-compact2.png');
+    expect(url).toContain('amount=100000');
+    expect(url).toContain('addInfo=NAP%20123456');
+    expect(url).toContain('accountName=TRAN%20MINH%20TOAN');
+    expect(BANK_BIN_NAMES['970422']).toContain('MB Bank');
+  });
 });

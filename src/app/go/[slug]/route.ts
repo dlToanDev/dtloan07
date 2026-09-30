@@ -1,4 +1,5 @@
 import { db } from '@/lib/db';
+import { getAffiliatePath } from '@/lib/affiliate-token';
 import { NextRequest, NextResponse } from 'next/server';
 
 interface RouteContext {
@@ -17,7 +18,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
   const { slug } = await context.params;
 
   if (!slug) {
-    return NextResponse.redirect(new URL('/affiliate', request.url));
+    return NextResponse.redirect(new URL(getAffiliatePath(), request.url));
   }
 
   const deal = await db.affiliateItem.findUnique({
@@ -31,7 +32,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
   });
 
   if (!deal) {
-    return NextResponse.redirect(new URL('/affiliate', request.url));
+    return NextResponse.redirect(new URL(getAffiliatePath(), request.url));
   }
 
   // Tăng lượt click trong nền (không chặn người dùng nếu mạng chậm)

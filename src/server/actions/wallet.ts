@@ -10,6 +10,9 @@ import {
   type DepositLinkResult,
   type InstantDepositResult,
   type ExchangeCurrencyResult,
+  type CheckDepositStatusResult,
+  type WithdrawFundsParams,
+  type WithdrawFundsResult,
 } from '@/lib/wallet';
 import { PRO_PLANS, type MembershipPlanValue } from '@/lib/membership';
 import { grantProDays } from '@/lib/membership-db';
@@ -41,7 +44,10 @@ export async function createDepositPaymentLink(
   if (currency === 'VND') {
     const rounded = Math.round(amount);
     if (rounded < 10000 || rounded > 50000000) {
-      return { success: false, error: 'Số tiền nạp VND tối thiểu là 10.000 đ và tối đa 50.000.000 đ.' };
+      return {
+        success: false,
+        error: 'Số tiền nạp VND tối thiểu là 10.000 đ và tối đa 50.000.000 đ.',
+      };
     }
     amountVnd = rounded;
   } else {
@@ -93,10 +99,160 @@ export async function createDepositPaymentLink(
       success: true,
       checkoutUrl: payos.checkoutUrl,
       orderCode,
+      numericOrderCode,
+      qrCode: payos.qrCode,
+      qrImageUrl: payos.qrImageUrl,
+      bin: payos.bin,
+      bankName: payos.bankName,
+      accountNumber: payos.accountNumber,
+      accountName: payos.accountName,
+      amountVnd,
+      description: payos.description || `NAP ${currency} ${orderCode}`,
+      depositCurrency: currency,
+      depositAmount: amount,
+      isMock: payos.isMock,
     };
   } catch (error) {
     console.error('Lỗi khi tạo link nạp tiền PayOS:', error);
     return { success: false, error: 'Không thể tạo phiên nạp tiền. Vui lòng thử lại sau.' };
+  }
+}
+
+/**
+ * Kiểm tra trạng thái đơn nạp tiền trong ví theo thời gian thực (dùng cho polling QR modal)
+ */
+export async function checkDepositOrderStatus(
+  orderCode: string,
+): Promise<CheckDepositStatusResult> {
+  const session = await auth();
+  const userId = session?.user?.id;
+
+  if (!userId) {
+    return { success: false, error: 'Vui lòng đăng nhập.' };
+  }
+
+  try {
+    const order = await db.order.findUnique({
+      where: { orderCode },
+      select: {
+        id: true,
+        orderCode: true,
+        userId: true,
+        status: true,
+        depositCurrency: true,
+        depositAmount: true,
+        totalVnd: true,
+        paidAt: true,
+      },
+    });
+
+    if (!order || order.userId !== userId) {
+      return { success: false, error: 'Không tìm thấy giao dịch nạp tiền.' };
+    }
+
+    let newBalanceVnd: number | undefined;
+    let newBalanceUsd: number | undefined;
+
+    if (order.status === 'PAID') {
+      const user = await db.user.findUnique({
+        where: { id: userId },
+        select: { balanceVnd: true, balanceUsd: true },
+      });
+      if (user) {
+        newBalanceVnd = user.balanceVnd;
+        newBalanceUsd = user.balanceUsd;
+      }
+    }
+
+    return {
+      success: true,
+      status: order.status,
+      isPaid: order.status === 'PAID',
+      depositCurrency: order.depositCurrency,
+      depositAmount: order.depositAmount,
+      totalVnd: order.totalVnd,
+      newBalanceVnd,
+      newBalanceUsd,
+    };
+  } catch (error) {
+    console.error('Lỗi kiểm tra trạng thái đơn nạp tiền:', error);
+    return { success: false, error: 'Lỗi kiểm tra trạng thái đơn.' };
+  }
+}
+
+/**
+ * Giả lập thanh toán VietQR thành công trong môi trường Dev/Mock
+ */
+export async function simulateMockDepositSuccess(
+  orderCode: string,
+): Promise<{ success: boolean; message?: string; error?: string }> {
+  const session = await auth();
+  const userId = session?.user?.id;
+
+  if (!userId) {
+    return { success: false, error: 'Vui lòng đăng nhập.' };
+  }
+
+  try {
+    const order = await db.order.findUnique({
+      where: { orderCode },
+    });
+
+    if (!order || order.userId !== userId) {
+      return { success: false, error: 'Không tìm thấy đơn nạp tiền.' };
+    }
+
+    if (order.status === 'PAID') {
+      return { success: true, message: 'Đơn nạp tiền đã được ghi nhận trước đó.' };
+    }
+
+    const currency = order.depositCurrency || 'VND';
+    const isUsd = currency === 'USD';
+    const depositAmount =
+      order.depositAmount || (isUsd ? order.totalVnd / USD_TO_VND_RATE : order.totalVnd);
+
+    await db.$transaction(async (tx) => {
+      await tx.order.update({
+        where: { id: order.id },
+        data: {
+          status: 'PAID',
+          paidAt: new Date(),
+        },
+      });
+
+      const user = await tx.user.findUnique({ where: { id: userId } });
+      if (!user) throw new Error('Không tìm thấy tài khoản người dùng.');
+
+      const balanceBefore = isUsd ? user.balanceUsd : user.balanceVnd;
+      const balanceAfter = balanceBefore + depositAmount;
+
+      await tx.user.update({
+        where: { id: user.id },
+        data: {
+          ...(isUsd ? { balanceUsd: balanceAfter } : { balanceVnd: Math.round(balanceAfter) }),
+        },
+      });
+
+      await tx.walletTransaction.create({
+        data: {
+          userId: user.id,
+          type: 'DEPOSIT',
+          amount: depositAmount,
+          currency,
+          balanceBefore,
+          balanceAfter,
+          status: 'COMPLETED',
+          orderCode: order.orderCode,
+          description: `Nạp tiền vào ví (${currency}) qua VietQR (Mock Demo)`,
+        },
+      });
+    });
+
+    revalidatePath('/account');
+    return { success: true, message: 'Nạp tiền vào ví thành công!' };
+  } catch (error) {
+    console.error('Lỗi khi giả lập nạp tiền thành công:', error);
+    return { success: false, error: 'Không thể xử lý giả lập nạp tiền.' };
   }
 }
 
@@ -123,7 +279,10 @@ export async function instantDepositWallet(
     }
   } else {
     if (amount < 10000 || amount > 100000000) {
-      return { success: false, error: 'Số tiền nạp VND tối thiểu là 10.000 đ và tối đa 100.000.000 đ.' };
+      return {
+        success: false,
+        error: 'Số tiền nạp VND tối thiểu là 10.000 đ và tối đa 100.000.000 đ.',
+      };
     }
   }
 
@@ -304,6 +463,162 @@ export async function exchangeWalletCurrency(
 }
 
 /**
+ * Rút tiền từ ví về tài khoản ngân hàng (CHỈ DÀNH RIÊNG CHO QUẢN TRỊ VIÊN - ADMIN)
+ */
+export async function withdrawWalletFunds(
+  params: WithdrawFundsParams,
+): Promise<WithdrawFundsResult> {
+  const session = await auth();
+  const userId = session?.user?.id;
+
+  if (!userId) {
+    return { success: false, error: 'Vui lòng đăng nhập để thực hiện rút tiền.' };
+  }
+
+  const user = await db.user.findUnique({
+    where: { id: userId },
+    select: { id: true, role: true, balanceVnd: true, balanceUsd: true },
+  });
+
+  if (!user) {
+    return { success: false, error: 'Không tìm thấy thông tin tài khoản người dùng.' };
+  }
+
+  // CHỈ RIÊNG ADMIN MỚI ĐƯỢC RÚT TIỀN
+  if (user.role !== 'ADMIN') {
+    return {
+      success: false,
+      error:
+        'Tính năng rút tiền về tài khoản ngân hàng hiện chỉ dành riêng cho Quản trị viên (Admin). Tài khoản thành viên tạm thời chưa được hỗ trợ rút tiền.',
+    };
+  }
+
+  const { currency, amount, bankName, accountNumber, accountName, note } = params;
+
+  if (!bankName?.trim()) {
+    return { success: false, error: 'Vui lòng chọn hoặc nhập tên ngân hàng thụ hưởng.' };
+  }
+
+  const cleanAccountNumber = accountNumber?.trim().replace(/\s+/g, '');
+  if (!cleanAccountNumber || cleanAccountNumber.length < 5) {
+    return { success: false, error: 'Số tài khoản ngân hàng không hợp lệ (tối thiểu 5 ký tự).' };
+  }
+
+  const cleanAccountName = accountName?.trim().toUpperCase();
+  if (!cleanAccountName || cleanAccountName.length < 2) {
+    return { success: false, error: 'Vui lòng nhập tên chủ tài khoản thụ hưởng.' };
+  }
+
+  const isUsd = currency === 'USD';
+
+  if (isUsd) {
+    if (amount < 1) {
+      return { success: false, error: 'Số tiền rút USD tối thiểu là $1.' };
+    }
+    if (user.balanceUsd < amount) {
+      return {
+        success: false,
+        error: `Số dư USD không đủ để rút. Bạn hiện có $${user.balanceUsd.toFixed(2)} USD.`,
+      };
+    }
+  } else {
+    const roundedAmount = Math.round(amount);
+    if (roundedAmount < 10000) {
+      return { success: false, error: 'Số tiền rút VND tối thiểu là 10.000 đ.' };
+    }
+    if (user.balanceVnd < roundedAmount) {
+      return {
+        success: false,
+        error: `Số dư VND không đủ để rút. Bạn hiện có ${user.balanceVnd.toLocaleString('vi-VN')} đ.`,
+      };
+    }
+  }
+
+  try {
+    return await db.$transaction(async (tx) => {
+      // Đọc lại dữ liệu mới nhất trong transaction
+      const freshUser = await tx.user.findUnique({
+        where: { id: userId },
+        select: { id: true, role: true, balanceVnd: true, balanceUsd: true },
+      });
+
+      if (!freshUser || freshUser.role !== 'ADMIN') {
+        throw new Error('Chỉ tài khoản Quản trị viên (Admin) mới có quyền rút tiền.');
+      }
+
+      let balanceBefore = 0;
+      let balanceAfter = 0;
+      let withdrawAmount = 0;
+
+      if (isUsd) {
+        withdrawAmount = Number(amount.toFixed(2));
+        if (freshUser.balanceUsd < withdrawAmount) {
+          throw new Error(
+            `Số dư USD không đủ để rút. Bạn hiện có $${freshUser.balanceUsd.toFixed(2)} USD.`,
+          );
+        }
+        balanceBefore = freshUser.balanceUsd;
+        balanceAfter = Number((freshUser.balanceUsd - withdrawAmount).toFixed(2));
+
+        await tx.user.update({
+          where: { id: userId },
+          data: { balanceUsd: balanceAfter },
+        });
+      } else {
+        withdrawAmount = Math.round(amount);
+        if (freshUser.balanceVnd < withdrawAmount) {
+          throw new Error(
+            `Số dư VND không đủ để rút. Bạn hiện có ${freshUser.balanceVnd.toLocaleString('vi-VN')} đ.`,
+          );
+        }
+        balanceBefore = freshUser.balanceVnd;
+        balanceAfter = freshUser.balanceVnd - withdrawAmount;
+
+        await tx.user.update({
+          where: { id: userId },
+          data: { balanceVnd: balanceAfter },
+        });
+      }
+
+      const orderCode = `RUT-${Date.now().toString().slice(-6)}`;
+      const desc = `Rút tiền về ${bankName.trim()} (${cleanAccountNumber} - ${cleanAccountName})${note?.trim() ? ` - ${note.trim()}` : ''}`;
+
+      await tx.walletTransaction.create({
+        data: {
+          userId,
+          type: 'WITHDRAW',
+          amount: withdrawAmount,
+          currency,
+          balanceBefore,
+          balanceAfter,
+          status: 'COMPLETED',
+          orderCode,
+          description: desc,
+        },
+      });
+
+      revalidatePath('/account');
+      return {
+        success: true,
+        message: `Đã thực hiện rút thành công ${isUsd ? `$${withdrawAmount}` : `${withdrawAmount.toLocaleString('vi-VN')} đ`} về tài khoản ${bankName.trim()} (${cleanAccountNumber})!`,
+        newBalanceVnd: isUsd ? freshUser.balanceVnd : balanceAfter,
+        newBalanceUsd: isUsd ? balanceAfter : freshUser.balanceUsd,
+      };
+    });
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : 'Không thể thực hiện rút tiền. Vui lòng thử lại sau.';
+    console.error('Lỗi khi xử lý rút tiền ví:', error);
+    return {
+      success: false,
+      error: message,
+    };
+  }
+}
+
+/**
  * Lấy số dư ví hiện tại của người dùng đang đăng nhập
  */
 export async function getCurrentUserWallet() {
@@ -321,7 +636,7 @@ export async function getCurrentUserWallet() {
     balanceVnd: user.balanceVnd,
     balanceUsd: user.balanceUsd,
     totalInVnd: user.balanceVnd + Math.round(user.balanceUsd * USD_TO_VND_RATE),
-    totalInUsd: Number(((user.balanceVnd / USD_TO_VND_RATE) + user.balanceUsd).toFixed(2)),
+    totalInUsd: Number((user.balanceVnd / USD_TO_VND_RATE + user.balanceUsd).toFixed(2)),
   };
 }
 
@@ -371,8 +686,7 @@ export async function purchaseProWithWallet(
       let balanceAfter = user.balanceVnd;
 
       const useUsd =
-        preferredCurrency === 'USD' ||
-        (user.balanceUsd >= priceUsd && user.balanceVnd < priceVnd);
+        preferredCurrency === 'USD' || (user.balanceUsd >= priceUsd && user.balanceVnd < priceVnd);
 
       if (useUsd) {
         if (user.balanceUsd < priceUsd) {
@@ -449,7 +763,9 @@ export async function purchaseProWithWallet(
           status: 'COMPLETED',
           orderCode,
           description: `Thanh toán nâng cấp ${plan.label} bằng Ví tài khoản (-${
-            currencyDeducted === 'USD' ? `$${amountDeducted}` : `${amountDeducted.toLocaleString('vi-VN')} đ`
+            currencyDeducted === 'USD'
+              ? `$${amountDeducted}`
+              : `${amountDeducted.toLocaleString('vi-VN')} đ`
           })`,
         },
       });
@@ -533,8 +849,7 @@ export async function purchaseCourseWithWallet(
       let balanceAfter = user.balanceVnd;
 
       const useUsd =
-        preferredCurrency === 'USD' ||
-        (user.balanceUsd >= priceUsd && user.balanceVnd < priceVnd);
+        preferredCurrency === 'USD' || (user.balanceUsd >= priceUsd && user.balanceVnd < priceVnd);
 
       if (useUsd) {
         if (user.balanceUsd < priceUsd) {
@@ -616,7 +931,9 @@ export async function purchaseCourseWithWallet(
           status: 'COMPLETED',
           orderCode,
           description: `Đăng ký khóa học: ${course.title} (-${
-            currencyDeducted === 'USD' ? `$${amountDeducted}` : `${amountDeducted.toLocaleString('vi-VN')} đ`
+            currencyDeducted === 'USD'
+              ? `$${amountDeducted}`
+              : `${amountDeducted.toLocaleString('vi-VN')} đ`
           })`,
         },
       });
@@ -637,9 +954,7 @@ export async function purchaseCourseWithWallet(
 /**
  * Tạo link thanh toán PayOS (VietQR) cho Khóa học trả phí
  */
-export async function createCoursePayOSPaymentLink(
-  courseId: string,
-): Promise<DepositLinkResult> {
+export async function createCoursePayOSPaymentLink(courseId: string): Promise<DepositLinkResult> {
   const session = await auth();
   const userId = session?.user?.id;
   if (!userId) {

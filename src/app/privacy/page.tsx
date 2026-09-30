@@ -1,5 +1,6 @@
 import { Container } from '@/components/layout/container';
 import { siteConfig } from '@/config/site';
+import Link from 'next/link';
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -47,7 +48,7 @@ export default function PrivacyPage() {
         <p>
           Bạn có toàn quyền dừng nhận email bất kỳ lúc nào bằng cách nhấp vào liên kết{' '}
           <strong>Hủy đăng ký</strong> ở cuối mỗi email gửi đi hoặc truy cập trang{' '}
-          <a href="/unsubscribe">Huỷ nhận tin</a> của chúng tôi.
+          <Link href="/unsubscribe">Huỷ nhận tin</Link> của chúng tôi.
         </p>
 
         <h2>4. Bảo mật dữ liệu</h2>

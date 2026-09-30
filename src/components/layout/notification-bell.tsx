@@ -18,6 +18,7 @@ import {
   Crown,
 } from 'lucide-react';
 import Link from 'next/link';
+import { siteConfig } from '@/config/site';
 import { AnnouncementDetailModal } from '@/components/announcements/announcement-detail-modal';
 
 interface NotificationBellProps {
@@ -394,7 +395,7 @@ export function NotificationBell({ initialAnnouncements }: NotificationBellProps
           {/* Chân Popover */}
           <div className="border-border bg-muted/20 border-t p-2 text-center">
             <Link
-              href="/shop"
+              href={siteConfig.shopPath}
               onClick={() => setOpen(false)}
               className="text-muted-foreground hover:text-foreground text-[11px] font-medium transition-colors"
             >

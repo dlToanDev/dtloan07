@@ -14,16 +14,34 @@ interface HeaderWalletBadgeProps {
 
 type CurrencyMode = 'USD' | 'VND' | 'DUAL';
 
-export function HeaderWalletBadge({
-  balanceVnd,
-  balanceUsd,
-  className,
-}: HeaderWalletBadgeProps) {
+export function HeaderWalletBadge({ balanceVnd, balanceUsd, className }: HeaderWalletBadgeProps) {
+  const [currentVnd, setCurrentVnd] = useState(balanceVnd);
+  const [currentUsd, setCurrentUsd] = useState(balanceUsd);
+
   // Mặc định: nếu có USD ưu tiên hiển thị USD, ngược lại hiển thị VND
-  const defaultMode: CurrencyMode = balanceUsd > 0 && balanceVnd === 0 ? 'USD' : 'VND';
+  const defaultMode: CurrencyMode = currentUsd > 0 && currentVnd === 0 ? 'USD' : 'VND';
   const [mode, setMode] = useState<CurrencyMode>(defaultMode);
   const [mounted, setMounted] = useState(false);
   const [isRotating, setIsRotating] = useState(false);
+
+  useEffect(() => {
+    setCurrentVnd(balanceVnd);
+    setCurrentUsd(balanceUsd);
+  }, [balanceVnd, balanceUsd]);
+
+  useEffect(() => {
+    const handleUpdate = (e: Event) => {
+      const customEvent = e as CustomEvent<{ balanceVnd?: number; balanceUsd?: number }>;
+      if (customEvent.detail?.balanceVnd !== undefined) {
+        setCurrentVnd(customEvent.detail.balanceVnd);
+      }
+      if (customEvent.detail?.balanceUsd !== undefined) {
+        setCurrentUsd(customEvent.detail.balanceUsd);
+      }
+    };
+    window.addEventListener('wallet-balance-updated', handleUpdate);
+    return () => window.removeEventListener('wallet-balance-updated', handleUpdate);
+  }, []);
 
   useEffect(() => {
     setMounted(true);
@@ -33,8 +51,8 @@ export function HeaderWalletBadge({
     }
   }, []);
 
-  const totalInVnd = balanceVnd + Math.round(balanceUsd * USD_TO_VND_RATE);
-  const totalInUsd = Number(((balanceVnd / USD_TO_VND_RATE) + balanceUsd).toFixed(2));
+  const totalInVnd = currentVnd + Math.round(currentUsd * USD_TO_VND_RATE);
+  const totalInUsd = Number((currentVnd / USD_TO_VND_RATE + currentUsd).toFixed(2));
 
   const cycleMode = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -43,8 +61,7 @@ export function HeaderWalletBadge({
     setIsRotating(true);
     setTimeout(() => setIsRotating(false), 300);
 
-    const nextMode: CurrencyMode =
-      mode === 'USD' ? 'VND' : mode === 'VND' ? 'DUAL' : 'USD';
+    const nextMode: CurrencyMode = mode === 'USD' ? 'VND' : mode === 'VND' ? 'DUAL' : 'USD';
     setMode(nextMode);
     try {
       localStorage.setItem('blog_wallet_currency_mode', nextMode);
@@ -56,10 +73,10 @@ export function HeaderWalletBadge({
 
   const renderAmount = () => {
     if (mode === 'USD') {
-      return `$${balanceUsd > 0 && balanceVnd === 0 ? balanceUsd.toFixed(2) : totalInUsd.toFixed(2)}`;
+      return `$${currentUsd > 0 && currentVnd === 0 ? currentUsd.toFixed(2) : totalInUsd.toFixed(2)}`;
     }
     if (mode === 'VND') {
-      return `${(balanceVnd > 0 && balanceUsd === 0 ? balanceVnd : totalInVnd).toLocaleString('vi-VN')} đ`;
+      return `${(currentVnd > 0 && currentUsd === 0 ? currentVnd : totalInVnd).toLocaleString('vi-VN')} đ`;
     }
     return `$${totalInUsd.toFixed(2)} ≈ ${(totalInVnd / 1000).toLocaleString('vi-VN')}k`;
   };
@@ -77,41 +94,38 @@ export function HeaderWalletBadge({
   return (
     <div
       className={cn(
-        'group inline-flex items-center rounded-full border border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-bold shadow-xs hover:border-emerald-500/60 hover:bg-emerald-500/15 transition-all select-none',
+        'group inline-flex items-center rounded-full border border-emerald-500/40 bg-emerald-500/10 text-xs font-bold text-emerald-600 shadow-xs transition-all select-none hover:border-emerald-500/60 hover:bg-emerald-500/15 dark:text-emerald-400',
         className,
       )}
       title={getTooltip()}
     >
       <Link
         href="/account?tab=wallet"
-        className="flex items-center gap-1.5 pl-2.5 py-1 pr-1 hover:text-emerald-700 dark:hover:text-emerald-300 transition"
+        className="flex items-center gap-1.5 py-1 pr-1 pl-2.5 transition hover:text-emerald-700 dark:hover:text-emerald-300"
         title="Nhấn để mở khu vực Ví và nạp/rút tiền"
       >
-        <Wallet className="size-3.5 shrink-0 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform" />
-        <span className="font-mono tracking-tight font-extrabold whitespace-nowrap">
+        <Wallet className="size-3.5 shrink-0 text-emerald-600 transition-transform group-hover:scale-110 dark:text-emerald-400" />
+        <span className="font-mono font-extrabold tracking-tight whitespace-nowrap">
           {mounted
             ? renderAmount()
             : balanceUsd > 0
-            ? `$${balanceUsd.toFixed(2)}`
-            : `${balanceVnd.toLocaleString('vi-VN')} đ`}
+              ? `$${balanceUsd.toFixed(2)}`
+              : `${balanceVnd.toLocaleString('vi-VN')} đ`}
         </span>
       </Link>
 
       <button
         type="button"
         onClick={cycleMode}
-        className="flex items-center gap-1 pr-2.5 pl-1.5 py-1 text-emerald-600/75 hover:text-emerald-700 dark:text-emerald-400/80 dark:hover:text-emerald-200 transition-colors cursor-pointer border-l border-emerald-500/25 ml-0.5"
+        className="ml-0.5 flex cursor-pointer items-center gap-1 border-l border-emerald-500/25 py-1 pr-2.5 pl-1.5 text-emerald-600/75 transition-colors hover:text-emerald-700 dark:text-emerald-400/80 dark:hover:text-emerald-200"
         title="Xoay tua hiển thị giữa USD và VND"
         aria-label="Xoay tua đơn vị tiền tệ"
       >
-        <span className="text-[10px] font-mono font-bold uppercase tracking-tight opacity-80">
+        <span className="font-mono text-[10px] font-bold tracking-tight uppercase opacity-80">
           {mounted ? mode : balanceUsd > 0 ? 'USD' : 'VND'}
         </span>
         <RefreshCw
-          className={cn(
-            'size-3 transition-transform duration-300',
-            isRotating && 'rotate-180',
-          )}
+          className={cn('size-3 transition-transform duration-300', isRotating && 'rotate-180')}
         />
       </button>
     </div>

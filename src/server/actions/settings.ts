@@ -8,6 +8,7 @@ import { randomUUID } from 'node:crypto';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { z } from 'zod';
+import { type HeroBannerConfig, DEFAULT_HERO_BANNER_CONFIG } from '@/config/hero-banner';
 
 const ADS_DIR = path.join(process.cwd(), 'public', 'images', 'ads');
 const ALLOWED_IMAGE_EXTS = new Set(['.png', '.jpg', '.jpeg', '.webp', '.svg', '.gif', '.avif']);
@@ -545,5 +546,122 @@ export async function deleteAnnouncement(
   } catch (err) {
     console.error('Lỗi xóa thông báo:', err);
     return { success: false, error: 'Không thể xóa thông báo.' };
+  }
+}
+
+// -----------------------------------------------------------------------------
+// 3. QUẢN LÝ BANNER QUẢNG CÁO TRANG CHỦ (HERO BANNER CAROUSEL)
+// -----------------------------------------------------------------------------
+
+const heroBannerItemSchema = z.object({
+  id: z.string().default(() => randomUUID()),
+  title: z.string().trim().max(120, 'Tiêu đề banner tối đa 120 ký tự.').default(''),
+  subtitle: z.string().trim().max(250).optional().default(''),
+  imageUrl: z.string().trim().min(1, 'Đường dẫn ảnh banner không được để trống.'),
+  linkUrl: z.string().trim().max(500).default('#'),
+  active: z.boolean().default(true),
+  badge: z.string().trim().max(40).optional().default(''),
+  ctaText: z.string().trim().max(40).optional().default('Xem ngay'),
+  targetBlank: z.boolean().default(true),
+});
+
+const heroBannerConfigSchema = z.object({
+  enabled: z.boolean().default(true),
+  autoPlay: z.boolean().default(true),
+  intervalSeconds: z.number().int().min(2).max(30).default(5),
+  banners: z.array(heroBannerItemSchema).default([]),
+});
+
+const SETTING_KEY_HERO_BANNER = 'hero_banner_config';
+
+/** Lấy cấu hình banner quảng cáo trang chủ cho Admin */
+export async function getHeroBannerConfig(): Promise<HeroBannerConfig> {
+  await requireAdmin();
+  try {
+    const row = await db.systemSetting.findUnique({
+      where: { key: SETTING_KEY_HERO_BANNER },
+    });
+    if (!row?.value) {
+      return DEFAULT_HERO_BANNER_CONFIG;
+    }
+    const parsed = JSON.parse(row.value) as Partial<HeroBannerConfig>;
+    return {
+      ...DEFAULT_HERO_BANNER_CONFIG,
+      ...parsed,
+      banners:
+        parsed.banners && parsed.banners.length > 0
+          ? parsed.banners
+          : DEFAULT_HERO_BANNER_CONFIG.banners,
+      updatedAt: row.updatedAt.toISOString(),
+    };
+  } catch (err) {
+    console.error('Lỗi đọc cấu hình banner quảng cáo:', err);
+    return DEFAULT_HERO_BANNER_CONFIG;
+  }
+}
+
+/** Lấy cấu hình banner quảng cáo công khai cho trang chủ (Client / Server Component) */
+export async function getPublicHeroBannerConfig(): Promise<HeroBannerConfig> {
+  try {
+    const row = await db.systemSetting.findUnique({
+      where: { key: SETTING_KEY_HERO_BANNER },
+    });
+    if (!row?.value) {
+      return DEFAULT_HERO_BANNER_CONFIG;
+    }
+    const parsed = JSON.parse(row.value) as Partial<HeroBannerConfig>;
+    return {
+      ...DEFAULT_HERO_BANNER_CONFIG,
+      ...parsed,
+      banners:
+        parsed.banners && parsed.banners.length > 0
+          ? parsed.banners
+          : DEFAULT_HERO_BANNER_CONFIG.banners,
+      updatedAt: row.updatedAt.toISOString(),
+    };
+  } catch (err) {
+    console.error('Lỗi đọc public cấu hình banner quảng cáo:', err);
+    return DEFAULT_HERO_BANNER_CONFIG;
+  }
+}
+
+/** Lưu cấu hình banner quảng cáo trang chủ */
+export async function saveHeroBannerConfig(
+  input: HeroBannerConfig,
+): Promise<{ success: boolean; config?: HeroBannerConfig; error?: string }> {
+  await requireAdmin();
+
+  const parsed = heroBannerConfigSchema.safeParse(input);
+  if (!parsed.success) {
+    return {
+      success: false,
+      error: parsed.error.issues[0]?.message || 'Dữ liệu cấu hình banner không hợp lệ.',
+    };
+  }
+
+  try {
+    const value = JSON.stringify(parsed.data);
+    const row = await db.systemSetting.upsert({
+      where: { key: SETTING_KEY_HERO_BANNER },
+      update: { value },
+      create: { key: SETTING_KEY_HERO_BANNER, value },
+    });
+
+    revalidatePath('/');
+    revalidatePath('/admin/settings');
+
+    return {
+      success: true,
+      config: {
+        ...parsed.data,
+        updatedAt: row.updatedAt.toISOString(),
+      },
+    };
+  } catch (err) {
+    console.error('Lỗi lưu cấu hình banner quảng cáo:', err);
+    return {
+      success: false,
+      error: 'Không thể lưu cấu hình banner vào cơ sở dữ liệu.',
+    };
   }
 }

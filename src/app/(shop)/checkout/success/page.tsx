@@ -12,6 +12,7 @@ import { buttonStyles } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle2, Key, Download, Mail, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
+import { siteConfig } from '@/config/site';
 import { provinceName } from '@/config/provinces';
 
 interface Props {
@@ -161,7 +162,7 @@ export default async function CheckoutSuccessPage({ searchParams }: Props) {
             Xem trong Tài khoản của tôi
             <ArrowRight className="ml-2 h-4 w-4" />
           </Link>
-          <Link href="/shop" className={buttonStyles({ variant: 'outline' })}>
+          <Link href={siteConfig.shopPath} className={buttonStyles({ variant: 'outline' })}>
             Tiếp tục xem sản phẩm
           </Link>
         </CardFooter>

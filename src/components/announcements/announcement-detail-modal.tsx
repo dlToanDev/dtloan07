@@ -22,6 +22,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
+import { siteConfig } from '@/config/site';
 import { LuckyWheel } from '@/components/games/lucky-wheel';
 import { QuizGame } from '@/components/games/quiz-game';
 import { markdownToHtml } from '@/lib/editor-converter';
@@ -253,7 +254,7 @@ export function AnnouncementDetailModal({
                   )}
                 </Button>
                 <Link
-                  href="/shop"
+                  href={siteConfig.shopPath}
                   onClick={onClose}
                   className={cn(
                     'inline-flex h-10 items-center justify-center rounded-lg px-4 text-xs font-bold text-white shadow-xs transition-colors',

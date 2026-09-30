@@ -26,7 +26,51 @@ export interface PayOSLinkResult {
   checkoutUrl: string;
   orderCode: number;
   qrCode?: string;
+  qrImageUrl?: string;
+  bin?: string;
+  bankName?: string;
+  accountNumber?: string;
+  accountName?: string;
+  amount?: number;
+  description?: string;
   isMock?: boolean;
+}
+
+export const BANK_BIN_NAMES: Record<string, string> = {
+  '970422': 'MB Bank (Quân Đội)',
+  '970436': 'Vietcombank',
+  '970407': 'Techcombank',
+  '970415': 'VietinBank',
+  '970418': 'BIDV',
+  '970432': 'VPBank',
+  '970423': 'TPBank',
+  '970416': 'ACB',
+  '970405': 'Agribank',
+  '970454': 'SHB',
+};
+
+/**
+ * Sinh link ảnh mã VietQR tiêu chuẩn NAPAS (VietQR.io)
+ */
+export function buildVietQRImageUrl({
+  bin = '970422',
+  accountNumber,
+  accountName,
+  amount,
+  description,
+}: {
+  bin?: string;
+  accountNumber: string;
+  accountName?: string;
+  amount: number;
+  description: string;
+}): string {
+  const bank = bin || '970422';
+  const acc = accountNumber || '';
+  const amt = amount || 0;
+  const desc = encodeURIComponent(description || '');
+  const name = accountName ? `&accountName=${encodeURIComponent(accountName)}` : '';
+  return `https://img.vietqr.io/image/${bank}-${acc}-compact2.png?amount=${amt}&addInfo=${desc}${name}`;
 }
 
 /**
@@ -48,16 +92,35 @@ export async function createPayOSPaymentLink(
     .slice(0, 25);
 
   if (!payosClient) {
+    const mockBin = '970422';
+    const mockAccountNumber = '0359876543';
+    const mockAccountName = 'TRAN MINH TOAN';
+    const mockQrUrl = buildVietQRImageUrl({
+      bin: mockBin,
+      accountNumber: mockAccountNumber,
+      accountName: mockAccountName,
+      amount: params.amount,
+      description: safeDescription,
+    });
+
     console.log('\n==========================================');
     console.log('💳 [MOCK PAYOS - Chưa cấu hình API Keys]');
     console.log(`Mã đơn: ${params.orderCode}, Số tiền: ${params.amount} VND`);
-    console.log(`Return URL: ${returnUrl}`);
+    console.log(`VietQR: ${mockQrUrl}`);
     console.log('==========================================\n');
 
-    // Trong môi trường dev chưa điền key PayOS: Trả về link test
+    // Trong môi trường dev chưa điền key PayOS: Trả về link test kèm mock VietQR
     return {
       checkoutUrl: returnUrl,
       orderCode: params.orderCode,
+      qrCode: mockQrUrl,
+      qrImageUrl: mockQrUrl,
+      bin: mockBin,
+      bankName: BANK_BIN_NAMES[mockBin] || 'MB Bank',
+      accountNumber: mockAccountNumber,
+      accountName: mockAccountName,
+      amount: params.amount,
+      description: safeDescription,
       isMock: true,
     };
   }
@@ -71,10 +134,26 @@ export async function createPayOSPaymentLink(
     items: params.items || [],
   });
 
+  const bin = paymentLinkResponse.bin || '970422';
+  const qrImageUrl = buildVietQRImageUrl({
+    bin,
+    accountNumber: paymentLinkResponse.accountNumber,
+    accountName: paymentLinkResponse.accountName,
+    amount: paymentLinkResponse.amount,
+    description: paymentLinkResponse.description,
+  });
+
   return {
     checkoutUrl: paymentLinkResponse.checkoutUrl,
     orderCode: paymentLinkResponse.orderCode,
     qrCode: paymentLinkResponse.qrCode,
+    qrImageUrl,
+    bin,
+    bankName: BANK_BIN_NAMES[bin] || `Ngân hàng (BIN ${bin})`,
+    accountNumber: paymentLinkResponse.accountNumber,
+    accountName: paymentLinkResponse.accountName,
+    amount: paymentLinkResponse.amount,
+    description: paymentLinkResponse.description,
     isMock: false,
   };
 }

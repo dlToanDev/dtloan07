@@ -14,6 +14,7 @@ import {
 import { parseVariantsInput, planVariantSync, type VariantInput } from '@/lib/shop/variant-input';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import { siteConfig } from '@/config/site';
 
 /** Số tài khoản tối đa nhập vào kho trong một lần lưu (giống nhập kho hàng loạt). */
 const MAX_ACCOUNT_LINES = 500;
@@ -287,14 +288,12 @@ export async function saveProduct(_state: { error?: string; success?: string }, 
     for (const path of [
       '/',
       '/admin/shop',
-      '/shop',
-      `/products/${data.slug}`,
-      `/shop/${data.slug}`,
+      siteConfig.shopPath,
+      `${siteConfig.shopPath}/${data.slug}`,
     ])
       revalidatePath(path);
     if (existing) {
-      revalidatePath(`/products/${existing.slug}`);
-      revalidatePath(`/shop/${existing.slug}`);
+      revalidatePath(`${siteConfig.shopPath}/${existing.slug}`);
     }
     revalidatePath(`/admin/shop/${savedId}/edit`);
   } catch (error) {

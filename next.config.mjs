@@ -29,8 +29,6 @@ const nextConfig = {
   async redirects() {
     return [
       { source: '/profile', destination: '/account', permanent: true },
-      { source: '/source-code', destination: '/shop?c=source-code', permanent: true },
-      { source: '/source-code/:slug', destination: '/shop/:slug', permanent: true },
       { source: '/admin/source-code', destination: '/admin/shop', permanent: true },
       { source: '/admin/source-code/new', destination: '/admin/shop/new', permanent: true },
       {
@@ -38,7 +36,20 @@ const nextConfig = {
         destination: '/admin/shop/:id/edit',
         permanent: true,
       },
+      { source: '/shop', destination: '/afiuafhu283an', permanent: false },
+      { source: '/shop/:slug', destination: '/afiuafhu283an/:slug', permanent: false },
     ];
+  },
+  async rewrites() {
+    const customShopPath = process.env.NEXT_PUBLIC_SHOP_PATH?.trim();
+    if (customShopPath && customShopPath !== '/afiuafhu283an') {
+      const cleanPath = customShopPath.startsWith('/') ? customShopPath : `/${customShopPath}`;
+      return [
+        { source: cleanPath, destination: '/afiuafhu283an' },
+        { source: `${cleanPath}/:slug`, destination: '/afiuafhu283an/:slug' },
+      ];
+    }
+    return [];
   },
   async headers() {
     return [

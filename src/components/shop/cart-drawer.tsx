@@ -7,6 +7,7 @@ import { Button, buttonStyles } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
+import { siteConfig } from '@/config/site';
 
 interface ValidatedCartItem {
   productId: string;
@@ -165,7 +166,7 @@ export function CartDrawer() {
                 Hãy lựa chọn các template và giải pháp hạ tầng server để thêm vào giỏ hàng.
               </p>
               <Link
-                href="/shop"
+                href={siteConfig.shopPath}
                 onClick={closeCart}
                 className={buttonStyles({ variant: 'outline', className: 'mt-5 text-xs' })}
               >
@@ -189,7 +190,7 @@ export function CartDrawer() {
                 >
                   <div className="min-w-0 flex-1">
                     <Link
-                      href={`/products/${item.slug}`}
+                      href={`${siteConfig.shopPath}/${item.slug}`}
                       onClick={closeCart}
                       className="text-foreground hover:text-primary line-clamp-1 text-sm font-semibold transition-colors"
                     >

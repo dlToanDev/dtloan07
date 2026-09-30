@@ -4,17 +4,43 @@ import { AffiliateList } from '@/components/affiliate/affiliate-list';
 import { buildMetadata } from '@/lib/seo';
 import type { Metadata } from 'next';
 import { Info, Sparkles, ShieldCheck, HeartHandshake } from 'lucide-react';
+import { notFound } from 'next/navigation';
+import { isValidAffiliateToken, getAffiliateTokenExpiry } from '@/lib/affiliate-token';
+import { AffiliateSecurityBadge } from '@/components/affiliate/affiliate-security-badge';
 
-export const metadata: Metadata = buildMetadata({
-  title: 'Sản phẩm Affiliate chọn lọc',
-  description:
-    'Tìm kiếm sản phẩm Affiliate từ Shopee, TikTok Shop và các nền tảng khác, được dltoan07 chọn lọc.',
-  pathname: '/affiliate',
-});
+export const dynamic = 'force-dynamic';
 
-export const revalidate = 60; // ISR 60 giây
+interface PageProps {
+  params: Promise<{ token: string }>;
+}
 
-export default async function AffiliatePage() {
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { token } = await params;
+  if (!isValidAffiliateToken(token)) {
+    return {
+      title: '404 - Không tìm thấy trang',
+      robots: { index: false, follow: false },
+    };
+  }
+
+  return buildMetadata({
+    title: 'Sản phẩm Affiliate chọn lọc',
+    description:
+      'Tìm kiếm sản phẩm Affiliate từ Shopee, TikTok Shop và các nền tảng khác, được dltoan07 chọn lọc.',
+    pathname: `/${token}`,
+    noIndex: true,
+  });
+}
+
+export default async function DynamicAffiliatePage({ params }: PageProps) {
+  const { token } = await params;
+
+  if (!isValidAffiliateToken(token)) {
+    notFound();
+  }
+
+  const expiry = getAffiliateTokenExpiry();
+
   let deals: Awaited<ReturnType<typeof db.affiliateItem.findMany>> = [];
   try {
     deals = await db.affiliateItem.findMany({
@@ -23,11 +49,18 @@ export default async function AffiliatePage() {
       orderBy: [{ featured: 'desc' }, { createdAt: 'desc' }],
     });
   } catch (err) {
-    console.warn('Cảnh báo: Không thể tải danh sách affiliate lúc build:', err);
+    console.warn('Cảnh báo: Không thể tải danh sách affiliate lúc build/request:', err);
   }
 
   return (
     <Container className="space-y-10 py-12 sm:py-16">
+      {/* Huy hiệu bảo mật URL xoay vòng ngẫu nhiên */}
+      <AffiliateSecurityBadge
+        token={token}
+        remainingSeconds={expiry.remainingSeconds}
+        rotationMinutes={expiry.rotationMinutes}
+      />
+
       {/* Hero Header */}
       <div className="max-w-2xl space-y-3">
         <div className="bg-primary/10 text-primary inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold">

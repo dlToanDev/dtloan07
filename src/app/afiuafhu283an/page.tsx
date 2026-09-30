@@ -8,12 +8,14 @@ import { CONDITION_OPTIONS } from '@/lib/shop/labels';
 import { summarizeVariants } from '@/lib/shop/variants';
 import type { Metadata } from 'next';
 import { ShieldCheck, Zap, RefreshCw, FileCode } from 'lucide-react';
+import { siteConfig } from '@/config/site';
 
 export const metadata: Metadata = buildMetadata({
   title: 'Shop sản phẩm của dltoan07',
   description:
     'Cửa hàng sản phẩm chính chủ của dltoan07, gồm source code, tài khoản số và đồ vật lý — tách biệt với sản phẩm affiliate.',
-  pathname: '/shop',
+  pathname: siteConfig.shopPath,
+  noIndex: true,
 });
 
 /** Query có filter nên trang chạy động, không ISR. */

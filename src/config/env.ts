@@ -60,10 +60,15 @@ const serverSchema = z.object({
   // Affiliate — Rút gọn link kiếm tiền (MegaURL, Ouo.io, Shorte.st, etc.)
   SHORTENER_API_URL: optional(z.string().url()),
   SHORTENER_API_KEY: optional(z.string()),
+
+  // Affiliate — Bảo mật URL động xoay vòng ngẫu nhiên
+  AFFILIATE_ROTATION_MINUTES: optional(z.coerce.number().positive()).default(30),
+  AFFILIATE_TOKEN_SECRET: optional(z.string()),
 });
 
 const clientSchema = z.object({
   NEXT_PUBLIC_SITE_URL: z.string().url(),
+  NEXT_PUBLIC_SHOP_PATH: optional(z.string()).default('/afiuafhu283an'),
 });
 
 /**
@@ -72,6 +77,7 @@ const clientSchema = z.object({
  */
 const clientRuntime = {
   NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:5000',
+  NEXT_PUBLIC_SHOP_PATH: process.env.NEXT_PUBLIC_SHOP_PATH ?? '/afiuafhu283an',
 };
 
 function parse<T extends z.ZodTypeAny>(schema: T, source: unknown, label: string): z.infer<T> {

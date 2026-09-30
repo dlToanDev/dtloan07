@@ -7,9 +7,14 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
-export function MobileNav() {
+interface MobileNavProps {
+  navItems?: readonly { label: string; href: string }[] | { label: string; href: string }[];
+}
+
+export function MobileNav({ navItems }: MobileNavProps = {}) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
+  const items = navItems || siteConfig.nav;
 
   // Điều hướng xong thì đóng menu, nếu không menu treo lại ở trang mới.
   useEffect(() => setOpen(false), [pathname]);
@@ -37,10 +42,10 @@ export function MobileNav() {
           className="border-border bg-background absolute inset-x-0 top-16 border-b shadow-sm"
         >
           <ul className="container-page flex flex-col py-2">
-            {siteConfig.nav.map((item) => {
-              const active = pathname.startsWith(item.href);
+            {items.map((item) => {
+              const active = item.href === '/' ? pathname === '/' : pathname.startsWith(item.href);
               return (
-                <li key={item.href}>
+                <li key={item.label}>
                   <Link
                     href={item.href}
                     aria-current={active ? 'page' : undefined}

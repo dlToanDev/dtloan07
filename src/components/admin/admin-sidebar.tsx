@@ -24,6 +24,7 @@ import {
   Users,
   ChevronRight,
   Settings,
+  Headset,
 } from 'lucide-react';
 
 interface NavItem {
@@ -52,6 +53,13 @@ const navGroups: NavGroup[] = [
         exact: true,
         iconColor: 'text-rose-500',
         iconBg: 'bg-rose-500/10',
+      },
+      {
+        title: 'Trợ giúp & Hỗ trợ',
+        href: '/admin/support',
+        icon: Headset,
+        iconColor: 'text-violet-500',
+        iconBg: 'bg-violet-500/10',
       },
       {
         title: 'Đơn hàng',
@@ -158,9 +166,16 @@ const navGroups: NavGroup[] = [
 // Danh sách phẳng để tìm mục đang active hiển thị trên mobile
 const allItems = navGroups.flatMap((g) => g.items);
 
-export function AdminSidebar({ userEmail }: { userEmail: string }) {
+export function AdminSidebar({
+  userEmail,
+  userName = 'Hoàng Anh Toàn',
+}: {
+  userEmail: string;
+  userName?: string;
+}) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const adminDisplayName = userName && userName !== 'Admin' ? userName : 'Hoàng Anh Toàn';
 
   // Đóng menu mobile khi chuyển route
   useEffect(() => {
@@ -309,9 +324,10 @@ export function AdminSidebar({ userEmail }: { userEmail: string }) {
 
             {/* Mobile Footer Area */}
             <div className="border-border flex items-center justify-between border-t pt-3 text-xs">
-              <span className="text-muted-foreground max-w-[200px] truncate">
-                Admin: <strong className="text-foreground">{userEmail}</strong>
-              </span>
+              <div className="max-w-[200px] min-w-0">
+                <p className="text-foreground truncate text-xs font-semibold">{adminDisplayName}</p>
+                <p className="text-muted-foreground truncate text-[11px]">{userEmail}</p>
+              </div>
               <Link
                 href="/"
                 target="_blank"
@@ -415,12 +431,15 @@ export function AdminSidebar({ userEmail }: { userEmail: string }) {
           <div className="border-border mt-6 space-y-3 border-t px-1 pt-4">
             {/* User Info Card */}
             <div className="bg-muted/40 border-border/50 flex items-center justify-between gap-2 rounded-xl border p-2.5">
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
                 <p className="text-muted-foreground text-[10px] font-medium tracking-wider uppercase">
                   Tài khoản quản trị
                 </p>
-                <p className="text-foreground truncate text-xs font-semibold" title={userEmail}>
-                  {userEmail || 'admin@hvpgroup.vn'}
+                <p className="text-foreground truncate text-xs font-bold" title={adminDisplayName}>
+                  {adminDisplayName}
+                </p>
+                <p className="text-muted-foreground truncate text-[11px]" title={userEmail}>
+                  {userEmail || 'hatoan13@gmail.com'}
                 </p>
               </div>
               <span className="shrink-0 rounded-md bg-rose-500/10 px-1.5 py-0.5 text-[10px] font-bold text-rose-600 uppercase dark:text-rose-400">

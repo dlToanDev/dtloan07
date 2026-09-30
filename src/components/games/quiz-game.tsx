@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState } from 'react';
 import {
@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
+import { siteConfig } from '@/config/site';
 
 interface QuizGameProps {
   question?: string;
@@ -171,7 +172,7 @@ export function QuizGame({
               </div>
               <div className="pt-1">
                 <Link
-                  href="/shop"
+                  href={siteConfig.shopPath}
                   className="text-primary inline-flex items-center gap-1 text-xs font-semibold hover:underline"
                 >
                   Đến Shop để áp dụng mã ngay <ArrowRight className="size-3.5" />

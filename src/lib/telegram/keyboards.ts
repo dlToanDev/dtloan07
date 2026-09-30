@@ -7,7 +7,7 @@ import { siteConfig } from '@/config/site';
 export function persistentReplyKeyboard(): Keyboard {
   return new Keyboard()
     .text('📂 Sản phẩm')
-    .text('💰 Ví tiền')
+    .text('📋 Đơn hàng')
     .row()
     .text('🔍 Tìm kiếm')
     .text('💬 Hỗ trợ')

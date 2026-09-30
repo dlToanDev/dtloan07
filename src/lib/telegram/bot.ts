@@ -15,7 +15,6 @@ import {
   handleMyOrders,
   userCheckoutState,
 } from './handlers/order';
-import { handleWallet, handleDeposit } from './handlers/wallet';
 import { handleSearchPrompt, searchProductsOrOrders } from './handlers/search';
 
 const config = getTelegramConfig();
@@ -43,10 +42,9 @@ export async function registerBotCommands() {
       { command: 'start', description: '🏠 Khởi động bot & Menu chính' },
       { command: 'menu', description: '📂 Danh mục sản phẩm (Tài khoản & Code)' },
       { command: 'product', description: '📦 Danh sách tất cả sản phẩm' },
-      { command: 'wallet', description: '💰 Số dư ví & Nạp tiền PayOS' },
-      { command: 'find', description: '🔍 Tìm kiếm sản phẩm hoặc đơn hàng' },
+      { command: 'orders', description: '📋 Đơn hàng & Tra cứu của bạn' },
+      { command: 'find', description: '🔍 Tìm kiếm sản phẩm hoặc mã đơn' },
       { command: 'support', description: '💬 Hỗ trợ kỹ thuật & bảo hành' },
-      { command: 'orders', description: '📋 Lịch sử đơn hàng của bạn' },
     ]);
     console.log('✅ Đã đăng ký menu lệnh bot thành công với Telegram API!');
   } catch (err) {
@@ -55,7 +53,7 @@ export async function registerBotCommands() {
 }
 
 // ==========================================
-// 1. COMMANDS (/start, /menu, /product, /wallet, /find, /support)
+// 1. COMMANDS (/start, /menu, /product, /orders, /find, /support)
 // ==========================================
 
 bot.command('start', async (ctx) => {
@@ -66,8 +64,8 @@ bot.command('start', async (ctx) => {
       `Chào mừng bạn đến với Cửa Hàng <b>Mã Nguồn & Tài Khoản Bản Quyền</b>.\n\n` +
       `🚀 <b>Ưu điểm khi mua tại Bot:</b>\n` +
       `• Bàn giao tự động qua Telegram & Email trong <b>3 giây</b>\n` +
-      `• Thanh toán tự động bằng mã <b>VietQR Napas 24/7</b>\n` +
-      `• Nạp tiền và quản lý ví điện tử tiện lợi\n` +
+      `• Thanh toán quét mã <b>VietQR Napas 24/7</b> trực tiếp từng đơn (không cần nạp tiền)\n` +
+      `• Tự động kiểm tra giao dịch và gửi mã bản quyền / link tải ngay\n` +
       `• Bảo hành 1 đổi 1 uy tín\n\n` +
       `Vui lòng bấm chọn các nút trên Menu bên dưới để bắt đầu:`;
 
@@ -114,7 +112,15 @@ bot.command(['product', 'products'], async (ctx) => {
 
 bot.command('wallet', async (ctx) => {
   try {
-    await handleWallet(ctx);
+    await ctx.reply(
+      `💡 <b>Thanh toán trực tiếp qua VietQR 24/7</b>\n\n` +
+        `Bot áp dụng phương thức thanh toán chuyển khoản quét mã <b>VietQR Napas</b> trực tiếp theo từng đơn hàng (không cần nạp tiền tích lũy số dư ví).\n\n` +
+        `👉 Bạn chỉ cần chọn sản phẩm mong muốn, bot sẽ tạo mã QR thanh toán chuẩn xác và tự động giao hàng sau 3 giây!`,
+      {
+        parse_mode: 'HTML',
+        reply_markup: categoryKeyboard(),
+      },
+    );
   } catch (error) {
     console.error('Lỗi khi xử lý lệnh /wallet:', error);
   }
@@ -159,9 +165,8 @@ bot.command('help', async (ctx) => {
       `• /start - Khởi động bot & Menu chính\n` +
       `• /menu - Danh mục sản phẩm\n` +
       `• /product - Danh sách sản phẩm\n` +
-      `• /wallet - Số dư ví & Nạp tiền\n` +
-      `• /find - Tìm kiếm sản phẩm hoặc tra cứu đơn\n` +
       `• /orders - Xem lại đơn hàng của bạn\n` +
+      `• /find - Tìm kiếm sản phẩm hoặc tra cứu đơn\n` +
       `• /support - Hỗ trợ kỹ thuật\n` +
       `• /cancel - Hủy thao tác đang làm dở`;
 
@@ -224,12 +229,6 @@ bot.on('callback_query:data', async (ctx) => {
       return;
     }
 
-    if (data === 'nav:wallet') {
-      await handleWallet(ctx);
-      await ctx.answerCallbackQuery();
-      return;
-    }
-
     if (data === 'nav:find') {
       await handleSearchPrompt(ctx);
       await ctx.answerCallbackQuery();
@@ -248,18 +247,6 @@ bot.on('callback_query:data', async (ctx) => {
         parse_mode: 'HTML',
         reply_markup: backToMenuKeyboard(),
       });
-      await ctx.answerCallbackQuery();
-      return;
-    }
-
-    if (data.startsWith('deposit:')) {
-      // Format: deposit:<amount>:<userId>
-      const parts = data.split(':');
-      const amount = Number(parts[1]);
-      const userId = parts[2];
-      if (amount && userId) {
-        await handleDeposit(ctx, amount, userId);
-      }
       await ctx.answerCallbackQuery();
       return;
     }
@@ -361,8 +348,8 @@ bot.on('message:text', async (ctx) => {
     return;
   }
 
-  if (text === '💰 Ví tiền') {
-    await handleWallet(ctx);
+  if (text === '📋 Đơn hàng') {
+    await handleMyOrders(ctx);
     return;
   }
 

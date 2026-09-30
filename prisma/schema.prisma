@@ -60,6 +60,7 @@ model User {
   lessonProgress LessonProgress[]
   submissions    Submission[]
   supportTickets SupportTicket[]
+  adminTokens    AdminToken[]
 }
 
 model Account {
@@ -937,5 +938,42 @@ model SupportMessage {
   ticket     SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
 
   @@index([ticketId, createdAt])
+}
+
+// ==========================================
+// 14. Admin Security & Token Management
+// ==========================================
+
+model AdminToken {
+  id          String    @id @default(cuid())
+  tokenHash   String    @unique // SHA-256 hash của raw token (không lưu plaintext)
+  tokenPrefix String    // 6-8 ký tự đầu để hiển thị an toàn trên Admin UI
+  createdById String
+  createdBy   User      @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
+  expiresAt   DateTime  // Thời điểm hết hạn (now + TTL)
+  revokedAt   DateTime? // null = đang active, nếu có thời gian = đã bị thu hồi
+  revokedBy   String?   // User ID hoặc lý do thu hồi
+  lastUsedAt  DateTime? // Thời gian lần cuối request bằng token này
+  label       String?   // Ghi chú / nhãn tùy chọn
+
+  @@index([tokenHash])
+  @@index([expiresAt])
+  @@index([revokedAt])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  action     String   // VD: ADMIN_TOKEN_GENERATE, ADMIN_TOKEN_ROTATE, ADMIN_TOKEN_REVOKE, ADMIN_LOGIN_SUCCESS, ADMIN_LOGIN_FAILED
+  actorId    String?
+  actorEmail String?
+  ipAddress  String?
+  userAgent  String?
+  details    Json?    // Metadata an toàn (không chứa secret, password, OTP, token plaintext)
+  createdAt  DateTime @default(now())
+
+  @@index([action])
+  @@index([actorId])
+  @@index([createdAt])
 }
 

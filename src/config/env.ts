@@ -64,6 +64,9 @@ const serverSchema = z.object({
   // Affiliate — Bảo mật URL động xoay vòng ngẫu nhiên
   AFFILIATE_ROTATION_MINUTES: optional(z.coerce.number().positive()).default(30),
   AFFILIATE_TOKEN_SECRET: optional(z.string()),
+
+  // Admin — Bảo mật URL động xoay vòng ngẫu nhiên & TTL hết hạn (giây)
+  ADMIN_URL_TOKEN_TTL: optional(z.coerce.number().positive()).default(3600),
 });
 
 const clientSchema = z.object({

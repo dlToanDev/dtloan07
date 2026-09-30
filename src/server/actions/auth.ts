@@ -5,6 +5,7 @@ import { signIn } from '@/lib/auth';
 import { sendVerificationEmail } from '@/lib/mail';
 import bcrypt from 'bcryptjs';
 import { AuthError } from 'next-auth';
+import { checkAuthRateLimit } from '@/lib/security/rate-limit';
 
 export interface AuthActionResult {
   success: boolean;
@@ -31,6 +32,14 @@ export async function sendRegistrationOtp(
 
   if (!email || !EMAIL_REGEX.test(email)) {
     return { success: false, error: 'Địa chỉ email không hợp lệ. Vui lòng kiểm tra lại.' };
+  }
+
+  const rateLimit = checkAuthRateLimit(email);
+  if (!rateLimit.success) {
+    return {
+      success: false,
+      error: 'Bạn đã yêu cầu gửi mã quá nhiều lần. Vui lòng thử lại sau 1 phút.',
+    };
   }
 
   if (!password || password.length < 8) {
@@ -283,6 +292,16 @@ export async function loginWithCredentialsAction(
 ) {
   const email = (formData.get('email') as string)?.toLowerCase().trim();
   const password = formData.get('password') as string;
+
+  if (email) {
+    const rateLimit = checkAuthRateLimit(email);
+    if (!rateLimit.success) {
+      return {
+        success: false,
+        error: 'Bạn đã đăng nhập sai quá nhiều lần. Vui lòng chờ 1 phút trước khi thử lại.',
+      };
+    }
+  }
 
   try {
     await signIn('credentials', {

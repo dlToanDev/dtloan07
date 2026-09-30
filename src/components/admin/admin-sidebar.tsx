@@ -169,13 +169,24 @@ const allItems = navGroups.flatMap((g) => g.items);
 export function AdminSidebar({
   userEmail,
   userName = 'Hoàng Anh Toàn',
+  adminToken,
 }: {
   userEmail: string;
   userName?: string;
+  adminToken?: string;
 }) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const adminDisplayName = userName && userName !== 'Admin' ? userName : 'Hoàng Anh Toàn';
+
+  // Chuyển đổi href sang dạng URL động kèm Token bảo mật: /admin/:token/...
+  const getLinkHref = (baseHref: string) => {
+    if (!adminToken) return baseHref;
+    if (baseHref === '/admin') {
+      return `/admin/${adminToken}`;
+    }
+    return baseHref.replace(/^\/admin\//, `/admin/${adminToken}/`);
+  };
 
   // Đóng menu mobile khi chuyển route
   useEffect(() => {
@@ -183,10 +194,17 @@ export function AdminSidebar({
   }, [pathname]);
 
   const isItemActive = (item: NavItem) => {
+    if (!pathname) return false;
+    const targetHref = getLinkHref(item.href);
     if (item.exact || item.href === '/admin') {
-      return pathname === item.href;
+      return pathname === targetHref || pathname === item.href;
     }
-    return pathname === item.href || pathname.startsWith(`${item.href}/`);
+    return (
+      pathname === targetHref ||
+      pathname.startsWith(`${targetHref}/`) ||
+      pathname === item.href ||
+      pathname.startsWith(`${item.href}/`)
+    );
   };
 
   const fallbackItem: NavItem = {
@@ -253,7 +271,7 @@ export function AdminSidebar({
             return (
               <Link
                 key={item.href}
-                href={item.href}
+                href={getLinkHref(item.href)}
                 className={cn(
                   'flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 transition-all',
                   active
@@ -282,7 +300,7 @@ export function AdminSidebar({
                     return (
                       <Link
                         key={item.href}
-                        href={item.href}
+                        href={getLinkHref(item.href)}
                         className={cn(
                           'flex items-center justify-between rounded-xl px-3 py-2 text-sm transition-all',
                           active
@@ -380,7 +398,7 @@ export function AdminSidebar({
                       return (
                         <li key={item.href}>
                           <Link
-                            href={item.href}
+                            href={getLinkHref(item.href)}
                             aria-current={active ? 'page' : undefined}
                             className={cn(
                               'group flex items-center justify-between rounded-xl px-3 py-2 text-sm font-medium transition-all duration-150',

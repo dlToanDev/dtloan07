@@ -638,7 +638,7 @@ export function ProfileManager({
           <div className="relative z-20 flex flex-wrap items-center gap-2.5 sm:flex-col sm:items-end">
             {user.role === 'ADMIN' && (
               <Link
-                href="/admin"
+                href="/admin/entry"
                 className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl bg-slate-900 px-3.5 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white"
               >
                 <Settings className="size-3.5" /> Trang quản trị Admin
@@ -903,7 +903,7 @@ export function ProfileManager({
                   </p>
                 </div>
                 <Link
-                  href="/admin"
+                  href="/admin/entry"
                   className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-slate-900 px-5 py-2.5 text-xs font-bold text-white shadow transition hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white"
                 >
                   <Settings className="size-4" />

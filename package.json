@@ -21,7 +21,7 @@
     "test": "vitest run",
     "new:post": "node --experimental-strip-types scripts/new-post.ts",
     "test:int": "vitest run --dir tests/integration --exclude \"\"",
-    "telegram:dev": "node --experimental-strip-types scripts/telegram-dev.ts"
+    "telegram:dev": "tsx scripts/telegram-dev.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.3",

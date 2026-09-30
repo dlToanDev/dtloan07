@@ -2,6 +2,14 @@
  * Script chạy Telegram Bot ở chế độ Long Polling trên máy Local Development.
  * Chạy lệnh: pnpm telegram:dev
  */
+if (typeof process.loadEnvFile === 'function') {
+  try {
+    process.loadEnvFile('.env');
+  } catch {
+    // .env not found or already loaded
+  }
+}
+
 import { bot } from '../src/lib/telegram/bot';
 import { getTelegramConfig } from '../src/lib/telegram/config';
 

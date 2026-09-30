@@ -288,6 +288,11 @@ enum PaymentMethod {
   WALLET
 }
 
+enum OrderSource {
+  WEB
+  TELEGRAM
+}
+
 /// Vòng đời giao hàng, dùng chung cho đồ vật lý và tài khoản bàn giao thủ công.
 enum FulfillmentStatus {
   PENDING
@@ -349,6 +354,12 @@ model Order {
   // --- Đơn mua khóa học (không có OrderItem) ---
   courseId        String?
 
+  // --- Nguồn đơn hàng & Thông tin liên hệ Telegram Bot ---
+  source            OrderSource        @default(WEB)
+  telegramChatId    String?            // Chat ID của khách trên Telegram
+  telegramUserId    String?            // User ID trên Telegram
+  telegramUsername  String?            // @username trên Telegram
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -361,6 +372,8 @@ model Order {
 
   @@index([userId, status])
   @@index([email])
+  @@index([telegramChatId])
+  @@index([source, createdAt])
 }
 
 model OrderItem {

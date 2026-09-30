@@ -20,7 +20,8 @@
     "lint:fix": "eslint . --fix",
     "test": "vitest run",
     "new:post": "node --experimental-strip-types scripts/new-post.ts",
-    "test:int": "vitest run --dir tests/integration --exclude \"\""
+    "test:int": "vitest run --dir tests/integration --exclude \"\"",
+    "telegram:dev": "node --experimental-strip-types scripts/telegram-dev.ts"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.11.3",
@@ -57,6 +58,7 @@
     "bcryptjs": "^3.0.3",
     "clsx": "^2.1.1",
     "fuse.js": "^7.5.0",
+    "grammy": "^1.46.0",
     "gray-matter": "^4.0.3",
     "joplin-turndown-plugin-gfm": "^1.0.12",
     "lucide-react": "^1.45.0",

@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { db } from '@/lib/db';
@@ -33,9 +34,8 @@ export async function POST(req: NextRequest) {
     });
     if (!user) return NextResponse.json({ error: 'Không tìm thấy tài khoản.' }, { status: 404 });
 
-    const numericOrderCode = Number(
-      `${Math.floor(Date.now() / 1000)}${Math.floor(10 + Math.random() * 90)}`,
-    );
+    const randomSuffix = crypto.randomInt(10, 100);
+    const numericOrderCode = Number(`${Math.floor(Date.now() / 1000)}${randomSuffix}`);
     const orderCode = `DH-${numericOrderCode}`;
 
     await db.order.create({

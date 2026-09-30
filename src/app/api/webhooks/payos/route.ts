@@ -8,6 +8,7 @@ import { sendAdminManualDeliveryEmail, sendOrderLicenseEmail } from '@/lib/mail'
 import { deliverAutoAccounts } from '@/lib/shop/account-delivery';
 import { siteConfig } from '@/config/site';
 import { USD_TO_VND_RATE } from '@/lib/wallet';
+import { sendTelegramOrderDelivery } from '@/lib/telegram/delivery';
 
 export const runtime = 'nodejs';
 
@@ -269,6 +270,13 @@ export async function POST(req: NextRequest) {
         licenses: result.createdLicenses,
       }).catch((mailError) => {
         console.error('Lỗi khi gửi email bàn giao bản quyền:', mailError);
+      });
+    }
+
+    // 6c. Bàn giao tức thì qua Telegram Bot (nếu đơn hàng đến từ Telegram)
+    if (order.telegramChatId) {
+      await sendTelegramOrderDelivery(order.id).catch((tgError) => {
+        console.error('Lỗi khi gửi thông tin đơn hàng tới Telegram:', tgError);
       });
     }
 

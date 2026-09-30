@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { auth } from '@/lib/auth';
 import { getSignedDownloadUrl } from '@/lib/storage';
+import { checkRateLimit, getClientIp } from '@/lib/security/rate-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,6 +24,15 @@ interface RouteParams {
  */
 export async function GET(req: NextRequest, { params }: RouteParams) {
   try {
+    const clientIp = getClientIp(req.headers);
+    const rateLimit = checkRateLimit(`download:${clientIp}`, 20, 60);
+    if (!rateLimit.success) {
+      return NextResponse.json(
+        { error: 'Bạn đã thực hiện quá nhiều yêu cầu tải file. Vui lòng thử lại sau 1 phút.' },
+        { status: 429 },
+      );
+    }
+
     const { licenseId } = await params;
     const searchParams = req.nextUrl.searchParams;
     const providedKey = searchParams.get('key');
@@ -64,19 +74,17 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
     } else if (currentUserEmail && currentUserEmail === license.email.toLowerCase()) {
       isAuthorized = true;
     } else if (providedKey && providedKey.trim().toUpperCase() === license.key.toUpperCase()) {
-      isAuthorized = true;
-    } else if (
-      providedEmail &&
-      providedEmail.trim().toLowerCase() === license.email.toLowerCase()
-    ) {
-      isAuthorized = true;
+      // Khách vãng lai bắt buộc phải có license key hợp lệ
+      if (!providedEmail || providedEmail.trim().toLowerCase() === license.email.toLowerCase()) {
+        isAuthorized = true;
+      }
     }
 
     if (!isAuthorized) {
       return NextResponse.json(
         {
           error:
-            'Bạn không có quyền tải tệp từ giấy phép này. Vui lòng đăng nhập đúng tài khoản hoặc cung cấp email/mã bản quyền hợp lệ.',
+            'Bạn không có quyền tải tệp từ giấy phép này. Vui lòng đăng nhập đúng tài khoản hoặc cung cấp mã bản quyền hợp lệ.',
         },
         { status: 403 },
       );
@@ -133,9 +141,6 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
     }
 
     // 8. GHI NHẬN NHẬT KÝ TẢI VÀ TĂNG DOWNLOAD COUNT
-    const forwardedFor = req.headers.get('x-forwarded-for');
-    const clientIp =
-      forwardedFor?.split(',')[0]?.trim() || req.headers.get('x-real-ip') || '127.0.0.1';
     const userAgent = req.headers.get('user-agent') || 'Unknown';
 
     await db.$transaction([

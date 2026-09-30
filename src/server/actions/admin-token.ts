@@ -50,7 +50,16 @@ export async function rotateAdminTokenAction(
 ): Promise<{ success: boolean; url?: string; expiresAt?: string; error?: string }> {
   try {
     const user = await requireAdminUser();
-    const result = await rotateAdminToken(user.id, ttlSeconds);
+    let validatedTtl: number | undefined = undefined;
+    if (
+      typeof ttlSeconds === 'number' &&
+      Number.isFinite(ttlSeconds) &&
+      ttlSeconds >= 60 &&
+      ttlSeconds <= 7 * 86400
+    ) {
+      validatedTtl = Math.floor(ttlSeconds);
+    }
+    const result = await rotateAdminToken(user.id, validatedTtl);
     return {
       success: true,
       url: `/admin/${result.token}`,

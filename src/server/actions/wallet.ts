@@ -1,5 +1,6 @@
 'use server';
 
+import crypto from 'node:crypto';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { createPayOSPaymentLink } from '@/lib/payments/payos';
@@ -58,9 +59,8 @@ export async function createDepositPaymentLink(
   }
 
   try {
-    const numericOrderCode = Number(
-      `${Math.floor(Date.now() / 1000)}${Math.floor(10 + Math.random() * 90)}`,
-    );
+    const randomSuffix = crypto.randomInt(10, 100);
+    const numericOrderCode = Number(`${Math.floor(Date.now() / 1000)}${randomSuffix}`);
     const orderCode = `DH-${numericOrderCode}`;
 
     await db.order.create({
@@ -980,9 +980,8 @@ export async function createCoursePayOSPaymentLink(courseId: string): Promise<De
   }
 
   try {
-    const numericOrderCode = Number(
-      `${Math.floor(Date.now() / 1000)}${Math.floor(10 + Math.random() * 90)}`,
-    );
+    const randomSuffix = crypto.randomInt(10, 100);
+    const numericOrderCode = Number(`${Math.floor(Date.now() / 1000)}${randomSuffix}`);
     const orderCode = `DH-${numericOrderCode}`;
 
     await db.order.create({

@@ -16,8 +16,13 @@ export async function GET(req: NextRequest) {
     const authHeader = req.headers.get('authorization');
     const cronSecret = process.env.CRON_SECRET;
 
-    // Nếu có cấu hình CRON_SECRET thì kiểm tra xác thực
-    if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+    // Xác thực Bearer CRON_SECRET (bắt buộc trên production)
+    const isProd = process.env.NODE_ENV === 'production';
+    if (isProd) {
+      if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
+        return NextResponse.json({ error: 'Không có quyền truy cập.' }, { status: 401 });
+      }
+    } else if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
       return NextResponse.json({ error: 'Không có quyền truy cập.' }, { status: 401 });
     }
 

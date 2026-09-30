@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import type { Prisma } from '@prisma/client';
 import { z } from 'zod';
@@ -191,9 +192,8 @@ export async function POST(req: NextRequest) {
     const totalVnd = Math.max(0, pricing.totalVnd + shippingFeeVnd);
 
     // 5. Mã đơn cho PayOS (yêu cầu số nguyên dương)
-    const numericOrderCode = Number(
-      `${Math.floor(Date.now() / 1000)}${Math.floor(10 + Math.random() * 90)}`,
-    );
+    const randomSuffix = crypto.randomInt(10, 100);
+    const numericOrderCode = Number(`${Math.floor(Date.now() / 1000)}${randomSuffix}`);
     const formattedOrderCode = `DH-${numericOrderCode}`;
 
     const hasAccount = cartLines.some((line) => line.type === 'ACCOUNT');

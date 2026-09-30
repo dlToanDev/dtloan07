@@ -29,7 +29,11 @@ export const isGitHubAuthEnabled = Boolean(githubClientId && githubClientSecret)
  * Tuyệt đối KHÔNG import adapter DB (Prisma) hay module Node.js native ở đây.
  */
 export const authConfig = {
-  secret: process.env.AUTH_SECRET || '4fVOzlSivMXHM0k5diBb2E9ZAW39XGzLlaYThCbGYkw=',
+  secret:
+    process.env.AUTH_SECRET ||
+    (process.env.NODE_ENV !== 'production'
+      ? 'development-only-auth-secret-32-chars-long!'
+      : undefined),
   trustHost: true,
   pages: {
     signIn: '/login',

@@ -30,6 +30,7 @@ interface AdminTokenManagerProps {
 export function AdminTokenManager({ initialData }: AdminTokenManagerProps) {
   const router = useRouter();
   const [data, setData] = useState(initialData);
+  const [selectedTtl, setSelectedTtl] = useState<number>(initialData.tokenInfo.ttlSeconds || 3600);
   const [isPending, startTransition] = useTransition();
   const [copied, setCopied] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(
@@ -58,7 +59,7 @@ export function AdminTokenManager({ initialData }: AdminTokenManagerProps) {
 
     startTransition(async () => {
       setFeedback(null);
-      const res = await rotateAdminTokenAction();
+      const res = await rotateAdminTokenAction(selectedTtl);
       if (res.success && res.url) {
         setFeedback({
           type: 'success',
@@ -215,6 +216,29 @@ export function AdminTokenManager({ initialData }: AdminTokenManagerProps) {
             )}
             <span>{copied ? 'Đã sao chép link!' : 'Sao chép URL hiện tại'}</span>
           </Button>
+
+          <div className="flex items-center gap-1.5">
+            <label
+              htmlFor="admin-token-ttl-select"
+              className="text-muted-foreground text-xs font-medium"
+            >
+              Thời hạn URL:
+            </label>
+            <select
+              id="admin-token-ttl-select"
+              aria-label="Chọn thời hạn sống của URL Admin"
+              value={selectedTtl}
+              disabled={isPending}
+              onChange={(e) => setSelectedTtl(Number(e.target.value))}
+              className="border-input bg-background text-foreground focus:ring-primary h-8 rounded-lg border px-2 text-xs font-semibold focus:ring-1 focus:outline-none"
+            >
+              <option value={900}>15 phút (900s)</option>
+              <option value={1800}>30 phút (1800s)</option>
+              <option value={3600}>1 giờ (3600s)</option>
+              <option value={21600}>6 giờ (21600s)</option>
+              <option value={86400}>24 giờ (86400s)</option>
+            </select>
+          </div>
 
           <Button
             type="button"

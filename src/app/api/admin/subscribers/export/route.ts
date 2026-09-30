@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 export async function GET() {
   const session = await auth();
   if (!session?.user || session.user.role !== 'ADMIN') {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return NextResponse.json({ error: 'Not Found' }, { status: 404 });
   }
 
   const subscribers = await db.subscriber.findMany({

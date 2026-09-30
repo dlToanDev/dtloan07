@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { db } from '@/lib/db';
+import { checkRateLimit, getClientIp } from '@/lib/security/rate-limit';
 
 const lookupSchema = z.object({
   orderCode: z.string().min(3, 'Vui lòng nhập mã đơn hàng.'),
@@ -9,6 +10,14 @@ const lookupSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
+    const ip = getClientIp(req.headers);
+    const rateLimit = checkRateLimit(`order-lookup:${ip}`, 10, 60);
+    if (!rateLimit.success) {
+      return NextResponse.json(
+        { error: 'Bạn đã tra cứu quá nhiều lần. Vui lòng thử lại sau 1 phút.' },
+        { status: 429 },
+      );
+    }
     const json = await req.json().catch(() => ({}));
     const parseResult = lookupSchema.safeParse(json);
 

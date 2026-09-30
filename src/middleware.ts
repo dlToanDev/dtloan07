@@ -12,6 +12,13 @@ export default auth(async function middleware(req) {
   const userRole = session?.user?.role;
   const isAdmin = isLoggedIn && userRole === 'ADMIN';
 
+  // 0. Chặn các request quét nhạy cảm (Probes / Scanners) và trả 404 cloaking ngay lập tức
+  const SENSITIVE_PROBE_REGEX =
+    /^\/(\.env|\.git|wp-admin|phpmyadmin|server-status|xmlrpc\.php|aws|config)(\/.*)?$/i;
+  if (SENSITIVE_PROBE_REGEX.test(pathname)) {
+    return new NextResponse(null, { status: 404 });
+  }
+
   // 1. Bảo vệ các route Admin (/admin và /admin/*)
   if (pathname === '/admin' || pathname.startsWith('/admin/')) {
     const ip = getClientIp(req.headers);
@@ -59,6 +66,11 @@ export default auth(async function middleware(req) {
             const target = `/admin/${savedToken}/${tokenCandidate}${subPath ? '/' + subPath : ''}${search}`;
             return NextResponse.redirect(new URL(target, req.url));
           }
+          // Nếu chưa có token trong cookie, chuyển hướng qua /admin/entry kèm next parameter để cấp token mới
+          const nextTarget = `/${tokenCandidate}${subPath ? '/' + subPath : ''}${search}`;
+          return NextResponse.redirect(
+            new URL(`/admin/entry?next=${encodeURIComponent(nextTarget)}`, req.url),
+          );
         }
         return new NextResponse(null, { status: 404 });
       }
@@ -75,13 +87,16 @@ export default auth(async function middleware(req) {
         },
       });
 
-      // Lưu lại token vào cookie bảo mật để hỗ trợ chuyển trang
+      // Lưu lại token vào cookie bảo mật với TTL đồng bộ từ cấu hình
+      const envTtl = Number(process.env.ADMIN_URL_TOKEN_TTL);
+      const cookieTtl = Number.isFinite(envTtl) && envTtl > 0 ? envTtl : 3600;
+
       response.cookies.set('admin_active_token', tokenCandidate, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
         path: '/admin',
-        maxAge: 3600 * 24,
+        maxAge: cookieTtl,
       });
 
       return response;
@@ -111,5 +126,17 @@ export default auth(async function middleware(req) {
 });
 
 export const config = {
-  matcher: ['/account/:path*', '/checkout/:path*', '/admin', '/admin/:path*', '/api/admin/:path*'],
+  matcher: [
+    '/account/:path*',
+    '/checkout/:path*',
+    '/admin',
+    '/admin/:path*',
+    '/api/admin/:path*',
+    '/.env:path*',
+    '/.git:path*',
+    '/wp-admin:path*',
+    '/phpmyadmin:path*',
+    '/server-status:path*',
+    '/xmlrpc.php:path*',
+  ],
 };

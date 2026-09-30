@@ -1,11 +1,14 @@
 'use server';
 
+import crypto from 'node:crypto';
+import { headers } from 'next/headers';
 import { db } from '@/lib/db';
 import { signIn } from '@/lib/auth';
 import { sendVerificationEmail } from '@/lib/mail';
 import bcrypt from 'bcryptjs';
 import { AuthError } from 'next-auth';
-import { checkAuthRateLimit } from '@/lib/security/rate-limit';
+import { checkAuthRateLimit, checkRateLimit, getClientIp } from '@/lib/security/rate-limit';
+import { logAuditEvent } from '@/lib/security/audit';
 
 export interface AuthActionResult {
   success: boolean;
@@ -32,6 +35,24 @@ export async function sendRegistrationOtp(
 
   if (!email || !EMAIL_REGEX.test(email)) {
     return { success: false, error: 'Địa chỉ email không hợp lệ. Vui lòng kiểm tra lại.' };
+  }
+
+  let clientIp = '127.0.0.1';
+  try {
+    const headerList = await headers();
+    clientIp = getClientIp(headerList);
+  } catch {
+    // Trong môi trường test hoặc không có headers context
+  }
+
+  // Giới hạn tần suất theo IP (tối đa 5 yêu cầu gửi OTP trong 5 phút trên một IP)
+  const ipRateLimit = checkRateLimit(`otp-ip:${clientIp}`, 5, 300);
+  if (!ipRateLimit.success) {
+    return {
+      success: false,
+      error:
+        'Địa chỉ IP của bạn đã gửi yêu cầu xác thực quá nhiều lần. Vui lòng thử lại sau ít phút.',
+    };
   }
 
   const rateLimit = checkAuthRateLimit(email);
@@ -82,8 +103,8 @@ export async function sendRegistrationOtp(
     }
   }
 
-  // Sinh mã OTP 6 chữ số ngẫu nhiên
-  const code = Math.floor(100000 + Math.random() * 900000).toString();
+  // Sinh mã OTP 6 chữ số ngẫu nhiên chuẩn cryptographic (100000 - 999999)
+  const code = crypto.randomInt(100000, 1000000).toString();
 
   // Lưu mã vào bảng VerificationToken với hạn 10 phút
   await db.verificationToken.deleteMany({
@@ -293,12 +314,33 @@ export async function loginWithCredentialsAction(
   const email = (formData.get('email') as string)?.toLowerCase().trim();
   const password = formData.get('password') as string;
 
+  let clientIp = '127.0.0.1';
+  let userAgent = 'Unknown';
+  try {
+    const headerList = await headers();
+    clientIp = getClientIp(headerList);
+    userAgent = headerList.get('user-agent') || 'Unknown';
+  } catch {
+    // Trong môi trường test hoặc không có headers context
+  }
+
+  // Giới hạn tần suất đăng nhập theo IP (tối đa 20 lần thử / phút / IP)
+  const ipRateLimit = checkRateLimit(`login-ip:${clientIp}`, 20, 60);
+  if (!ipRateLimit.success) {
+    return {
+      success: false,
+      error:
+        'Địa chỉ IP của bạn đã thử đăng nhập quá nhiều lần. Vui lòng chờ 1 phút trước khi thử lại.',
+    };
+  }
+
   if (email) {
     const rateLimit = checkAuthRateLimit(email);
     if (!rateLimit.success) {
       return {
         success: false,
-        error: 'Bạn đã đăng nhập sai quá nhiều lần. Vui lòng chờ 1 phút trước khi thử lại.',
+        error:
+          'Tài khoản này đã thử đăng nhập sai quá nhiều lần. Vui lòng chờ 1 phút trước khi thử lại.',
       };
     }
   }
@@ -312,6 +354,19 @@ export async function loginWithCredentialsAction(
     return { success: true };
   } catch (error) {
     if (error instanceof AuthError) {
+      // Ghi nhận nhật ký sự kiện đăng nhập thất bại cho mục tiêu giám sát bảo mật
+      if (email) {
+        logAuditEvent({
+          action: 'ADMIN_LOGIN_FAILED',
+          actorEmail: email,
+          ipAddress: clientIp,
+          userAgent,
+          details: {
+            authErrorType: error.type,
+          },
+        }).catch(() => {});
+      }
+
       switch (error.type) {
         case 'CredentialsSignin':
           return { success: false, error: 'Email hoặc mật khẩu không chính xác.' };

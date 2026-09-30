@@ -10,6 +10,7 @@ interface AdminOrdersPageProps {
   searchParams: Promise<{
     status?: string;
     fulfillment?: string;
+    source?: string;
   }>;
 }
 
@@ -23,6 +24,7 @@ const FULFILLMENT_STATUSES = [
   'DELIVERED',
   'CANCELLED',
 ] as const;
+const ORDER_SOURCES = ['WEB', 'TELEGRAM'] as const;
 const FULFILLMENT_LABEL: Record<string, string> = {
   PENDING: 'Chờ xác nhận',
   CONFIRMED: 'Đã xác nhận',
@@ -32,14 +34,16 @@ const FULFILLMENT_LABEL: Record<string, string> = {
 };
 
 export default async function AdminOrdersPage({ searchParams }: AdminOrdersPageProps) {
-  const { status, fulfillment } = await searchParams;
+  const { status, fulfillment, source } = await searchParams;
 
   const validStatus = PAYMENT_STATUSES.find((value) => value === status);
   const validFulfillment = FULFILLMENT_STATUSES.find((value) => value === fulfillment);
+  const validSource = ORDER_SOURCES.find((value) => value === source);
 
   const where: Prisma.OrderWhereInput = {
     ...(validStatus && { status: validStatus }),
     ...(validFulfillment && { fulfillmentStatus: validFulfillment }),
+    ...(validSource && { source: validSource }),
   };
 
   let orders: Awaited<
@@ -66,12 +70,15 @@ export default async function AdminOrdersPage({ searchParams }: AdminOrdersPageP
     console.warn('Lỗi tải đơn hàng trong admin:', err);
   }
 
-  const filterHref = (patch: { status?: string; fulfillment?: string }) => {
+  const filterHref = (patch: { status?: string; fulfillment?: string; source?: string }) => {
     const params = new URLSearchParams();
-    const nextStatus = patch.status ?? (validStatus || '');
-    const nextFulfillment = patch.fulfillment ?? (validFulfillment || '');
+    const nextStatus = patch.status !== undefined ? patch.status : validStatus || '';
+    const nextFulfillment =
+      patch.fulfillment !== undefined ? patch.fulfillment : validFulfillment || '';
+    const nextSource = patch.source !== undefined ? patch.source : validSource || '';
     if (nextStatus) params.set('status', nextStatus);
     if (nextFulfillment) params.set('fulfillment', nextFulfillment);
+    if (nextSource) params.set('source', nextSource);
     const query = params.toString();
     return query ? `/admin/orders?${query}` : '/admin/orders';
   };
@@ -147,6 +154,39 @@ export default async function AdminOrdersPage({ searchParams }: AdminOrdersPageP
               </Link>
             ))}
           </div>
+          {/* Lọc theo nguồn đơn */}
+          <div className="flex flex-wrap justify-end gap-1">
+            <Link
+              href={filterHref({ source: '' })}
+              className={buttonStyles({
+                variant: !validSource ? 'primary' : 'outline',
+                size: 'sm',
+                className: 'text-xs',
+              })}
+            >
+              Mọi nguồn
+            </Link>
+            <Link
+              href={filterHref({ source: 'WEB' })}
+              className={buttonStyles({
+                variant: validSource === 'WEB' ? 'primary' : 'outline',
+                size: 'sm',
+                className: 'text-xs',
+              })}
+            >
+              🌐 Web
+            </Link>
+            <Link
+              href={filterHref({ source: 'TELEGRAM' })}
+              className={buttonStyles({
+                variant: validSource === 'TELEGRAM' ? 'primary' : 'outline',
+                size: 'sm',
+                className: 'text-xs',
+              })}
+            >
+              📱 Telegram
+            </Link>
+          </div>
         </div>
       </div>
 
@@ -154,8 +194,16 @@ export default async function AdminOrdersPage({ searchParams }: AdminOrdersPageP
         <CardHeader className="pb-3">
           <CardTitle>Chi tiết giao dịch</CardTitle>
           <CardDescription>
-            {validStatus || validFulfillment
-              ? `Đang lọc: ${[validStatus, validFulfillment && FULFILLMENT_LABEL[validFulfillment]]
+            {validStatus || validFulfillment || validSource
+              ? `Đang lọc: ${[
+                  validStatus,
+                  validFulfillment && FULFILLMENT_LABEL[validFulfillment],
+                  validSource === 'TELEGRAM'
+                    ? '📱 Telegram Bot'
+                    : validSource === 'WEB'
+                      ? '🌐 Web'
+                      : null,
+                ]
                   .filter(Boolean)
                   .join(' · ')}`
               : 'Hiển thị tất cả đơn hàng'}
@@ -184,7 +232,20 @@ export default async function AdminOrdersPage({ searchParams }: AdminOrdersPageP
                 <tbody className="divide-border divide-y">
                   {orders.map((o) => (
                     <tr key={o.id} className="hover:bg-muted/30">
-                      <td className="px-2 py-3 font-mono font-medium">{o.orderCode}</td>
+                      <td className="px-2 py-3 font-mono font-medium">
+                        <div>{o.orderCode}</div>
+                        <div className="mt-1">
+                          {o.source === 'TELEGRAM' ? (
+                            <span className="inline-flex items-center gap-1 rounded bg-sky-500/10 px-1.5 py-0.5 text-[10px] font-medium text-sky-700 dark:text-sky-300">
+                              📱 Telegram{o.telegramUsername ? ` @${o.telegramUsername}` : ''}
+                            </span>
+                          ) : (
+                            <span className="bg-muted text-muted-foreground inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px]">
+                              🌐 Web
+                            </span>
+                          )}
+                        </div>
+                      </td>
                       <td className="px-2 py-3">
                         <div className="text-foreground font-medium">
                           {o.customerName || o.email}

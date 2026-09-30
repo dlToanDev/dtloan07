@@ -67,6 +67,11 @@ const serverSchema = z.object({
 
   // Admin — Bảo mật URL động xoay vòng ngẫu nhiên & TTL hết hạn (giây)
   ADMIN_URL_TOKEN_TTL: optional(z.coerce.number().positive()).default(3600),
+
+  // Telegram Sales Bot (Bán Tài Khoản & File Code)
+  TELEGRAM_BOT_TOKEN: optional(z.string()),
+  TELEGRAM_BOT_USERNAME: optional(z.string()),
+  TELEGRAM_WEBHOOK_SECRET: optional(z.string()),
 });
 
 const clientSchema = z.object({

@@ -198,6 +198,28 @@ export default async function AdminOrderDetailPage({
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
             <div>
+              <div className="text-muted-foreground text-xs uppercase">Nguồn đơn hàng</div>
+              <div className="mt-1 flex items-center gap-1.5 font-medium">
+                {order.source === 'TELEGRAM' ? (
+                  <Badge
+                    variant="secondary"
+                    className="bg-sky-500/10 text-sky-700 dark:text-sky-300"
+                  >
+                    📱 Telegram Bot
+                  </Badge>
+                ) : (
+                  <Badge variant="outline">🌐 Website</Badge>
+                )}
+              </div>
+              {order.telegramChatId && (
+                <div className="text-muted-foreground mt-1 text-xs">
+                  Chat ID: <code className="font-mono">{order.telegramChatId}</code>
+                  {order.telegramUsername && ` · @${order.telegramUsername}`}
+                </div>
+              )}
+            </div>
+
+            <div className="border-border border-t pt-3">
               <div className="text-muted-foreground text-xs uppercase">Người nhận</div>
               <div className="font-medium">{order.customerName || '—'}</div>
               <div className="text-muted-foreground">{order.phone || '—'}</div>

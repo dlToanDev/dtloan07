@@ -2,11 +2,24 @@ import { NextRequest, NextResponse } from 'next/server';
 import fs from 'fs/promises';
 import path from 'path';
 import crypto from 'crypto';
+import { checkRateLimit, getClientIp } from '@/lib/security/rate-limit';
 
 export const dynamic = 'force-dynamic';
 
+const ALLOWED_MIME_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/gif']);
+const ALLOWED_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.webp', '.gif']);
+
 export async function POST(request: NextRequest) {
   try {
+    const ip = getClientIp(request.headers);
+    const rateLimit = checkRateLimit(`upload-support:${ip}`, 10, 60);
+    if (!rateLimit.success) {
+      return NextResponse.json(
+        { success: false, error: 'Bạn đã tải lên quá nhiều tệp. Vui lòng thử lại sau 1 phút.' },
+        { status: 429 },
+      );
+    }
+
     const formData = await request.formData();
     const file = formData.get('file') as File | null;
 
@@ -17,9 +30,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!file.type.startsWith('image/')) {
+    if (!ALLOWED_MIME_TYPES.has(file.type)) {
       return NextResponse.json(
-        { success: false, error: 'Chỉ chấp nhận file hình ảnh (PNG, JPG, WEBP, GIF).' },
+        { success: false, error: 'Chỉ chấp nhận file hình ảnh an toàn (PNG, JPG, WEBP, GIF).' },
         { status: 400 },
       );
     }
@@ -39,8 +52,9 @@ export async function POST(request: NextRequest) {
     const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'support');
     await fs.mkdir(uploadDir, { recursive: true });
 
-    const ext = path.extname(file.name) || '.png';
-    const randomHex = crypto.randomBytes(6).toString('hex');
+    const rawExt = path.extname(file.name || '').toLowerCase();
+    const ext = ALLOWED_EXTENSIONS.has(rawExt) ? rawExt : '.png';
+    const randomHex = crypto.randomBytes(16).toString('hex');
     const filename = `support_${Date.now()}_${randomHex}${ext}`;
     const filePath = path.join(uploadDir, filename);
 

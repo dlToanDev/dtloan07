@@ -7,6 +7,8 @@ import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import bcrypt from 'bcryptjs';
 import { revalidatePath } from 'next/cache';
+import { checkRateLimit } from '@/lib/security/rate-limit';
+import { logAuditEvent } from '@/lib/security/audit';
 
 export interface ProfileActionResult {
   success: boolean;
@@ -164,12 +166,20 @@ export async function changePassword(formData: FormData): Promise<ProfileActionR
     return { success: false, error: 'Vui lòng đăng nhập để thực hiện.' };
   }
 
+  const rateLimit = checkRateLimit(`change-pw:${userId}`, 5, 60);
+  if (!rateLimit.success) {
+    return {
+      success: false,
+      error: 'Bạn đã thao tác đổi mật khẩu quá nhiều lần. Vui lòng chờ 1 phút.',
+    };
+  }
+
   const currentPassword = (formData.get('currentPassword') as string) || '';
   const newPassword = (formData.get('newPassword') as string) || '';
   const confirmPassword = (formData.get('confirmPassword') as string) || '';
 
-  if (!newPassword || newPassword.length < 6) {
-    return { success: false, error: 'Mật khẩu mới phải có tối thiểu 6 ký tự.' };
+  if (!newPassword || newPassword.length < 8) {
+    return { success: false, error: 'Mật khẩu mới phải có tối thiểu 8 ký tự.' };
   }
 
   if (newPassword !== confirmPassword) {
@@ -203,6 +213,12 @@ export async function changePassword(formData: FormData): Promise<ProfileActionR
     await db.user.update({
       where: { id: userId },
       data: { password: hashedPassword },
+    });
+
+    await logAuditEvent({
+      action: 'PASSWORD_CHANGE',
+      actorId: userId,
+      actorEmail: session?.user?.email ?? null,
     });
 
     revalidatePath('/account');

@@ -4,8 +4,29 @@ const nextConfig = {
   poweredByHeader: false,
   compress: true,
   serverExternalPackages: ['resend', '@prisma/client', 'prisma'],
+  compiler: {
+    removeConsole:
+      process.env.NODE_ENV === 'production'
+        ? {
+            exclude: ['error', 'warn'],
+          }
+        : false,
+  },
   experimental: {
-    optimizePackageImports: ['lucide-react', 'date-fns', 'fuse.js', '@tiptap/core'],
+    optimizePackageImports: [
+      'lucide-react',
+      'date-fns',
+      'fuse.js',
+      '@tiptap/core',
+      '@aws-sdk/client-s3',
+      '@aws-sdk/s3-request-presigner',
+      'zod',
+      'reading-time',
+      'marked',
+      'turndown',
+      'clsx',
+      'tailwind-merge',
+    ],
     serverActions: {
       // Chừa phần overhead multipart; action upload ảnh vẫn tự giới hạn file ở 8 MB.
       bodySizeLimit: '10mb',

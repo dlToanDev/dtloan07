@@ -1,6 +1,6 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, revalidateTag } from 'next/cache';
 import { z } from 'zod';
 import { db } from '@/lib/db';
 import { slugifyPostTitle } from '@/lib/utils';
@@ -37,6 +37,9 @@ async function uniqueSlug(name: string, excludeId?: string) {
 function revalidateShop() {
   revalidatePath(siteConfig.shopPath);
   revalidatePath('/admin/shop/categories');
+  revalidateTag('categories');
+  revalidateTag('shop');
+  revalidateTag('products');
 }
 
 export async function createCategory(input: {

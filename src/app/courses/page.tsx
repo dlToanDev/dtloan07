@@ -12,18 +12,28 @@ export const metadata: Metadata = buildMetadata({
   pathname: '/courses',
 });
 
+import { unstable_cache } from 'next/cache';
+
 export const revalidate = 300;
 
-export default async function CoursesPage() {
-  let courses: Awaited<ReturnType<typeof db.course.findMany>> = [];
-
-  try {
-    courses = await db.course.findMany({
+const getCoursesCached = unstable_cache(
+  async () => {
+    return db.course.findMany({
       where: { status: { in: ['ACTIVE', 'UPCOMING'] } },
       orderBy: [{ status: 'asc' }, { createdAt: 'desc' }],
     });
+  },
+  ['active-courses-list'],
+  { revalidate: 300, tags: ['courses'] },
+);
+
+export default async function CoursesPage() {
+  let courses: Awaited<ReturnType<typeof getCoursesCached>> = [];
+
+  try {
+    courses = await getCoursesCached();
   } catch (error) {
-    console.warn('Cảnh báo: Không thể tải danh sách khóa học lúc build:', error);
+    console.warn('Cảnh báo: Không thể tải danh sách khóa học:', error);
   }
 
   return (

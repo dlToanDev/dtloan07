@@ -1,6 +1,6 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, revalidateTag } from 'next/cache';
 import { z } from 'zod';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
@@ -29,6 +29,7 @@ function revalidateCourse(slug?: string) {
   revalidatePath('/admin/courses', 'layout');
   revalidatePath('/courses');
   if (slug) revalidatePath(`/courses/${slug}`, 'layout');
+  revalidateTag('courses');
 }
 
 const money = z.coerce

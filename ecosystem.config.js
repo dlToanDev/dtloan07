@@ -17,14 +17,18 @@ module.exports = {
       instances: 1,
       exec_mode: 'fork',
 
+      // Ưu tiên IPv4 để loại bỏ độ trễ timeout DNS IPv6 (2-5s) tới Supabase Tokyo / OAuth
+      node_args: '--dns-result-order=ipv4first',
+
       // Next giữ cache trong RAM; mốc này chặn rò rỉ bộ nhớ làm OOM cả máy.
-      max_memory_restart: '600M',
+      max_memory_restart: '800M',
 
       env_production: {
         NODE_ENV: 'production',
         PORT: 3000,
         // Chỉ nghe localhost. Nginx là cổng duy nhất ra internet.
         HOSTNAME: '127.0.0.1',
+        NODE_OPTIONS: '--dns-result-order=ipv4first',
       },
 
       error_file: '/var/www/blog/logs/err.log',

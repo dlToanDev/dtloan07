@@ -26,6 +26,32 @@ export const metadata: Metadata = buildMetadata({
 
 export const revalidate = 60; // 60s ISR
 
+import { unstable_cache } from 'next/cache';
+
+const getHomeFeaturedProductsCached = unstable_cache(
+  async () => {
+    return db.product.findMany({
+      where: { status: 'ACTIVE', type: 'DOWNLOAD' },
+      take: 3,
+      orderBy: { createdAt: 'desc' },
+    });
+  },
+  ['home-featured-products'],
+  { revalidate: 60, tags: ['products', 'shop'] },
+);
+
+const getHomeFeaturedAffiliateDealsCached = unstable_cache(
+  async () => {
+    return db.affiliateItem.findMany({
+      where: { active: true, featured: true, category: { not: 'TOOLCODE' } },
+      take: 3,
+      orderBy: { createdAt: 'desc' },
+    });
+  },
+  ['home-featured-affiliate-deals'],
+  { revalidate: 120, tags: ['affiliates'] },
+);
+
 export default async function HomePage() {
   const affiliatePath = getAffiliatePath();
   const [posts, categories, heroBannerConfig, { t }] = await Promise.all([
@@ -35,24 +61,16 @@ export default async function HomePage() {
     getServerTranslator(),
   ]);
 
-  let products: Awaited<ReturnType<typeof db.product.findMany>> = [];
-  let affiliateDeals: Awaited<ReturnType<typeof db.affiliateItem.findMany>> = [];
+  let products: Awaited<ReturnType<typeof getHomeFeaturedProductsCached>> = [];
+  let affiliateDeals: Awaited<ReturnType<typeof getHomeFeaturedAffiliateDealsCached>> = [];
 
   try {
     [products, affiliateDeals] = await Promise.all([
-      db.product.findMany({
-        where: { status: 'ACTIVE', type: 'DOWNLOAD' },
-        take: 3,
-        orderBy: { createdAt: 'desc' },
-      }),
-      db.affiliateItem.findMany({
-        where: { active: true, featured: true, category: { not: 'TOOLCODE' } },
-        take: 3,
-        orderBy: { createdAt: 'desc' },
-      }),
+      getHomeFeaturedProductsCached(),
+      getHomeFeaturedAffiliateDealsCached(),
     ]);
   } catch (err) {
-    console.warn('Cảnh báo: Không thể tải danh sách sản phẩm/affiliate từ DB lúc build:', err);
+    console.warn('Cảnh báo: Không thể tải danh sách sản phẩm/affiliate từ DB:', err);
   }
 
   // Bài viết nổi bật: Sắp xếp theo điểm tương tác thực tế

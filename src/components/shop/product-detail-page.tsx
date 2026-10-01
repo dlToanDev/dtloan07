@@ -43,47 +43,26 @@ type RelatedProduct = Prisma.ProductGetPayload<{
   };
 }>;
 
-export async function productMetadata({ params }: Props): Promise<Metadata> {
-  const { slug } = await params;
-  let product = null;
-  try {
-    product = await db.product.findUnique({
-      where: { slug },
-    });
-  } catch {
-    return {};
-  }
+import { unstable_cache } from 'next/cache';
 
-  if (!product || product.status !== 'ACTIVE') return {};
-
-  return buildMetadata({
-    title: product.name,
-    description: product.shortDesc,
-    pathname: `${siteConfig.shopPath}/${slug}`,
-    noIndex: true,
-  });
-}
-
-export async function ProductDetailPage({ params }: Props) {
-  const { slug } = await params;
-  let product = null;
-  let relatedItems: RelatedProduct[] = [];
-
-  try {
-    product = await db.product.findUnique({
-      where: { slug },
-      include: {
-        files: true,
-        category: { select: { id: true, name: true, slug: true } },
-        variants: {
-          orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
-          include: { _count: { select: { accountStock: { where: { status: 'AVAILABLE' } } } } },
+export const getProductDetailDataCached = (slug: string) =>
+  unstable_cache(
+    async () => {
+      const product = await db.product.findUnique({
+        where: { slug },
+        include: {
+          files: true,
+          category: { select: { id: true, name: true, slug: true } },
+          variants: {
+            orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }],
+            include: { _count: { select: { accountStock: { where: { status: 'AVAILABLE' } } } } },
+          },
         },
-      },
-    });
+      });
 
-    if (product) {
-      // 1. Ưu tiên lấy các sản phẩm CÙNG DANH MỤC (Cùng loại: vd Áo -> Quần/Áo thời trang)
+      if (!product) return null;
+
+      // 1. Ưu tiên lấy các sản phẩm CÙNG DANH MỤC
       const sameCategory = await db.product.findMany({
         where: {
           status: 'ACTIVE',
@@ -102,6 +81,7 @@ export async function ProductDetailPage({ params }: Props) {
       });
 
       // 2. Nếu danh mục chưa đủ 4 sản phẩm, bổ sung thêm sản phẩm cùng loại hàng
+      let relatedItems: RelatedProduct[] = sameCategory;
       if (sameCategory.length < 4) {
         const existingIds = [product.id, ...sameCategory.map((r) => r.id)];
         const additional = await db.product.findMany({
@@ -121,9 +101,42 @@ export async function ProductDetailPage({ params }: Props) {
           },
         });
         relatedItems = [...sameCategory, ...additional];
-      } else {
-        relatedItems = sameCategory;
       }
+
+      return { product, relatedItems };
+    },
+    [`product-detail-${slug}`],
+    { revalidate: 60, tags: ['products', `product-${slug}`] },
+  )();
+
+export async function productMetadata({ params }: Props): Promise<Metadata> {
+  const { slug } = await params;
+  try {
+    const data = await getProductDetailDataCached(slug);
+    const product = data?.product;
+    if (!product || product.status !== 'ACTIVE') return {};
+
+    return buildMetadata({
+      title: product.name,
+      description: product.shortDesc,
+      pathname: `${siteConfig.shopPath}/${slug}`,
+      noIndex: true,
+    });
+  } catch {
+    return {};
+  }
+}
+
+export async function ProductDetailPage({ params }: Props) {
+  const { slug } = await params;
+  let product = null;
+  let relatedItems: RelatedProduct[] = [];
+
+  try {
+    const data = await getProductDetailDataCached(slug);
+    if (data) {
+      product = data.product;
+      relatedItems = data.relatedItems;
     }
   } catch (err) {
     console.warn('Cảnh báo: Không thể tải sản phẩm:', err);

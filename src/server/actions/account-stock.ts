@@ -1,6 +1,6 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, revalidateTag } from 'next/cache';
 import { db } from '@/lib/db';
 import { auth } from '@/lib/auth';
 import { requireProductAdmin } from '@/server/actions/product';
@@ -59,6 +59,8 @@ export async function importAccountStock(
   }
 
   revalidatePath(`/admin/shop/${variant.productId}/edit`);
+  revalidateTag('products');
+  revalidateTag('shop');
   return { success: `Đã thêm ${lines.length} tài khoản vào kho.` };
 }
 
@@ -108,6 +110,8 @@ export async function deleteAccountStock(
 
   await db.accountStock.delete({ where: { id } });
   revalidatePath(`/admin/shop/${row.variant.productId}/edit`);
+  revalidateTag('products');
+  revalidateTag('shop');
   return { success: 'Đã xóa tài khoản khỏi kho.' };
 }
 

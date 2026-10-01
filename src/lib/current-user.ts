@@ -12,19 +12,31 @@ export interface CurrentUserSessionData {
   balanceUsd: number;
 }
 
+import { unstable_cache } from 'next/cache';
+
+const getCachedDbUser = (userId: string) =>
+  unstable_cache(
+    async () => {
+      return db.user.findUnique({
+        where: { id: userId },
+        select: { role: true, proUntil: true, balanceVnd: true, balanceUsd: true },
+      });
+    },
+    [`user-session-data-${userId}`],
+    { revalidate: 30, tags: ['user', `user-${userId}`] },
+  )();
+
 /**
- * Deduplicate thông tin user đăng nhập trên toàn bộ vòng đời của 1 request (React cache).
- * Header, RootLayout, Banner... cùng gọi hàm này trong cùng một request thì DB chỉ chạy ĐÚNG 1 LẦN duy nhất!
+ * Deduplicate thông tin user đăng nhập trên toàn bộ vòng đời của 1 request (React cache),
+ * đồng thời lưu cache bộ nhớ 30s (Next.js unstable_cache) để không truy vấn DB Supabase
+ * ở mỗi lần người dùng bấm chuyển trang.
  */
 export const getCurrentUserData = cache(async (): Promise<CurrentUserSessionData | null> => {
   try {
     const session = await auth();
     if (!session?.user?.id) return null;
 
-    const user = await db.user.findUnique({
-      where: { id: session.user.id },
-      select: { role: true, proUntil: true, balanceVnd: true, balanceUsd: true },
-    });
+    const user = await getCachedDbUser(session.user.id);
     if (!user) return null;
 
     const userIsPro = user.role === 'ADMIN' || isPro(user);

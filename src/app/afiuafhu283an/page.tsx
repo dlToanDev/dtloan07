@@ -18,19 +18,38 @@ export const metadata: Metadata = buildMetadata({
   noIndex: true,
 });
 
-/** Query có filter nên trang chạy động, không ISR. */
-function loadProducts() {
-  return db.product.findMany({
-    where: { status: 'ACTIVE' },
-    include: {
-      category: true,
-      variants: {
-        include: { _count: { select: { accountStock: { where: { status: 'AVAILABLE' } } } } },
+import { unstable_cache } from 'next/cache';
+
+/** Cache danh sách sản phẩm hiển thị trong Shop (60s), tự revalidate khi admin cập nhật */
+const getShopProductsCached = unstable_cache(
+  async () => {
+    return db.product.findMany({
+      where: { status: 'ACTIVE' },
+      include: {
+        category: true,
+        variants: {
+          include: { _count: { select: { accountStock: { where: { status: 'AVAILABLE' } } } } },
+        },
       },
-    },
-    orderBy: { createdAt: 'desc' },
-  });
-}
+      orderBy: { createdAt: 'desc' },
+    });
+  },
+  ['shop-active-products-catalog'],
+  { revalidate: 60, tags: ['products', 'shop'] },
+);
+
+/** Cache danh sách danh mục có sản phẩm (120s) */
+const getShopCategoriesCached = unstable_cache(
+  async () => {
+    return db.productCategory.findMany({
+      where: { products: { some: { status: 'ACTIVE' } } },
+      orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+      select: { id: true, name: true, slug: true, hasCondition: true },
+    });
+  },
+  ['shop-active-categories-catalog'],
+  { revalidate: 120, tags: ['categories', 'shop'] },
+);
 
 export default async function ShopPage({
   searchParams,
@@ -38,12 +57,8 @@ export default async function ShopPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const [categoriesResult, productsResult] = await Promise.allSettled([
-    db.productCategory.findMany({
-      where: { products: { some: { status: 'ACTIVE' } } },
-      orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
-      select: { id: true, name: true, slug: true, hasCondition: true },
-    }),
-    loadProducts(),
+    getShopCategoriesCached(),
+    getShopProductsCached(),
   ]);
 
   const categories = categoriesResult.status === 'fulfilled' ? categoriesResult.value : [];

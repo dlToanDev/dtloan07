@@ -13,7 +13,7 @@ import {
 } from '@/lib/crypto/credentials';
 import { parseVariantsInput, planVariantSync, type VariantInput } from '@/lib/shop/variant-input';
 import { slugifyPostTitle } from '@/lib/utils';
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, revalidateTag } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { siteConfig } from '@/config/site';
 
@@ -360,7 +360,11 @@ export async function saveProduct(_state: { error?: string; success?: string }, 
       revalidatePath(path);
     if (existing) {
       revalidatePath(`${siteConfig.shopPath}/${existing.slug}`);
+      revalidateTag(`product-${existing.slug}`);
     }
+    revalidateTag('products');
+    revalidateTag('shop');
+    revalidateTag(`product-${data.slug}`);
     revalidatePath(`/admin/shop/${savedId}/edit`);
     revalidatePath(`/admin/products/${savedId}/edit`);
   } catch (error) {
@@ -381,7 +385,7 @@ export async function toggleProductTelegram(productId: string) {
   await requireProductAdmin();
   const product = await db.product.findUnique({
     where: { id: productId },
-    select: { id: true, showOnTelegram: true },
+    select: { id: true, showOnTelegram: true, slug: true },
   });
   if (!product) throw new Error('Không tìm thấy sản phẩm.');
 
@@ -390,6 +394,9 @@ export async function toggleProductTelegram(productId: string) {
     data: { showOnTelegram: !product.showOnTelegram },
   });
 
+  revalidateTag('products');
+  revalidateTag('shop');
+  revalidateTag(`product-${product.slug}`);
   revalidatePath('/admin/products');
   revalidatePath('/admin/shop');
 }

@@ -12,6 +12,7 @@ import { readFile, readdir, stat } from 'node:fs/promises';
 import path from 'node:path';
 import readingTime from 'reading-time';
 import { cache } from 'react';
+import { unstable_cache } from 'next/cache';
 import { loadCommunityPosts, loadCommunityPostMetas } from '@/lib/community/posts';
 import { siteConfig } from '@/config/site';
 
@@ -135,7 +136,7 @@ export const getPostBySlug = cache(async (slug: string): Promise<Post | null> =>
   return posts.find((post) => post.slug === slug) ?? null;
 });
 
-export async function getPostMetas(): Promise<PostMeta[]> {
+async function fetchPostMetasRaw(): Promise<PostMeta[]> {
   const diskPosts = await getAllPostsFromDisk();
   const posts = diskPosts.filter((post) => !post.draft || process.env.NODE_ENV === 'development');
   const communityMetas = await loadCommunityPostMetas().catch((error) => {
@@ -151,6 +152,21 @@ export async function getPostMetas(): Promise<PostMeta[]> {
   return [...mdxMetas, ...communityMetas.filter((post) => !mdxSlugs.has(post.slug))].sort((a, b) =>
     b.publishedAt.localeCompare(a.publishedAt),
   );
+}
+
+const getPostMetasCached = unstable_cache(
+  async (): Promise<PostMeta[]> => {
+    return fetchPostMetasRaw();
+  },
+  ['all-post-metas-combined'],
+  { revalidate: 60, tags: ['posts', 'community-posts'] },
+);
+
+export async function getPostMetas(): Promise<PostMeta[]> {
+  if (process.env.NODE_ENV === 'development') {
+    return fetchPostMetasRaw();
+  }
+  return getPostMetasCached();
 }
 
 /** Trang admin phải thấy cả draft; các trang public vẫn dùng `getPostMetas()`. */

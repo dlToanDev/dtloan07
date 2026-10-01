@@ -9,6 +9,7 @@ import {
   productDetailKeyboard,
   orderPaymentKeyboard,
   isValidTelegramUrl,
+  persistentReplyKeyboard,
 } from '@/lib/telegram/keyboards';
 import {
   initiateCheckout,
@@ -54,25 +55,38 @@ describe('Telegram Sales Bot (Accounts & Source Code) Unit Tests', () => {
       expect(isValidTelegramUrl('')).toBe(false);
     });
 
-    it('mainMenuKeyboard chứa các nút điều hướng danh mục ACCOUNT, DOWNLOAD và hỗ trợ', () => {
+    it('mainMenuKeyboard chứa các nút điều hướng danh mục VPS, VDS, ACCOUNT, DOWNLOAD và hỗ trợ', () => {
       const kb = mainMenuKeyboard();
       const buttons = kb.inline_keyboard.flat();
       const callbackDatas = buttons.map((b: any) => b.callback_data).filter(Boolean);
 
+      expect(callbackDatas).toContain('cat:VPS');
+      expect(callbackDatas).toContain('cat:VDS');
       expect(callbackDatas).toContain('cat:DOWNLOAD');
       expect(callbackDatas).toContain('cat:ACCOUNT');
       expect(callbackDatas).toContain('nav:orders');
       expect(callbackDatas).toContain('nav:support');
     });
 
-    it('categoryKeyboard chỉ cho phép chọn 2 danh mục hàng số: DOWNLOAD và ACCOUNT', () => {
+    it('categoryKeyboard cho phép chọn các danh mục máy chủ & hàng số (VPS, VDS, DOWNLOAD, ACCOUNT)', () => {
       const kb = categoryKeyboard();
       const buttons = kb.inline_keyboard.flat();
       const callbackDatas = buttons.map((b: any) => b.callback_data);
 
+      expect(callbackDatas).toContain('cat:VPS');
+      expect(callbackDatas).toContain('cat:VDS');
       expect(callbackDatas).toContain('cat:DOWNLOAD');
       expect(callbackDatas).toContain('cat:ACCOUNT');
       expect(callbackDatas).not.toContain('cat:PHYSICAL');
+    });
+
+    it('productsListKeyboard tạo danh sách sản phẩm và các nút quay lại', () => {
+      const kb = productsListKeyboard([
+        { id: 'p1', name: 'Cloud VPS 10', minPrice: 279000, stockText: 'Có sẵn' },
+      ]);
+      const buttons = kb.inline_keyboard.flat();
+      expect(buttons.some((b: any) => b.callback_data === 'prod:p1')).toBe(true);
+      expect(buttons.some((b: any) => b.callback_data === 'nav:menu')).toBe(true);
     });
 
     it('productDetailKeyboard hiển thị đúng nút mua hàng và trạng thái hết hàng', () => {
@@ -107,6 +121,17 @@ describe('Telegram Sales Bot (Accounts & Source Code) Unit Tests', () => {
 
       const cancelBtn = buttons.find((b: any) => b.callback_data === 'cancel:DH-123456');
       expect(cancelBtn).toBeDefined();
+    });
+
+    it('persistentReplyKeyboard hiển thị các nút điều hướng nhanh Cloud VPS và Cloud VDS', () => {
+      const kb = persistentReplyKeyboard();
+      const keyboardRows = (kb as any).keyboard;
+      const texts = keyboardRows.flat().map((btn: any) => btn.text);
+
+      expect(texts).toContain('☁️ Cloud VPS');
+      expect(texts).toContain('🖥️ Cloud VDS');
+      expect(texts).toContain('📂 Danh mục');
+      expect(texts).toContain('🏠 Menu chính');
     });
   });
 
@@ -151,6 +176,36 @@ describe('Telegram Sales Bot (Accounts & Source Code) Unit Tests', () => {
       await processOrderCreation(mockCtx, 'var-1', 'valid@example.com');
       expect(replyMock).toHaveBeenCalledWith(
         expect.stringContaining('Bạn đang có 3 đơn hàng đang chờ thanh toán'),
+        expect.anything(),
+      );
+    });
+
+    it('từ chối bán nếu sản phẩm đã bị tắt hiển thị trên Telegram (showOnTelegram: false)', async () => {
+      vi.spyOn(db.productVariant, 'findUnique').mockResolvedValue({
+        id: 'var-disabled-tele',
+        productId: 'prod-tele',
+        priceVnd: 200000,
+        name: 'Cloud VPS 10',
+        active: true,
+        product: {
+          id: 'prod-tele',
+          name: 'Cloud VPS 10',
+          status: 'ACTIVE',
+          type: 'ACCOUNT',
+          showOnTelegram: false,
+        },
+      } as any);
+
+      const replyMock = vi.fn();
+      const mockCtx: any = {
+        chat: { id: 123456789 },
+        from: { id: 123456789 },
+        reply: replyMock,
+      };
+
+      await processOrderCreation(mockCtx, 'var-disabled-tele', 'toan@example.com');
+      expect(replyMock).toHaveBeenCalledWith(
+        expect.stringContaining('không còn khả dụng trên Telegram'),
         expect.anything(),
       );
     });
@@ -315,6 +370,62 @@ describe('Telegram Sales Bot (Accounts & Source Code) Unit Tests', () => {
       await handleCancelOrder(mockCtx, 'DH-123456');
       expect(replyMock).toHaveBeenCalledWith(
         expect.stringContaining('Đã hủy đơn hàng'),
+        expect.anything(),
+      );
+    });
+
+    it('handleCancelOrder trên tin nhắn ảnh VietQR sẽ xóa ảnh cũ và gửi thông báo hủy an toàn (không bị lỗi 400)', async () => {
+      vi.spyOn(db.order, 'findUnique').mockResolvedValue({
+        id: 'order-qr',
+        orderCode: 'DH-QR123',
+        status: 'PENDING',
+      } as any);
+
+      vi.spyOn(db, '$transaction').mockImplementation(async (callback: any) => {
+        return callback({
+          order: { update: vi.fn().mockResolvedValue({}) },
+          orderItem: { findMany: vi.fn().mockResolvedValue([]) },
+          accountStock: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
+        });
+      });
+
+      const deleteMessageMock = vi.fn().mockResolvedValue(true);
+      const replyMock = vi.fn().mockResolvedValue({});
+      const mockCtx: any = {
+        callbackQuery: {
+          data: 'cancel:DH-QR123',
+          message: {
+            message_id: 100,
+            photo: [{ file_id: 'photo-1' }],
+          },
+        },
+        deleteMessage: deleteMessageMock,
+        reply: replyMock,
+      };
+
+      await handleCancelOrder(mockCtx, 'DH-QR123');
+
+      expect(deleteMessageMock).toHaveBeenCalled();
+      expect(replyMock).toHaveBeenCalledWith(
+        expect.stringContaining('Đã hủy đơn hàng <code>DH-QR123</code> thành công'),
+        expect.anything(),
+      );
+    });
+
+    it('handleCancelOrder báo đơn đã hủy nếu bấm hủy lại lần 2', async () => {
+      vi.spyOn(db.order, 'findUnique').mockResolvedValue({
+        id: 'order-already-cancelled',
+        orderCode: 'DH-CANCELLED',
+        status: 'FAILED',
+        cancelledAt: new Date(),
+      } as any);
+
+      const replyMock = vi.fn().mockResolvedValue({});
+      const mockCtx: any = { reply: replyMock };
+
+      await handleCancelOrder(mockCtx, 'DH-CANCELLED');
+      expect(replyMock).toHaveBeenCalledWith(
+        expect.stringContaining('đã ở trạng thái <b>ĐÃ HỦY</b> trước đó'),
         expect.anything(),
       );
     });

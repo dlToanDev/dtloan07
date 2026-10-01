@@ -1,17 +1,15 @@
 import { db } from '@/lib/db';
 import crypto from 'crypto';
-import { createPayOSPaymentLink } from '@/lib/payments/payos';
+import { createPayOSPaymentLink, cancelPayOSPaymentLink } from '@/lib/payments/payos';
 import { reserveAccountsForItem, releaseAccountsForOrder } from '@/lib/shop/account-stock';
+import { releaseOrderInventory } from '@/lib/shop/inventory';
 import { decryptCredentials } from '@/lib/crypto/credentials';
 import { siteConfig } from '@/config/site';
 import { escapeHtml } from '../config';
-import {
-  formatVnd,
-  orderPaymentKeyboard,
-  emailChoiceKeyboard,
-  backToMenuKeyboard,
-} from '../keyboards';
+import { safeEditOrReply } from '../helpers';
+import { formatVnd, orderPaymentKeyboard, backToMenuKeyboard } from '../keyboards';
 import type { Context } from 'grammy';
+import { paymentStatusLabel } from '@/lib/shop/labels';
 
 /**
  * Trạng thái tạm thời khi bot đang chờ user gõ email
@@ -71,8 +69,12 @@ export async function processOrderCreation(ctx: Context, variantId: string, emai
       include: { product: true },
     });
 
-    if (!variant || variant.product.status !== 'ACTIVE') {
-      await ctx.reply('⚠️ Sản phẩm hoặc gói này hiện không còn khả dụng.', {
+    if (
+      !variant ||
+      variant.product.status !== 'ACTIVE' ||
+      variant.product.showOnTelegram === false
+    ) {
+      await ctx.reply('⚠️ Sản phẩm hoặc gói này hiện không còn khả dụng trên Telegram.', {
         reply_markup: backToMenuKeyboard(),
       });
       return;
@@ -122,7 +124,8 @@ export async function processOrderCreation(ctx: Context, variantId: string, emai
     const randomSuffix = crypto.randomInt(10, 100);
     const numericOrderCode = Number(`${Math.floor(Date.now() / 1000)}${randomSuffix}`);
     const formattedOrderCode = `DH-${numericOrderCode}`;
-    const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 phút
+    const ORDER_EXPIRY_MINUTES = 10; // Hạn thanh toán 10 phút thay vì 1-2 tiếng mặc định
+    const expiresAt = new Date(Date.now() + ORDER_EXPIRY_MINUTES * 60 * 1000);
 
     const customerName =
       [ctx.from?.first_name, ctx.from?.last_name].filter(Boolean).join(' ') ||
@@ -187,11 +190,12 @@ export async function processOrderCreation(ctx: Context, variantId: string, emai
       return newOrder;
     });
 
-    // 6. Tạo liên kết thanh toán PayOS
+    // 6. Tạo liên kết thanh toán PayOS (kèm thời hạn hết hạn 10 phút)
     const paymentResult = await createPayOSPaymentLink({
       orderCode: numericOrderCode,
       amount: variant.priceVnd,
       description: formattedOrderCode,
+      expiredAt: Math.floor(expiresAt.getTime() / 1000),
     });
 
     // 7. Gửi thông tin đơn hàng và mã VietQR cho người dùng
@@ -211,7 +215,7 @@ export async function processOrderCreation(ctx: Context, variantId: string, emai
       `🏷️ <b>Gói:</b> ${escapeHtml(variant.name)}\n` +
       `💰 <b>Cần thanh toán:</b> <code>${formatVnd(variant.priceVnd)}</code>\n` +
       `🔢 <b>Mã đơn:</b> <code>${formattedOrderCode}</code>\n` +
-      `⏳ <b>Thời gian giữ chỗ:</b> 15 phút\n\n` +
+      `⏳ <b>Thời gian giữ chỗ:</b> ${ORDER_EXPIRY_MINUTES} phút\n\n` +
       bankDetails +
       `👉 <b>Thanh toán siêu tốc 24/7:</b>\n` +
       `1. Mở App Ngân hàng bất kỳ quét mã <b>VietQR</b> bên dưới hoặc chuyển đúng nội dung.\n` +
@@ -303,12 +307,33 @@ export async function handleCancelOrder(ctx: Context, orderCode: string) {
     const order = await db.order.findUnique({ where: { orderCode } });
 
     if (!order) {
-      await ctx.reply('⚠️ Không tìm thấy đơn hàng.');
+      await safeEditOrReply(ctx, '⚠️ Không tìm thấy đơn hàng.', {
+        reply_markup: backToMenuKeyboard(),
+      });
       return;
     }
 
     if (order.status !== 'PENDING') {
-      await ctx.reply(`⚠️ Đơn hàng này đang ở trạng thái ${order.status}, không thể hủy.`);
+      if (order.status === 'FAILED' || order.status === 'EXPIRED' || order.cancelledAt) {
+        const statusLabel = order.status === 'EXPIRED' ? 'HẾT HẠN' : 'ĐÃ HỦY';
+        await safeEditOrReply(
+          ctx,
+          `ℹ️ Đơn hàng <code>${orderCode}</code> đã ở trạng thái <b>${statusLabel}</b> trước đó. Đã giải phóng kho.`,
+          {
+            parse_mode: 'HTML',
+            reply_markup: backToMenuKeyboard(),
+          },
+        );
+        return;
+      }
+      await safeEditOrReply(
+        ctx,
+        `⚠️ Đơn hàng này đang ở trạng thái <b>${paymentStatusLabel(order.status)}</b>, không thể hủy.`,
+        {
+          parse_mode: 'HTML',
+          reply_markup: backToMenuKeyboard(),
+        },
+      );
       return;
     }
 
@@ -322,20 +347,22 @@ export async function handleCancelOrder(ctx: Context, orderCode: string) {
         },
       });
       await releaseAccountsForOrder(tx, order.id);
+      await releaseOrderInventory(tx, order.id);
+    });
+
+    // Đồng bộ huỷ payment link trên PayOS (không chặn flow nếu PayOS báo lỗi)
+    cancelPayOSPaymentLink(orderCode).catch((err) => {
+      console.warn('Lỗi cancelPayOSPaymentLink:', err);
     });
 
     const cancelMsg = `✅ Đã hủy đơn hàng <code>${orderCode}</code> thành công. Đã hoàn trả kho hàng.`;
-    if (ctx.callbackQuery) {
-      await ctx.editMessageText(cancelMsg, {
-        parse_mode: 'HTML',
-        reply_markup: backToMenuKeyboard(),
-      });
-    } else {
-      await ctx.reply(cancelMsg, { parse_mode: 'HTML', reply_markup: backToMenuKeyboard() });
-    }
+    await safeEditOrReply(ctx, cancelMsg, {
+      parse_mode: 'HTML',
+      reply_markup: backToMenuKeyboard(),
+    });
   } catch (error) {
     console.error('Lỗi handleCancelOrder:', error);
-    await ctx.reply('⚠️ Có lỗi xảy ra khi hủy đơn hàng.');
+    await ctx.reply('⚠️ Có lỗi xảy ra khi hủy đơn hàng. Vui lòng liên hệ Admin để được hỗ trợ.');
   }
 }
 
@@ -359,11 +386,7 @@ export async function handleMyOrders(ctx: Context) {
     if (orders.length === 0) {
       const msg =
         '🔍 Bạn chưa có đơn hàng nào tại cửa hàng.\nBấm nút bên dưới để xem các sản phẩm đang bán nhé:';
-      if (ctx.callbackQuery) {
-        await ctx.editMessageText(msg, { reply_markup: backToMenuKeyboard() });
-      } else {
-        await ctx.reply(msg, { reply_markup: backToMenuKeyboard() });
-      }
+      await safeEditOrReply(ctx, msg, { reply_markup: backToMenuKeyboard() });
       return;
     }
 
@@ -373,7 +396,7 @@ export async function handleMyOrders(ctx: Context) {
       const statusIcon = o.status === 'PAID' ? '✅' : o.status === 'PENDING' ? '⏳' : '❌';
       text += `${statusIcon} <b>${o.orderCode}</b> · ${formatVnd(o.totalVnd)}\n`;
       text += `📅 Ngày tạo: ${new Date(o.createdAt).toLocaleString('vi-VN')}\n`;
-      text += `Trạng thái: <b>${o.status}</b>\n`;
+      text += `Trạng thái: <b>${paymentStatusLabel(o.status)}</b>\n`;
       for (const item of o.items) {
         text += `• ${escapeHtml(item.productNameSnapshot)} (${escapeHtml(item.variantNameSnapshot || '')})\n`;
       }
@@ -382,11 +405,7 @@ export async function handleMyOrders(ctx: Context) {
 
     text += `👉 Bấm /start để quay lại menu chính hoặc kiểm tra chi tiết đơn hàng bằng cách nhập mã đơn.`;
 
-    if (ctx.callbackQuery) {
-      await ctx.editMessageText(text, { parse_mode: 'HTML', reply_markup: backToMenuKeyboard() });
-    } else {
-      await ctx.reply(text, { parse_mode: 'HTML', reply_markup: backToMenuKeyboard() });
-    }
+    await safeEditOrReply(ctx, text, { parse_mode: 'HTML', reply_markup: backToMenuKeyboard() });
   } catch (error) {
     console.error('Lỗi handleMyOrders:', error);
     await ctx.reply('⚠️ Có lỗi xảy ra khi tải lịch sử đơn hàng.');

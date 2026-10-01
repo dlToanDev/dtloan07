@@ -70,6 +70,7 @@ import { describeVoucher, voucherStatus } from '@/lib/coupon-labels';
 import { WARNING_LIMIT } from '@/lib/community/rules';
 import { cn } from '@/lib/utils';
 import { QrDepositModal, type QrDepositData } from '@/components/wallet/qr-deposit-modal';
+import { paymentStatusLabel, paymentStatusBadgeVariant } from '@/lib/shop/labels';
 
 export type { WalletData, WalletTransactionItem };
 
@@ -2595,10 +2596,10 @@ export function ProfileManager({
                           {order.totalVnd.toLocaleString('vi-VN')} đ
                         </div>
                         <Badge
-                          variant={order.status === 'PAID' ? 'default' : 'outline'}
+                          variant={paymentStatusBadgeVariant(order.status)}
                           className="mt-1 text-xs"
                         >
-                          {order.status === 'PAID' ? 'Đã thanh toán' : order.status}
+                          {paymentStatusLabel(order.status)}
                         </Badge>
                       </div>
                     </Link>

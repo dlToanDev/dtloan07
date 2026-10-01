@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { buttonStyles } from '@/components/ui/button';
 import { Download } from 'lucide-react';
 import Link from 'next/link';
+import { subscriberStatusLabel } from '@/lib/shop/labels';
 
 export const dynamic = 'force-dynamic';
 
@@ -83,7 +84,7 @@ export default async function AdminSubscribersPage() {
                           }
                           className="text-xs"
                         >
-                          {s.status}
+                          {subscriberStatusLabel(s.status)}
                         </Badge>
                       </td>
                       <td className="text-muted-foreground px-2 py-3 text-xs">

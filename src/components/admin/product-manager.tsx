@@ -115,7 +115,8 @@ export async function ProductManager({
 
   const downloadProducts = rawProducts.filter((p) => p.type === 'DOWNLOAD');
   const telegramReadyProducts = rawProducts.filter(
-    (p) => p.status === 'ACTIVE' && (p.type === 'ACCOUNT' || p.type === 'DOWNLOAD'),
+    (p) =>
+      p.status === 'ACTIVE' && p.showOnTelegram && (p.type === 'ACCOUNT' || p.type === 'DOWNLOAD'),
   );
 
   // 2. Lọc sản phẩm theo điều kiện
@@ -166,6 +167,25 @@ export async function ProductManager({
     revalidatePath(`${siteConfig.shopPath}/[slug]`, 'page');
     revalidatePath(siteConfig.shopPath);
     revalidatePath('/');
+  }
+
+  // Server action: Đổi quyền bật/tắt bán trên Telegram
+  async function toggleTelegram(productId: string) {
+    'use server';
+    await requireProductAdmin();
+    const product = await db.product.findUnique({
+      where: { id: productId },
+      select: { id: true, showOnTelegram: true },
+    });
+    if (!product) throw new Error('Không tìm thấy sản phẩm.');
+
+    await db.product.update({
+      where: { id: productId },
+      data: { showOnTelegram: !product.showOnTelegram },
+    });
+
+    revalidatePath('/admin/products');
+    revalidatePath('/admin/shop');
   }
 
   // Server action: Xóa sản phẩm
@@ -378,7 +398,12 @@ export async function ProductManager({
                   <th className="px-4 py-3.5">Phân loại</th>
                   <th className="px-4 py-3.5 text-right">Giá bán</th>
                   <th className="px-4 py-3.5 text-center">Tồn kho / Tệp</th>
-                  <th className="px-4 py-3.5 text-center">Kênh bán</th>
+                  <th className="px-4 py-3.5 text-center">
+                    <span className="inline-flex items-center gap-1 text-cyan-600 dark:text-cyan-400">
+                      <Bot className="size-3.5" />
+                      Bán Telegram
+                    </span>
+                  </th>
                   <th className="px-4 py-3.5 text-center">Trạng thái</th>
                   <th className="px-4 py-3.5 text-right">Thao tác</th>
                 </tr>
@@ -397,7 +422,9 @@ export async function ProductManager({
                       0,
                     );
                     const isTelegramEligible =
-                      p.status === 'ACTIVE' && (p.type === 'ACCOUNT' || p.type === 'DOWNLOAD');
+                      p.status === 'ACTIVE' &&
+                      p.showOnTelegram &&
+                      (p.type === 'ACCOUNT' || p.type === 'DOWNLOAD');
 
                     return (
                       <tr key={p.id} className="hover:bg-muted/40 transition-colors">
@@ -531,24 +558,56 @@ export async function ProductManager({
                           )}
                         </td>
 
-                        {/* Cột 5: Kênh bán */}
-                        <td className="px-4 py-3.5 text-center text-xs">
-                          {isTelegramEligible ? (
-                            <Badge
-                              variant="secondary"
-                              className="gap-1 border-cyan-500/20 bg-cyan-500/10 text-[11px] text-cyan-700 dark:text-cyan-300"
-                            >
-                              <Bot className="size-3" />
-                              Bot + Web
-                            </Badge>
-                          ) : (
+                        {/* Cột 5: Nút gạt Switch Bật/Tắt bán trên Telegram Bot */}
+                        <td className="px-4 py-3.5 text-center">
+                          {p.type === 'PHYSICAL' ? (
                             <Badge
                               variant="secondary"
                               className="text-muted-foreground gap-1 text-[11px]"
+                              title="Hàng vật lý không bán qua Telegram Bot"
                             >
                               <Globe className="size-3" />
                               Chỉ Web
                             </Badge>
+                          ) : (
+                            <form
+                              action={toggleTelegram.bind(null, p.id)}
+                              className="inline-flex items-center justify-center"
+                            >
+                              <button
+                                type="submit"
+                                className="group border-border/80 bg-background/90 flex cursor-pointer items-center gap-2 rounded-full border px-2.5 py-1 text-xs shadow-2xs transition-all hover:border-cyan-500/50 hover:bg-cyan-500/5"
+                                title={
+                                  p.showOnTelegram
+                                    ? 'Đang BẬT trên Telegram Bot (@dltoan07_bot). Bấm để TẮT.'
+                                    : 'Đang TẮT trên Telegram Bot. Bấm để BẬT mở bán.'
+                                }
+                              >
+                                {/* Nút gạt Toggle Switch dạng Pill/Capsule */}
+                                <span
+                                  className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors duration-200 ease-in-out ${
+                                    p.showOnTelegram
+                                      ? 'bg-cyan-500'
+                                      : 'bg-muted-foreground/30 dark:bg-muted-foreground/40'
+                                  }`}
+                                >
+                                  <span
+                                    className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow-sm transition-transform duration-200 ease-in-out ${
+                                      p.showOnTelegram ? 'translate-x-[18px]' : 'translate-x-0.5'
+                                    }`}
+                                  />
+                                </span>
+                                <span
+                                  className={`flex items-center gap-1 text-[11px] font-semibold ${
+                                    p.showOnTelegram
+                                      ? 'text-cyan-600 dark:text-cyan-400'
+                                      : 'text-muted-foreground'
+                                  }`}
+                                >
+                                  {p.showOnTelegram ? 'Bật' : 'Tắt'}
+                                </span>
+                              </button>
+                            </form>
                           )}
                         </td>
 

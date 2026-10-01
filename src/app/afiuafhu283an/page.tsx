@@ -37,25 +37,20 @@ export default async function ShopPage({
 }: {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  let categories: { id: string; name: string; slug: string; hasCondition: boolean }[] = [];
-  try {
-    // Chỉ hiện danh mục đang có sản phẩm bán, theo thứ tự admin sắp xếp.
-    categories = await db.productCategory.findMany({
+  const [categoriesResult, productsResult] = await Promise.allSettled([
+    db.productCategory.findMany({
       where: { products: { some: { status: 'ACTIVE' } } },
       orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
       select: { id: true, name: true, slug: true, hasCondition: true },
-    });
-  } catch (err) {
-    console.warn('Cảnh báo: Không thể tải danh mục shop:', err);
-  }
+    }),
+    loadProducts(),
+  ]);
+
+  const categories = categoriesResult.status === 'fulfilled' ? categoriesResult.value : [];
+  const products = productsResult.status === 'fulfilled' ? productsResult.value : [];
+
   const params = await searchParams;
   const initialCategorySlug = typeof params.c === 'string' ? params.c : 'all';
-  let products: Awaited<ReturnType<typeof loadProducts>> = [];
-  try {
-    products = await loadProducts();
-  } catch (err) {
-    console.warn('Cảnh báo: Không thể tải danh sách sản phẩm shop lúc build:', err);
-  }
 
   return (
     <Container className="space-y-12 py-12 sm:py-16">

@@ -20,6 +20,8 @@ export interface CreatePayOSLinkParams {
     quantity: number;
     price: number;
   }>;
+  /** Thời gian hết hạn của link thanh toán (Unix timestamp tính bằng giây). Ví dụ 10 phút. */
+  expiredAt?: number;
 }
 
 export interface PayOSLinkResult {
@@ -132,6 +134,7 @@ export async function createPayOSPaymentLink(
     returnUrl,
     cancelUrl,
     items: params.items || [],
+    ...(params.expiredAt ? { expiredAt: params.expiredAt } : {}),
   });
 
   const bin = paymentLinkResponse.bin || '970422';
@@ -156,6 +159,33 @@ export async function createPayOSPaymentLink(
     description: paymentLinkResponse.description,
     isMock: false,
   };
+}
+
+/**
+ * Hủy link thanh toán trên cổng PayOS (khi khách hủy đơn hoặc đơn hết hạn)
+ */
+export async function cancelPayOSPaymentLink(
+  orderCode: number | string,
+  cancellationReason = 'Khách hàng hủy đơn',
+): Promise<boolean> {
+  if (!payosClient) return true;
+
+  try {
+    const numericCode =
+      typeof orderCode === 'number' ? orderCode : Number(String(orderCode).replace(/\D/g, ''));
+
+    if (!numericCode || isNaN(numericCode)) {
+      console.warn(`[PayOS] Không thể trích xuất numeric orderCode từ "${orderCode}" để hủy.`);
+      return false;
+    }
+
+    await payosClient.paymentRequests.cancel(numericCode, cancellationReason);
+    return true;
+  } catch (error: unknown) {
+    const errMsg = error instanceof Error ? error.message : String(error);
+    console.warn(`[PayOS] Huỷ link thanh toán đơn ${orderCode} không thành công: ${errMsg}`);
+    return false;
+  }
 }
 
 /**

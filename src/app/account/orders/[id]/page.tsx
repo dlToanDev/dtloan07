@@ -8,6 +8,7 @@ import { buttonStyles } from '@/components/ui/button';
 import { ArrowLeft, CheckCircle2, Clock, Download, Key, ShieldAlert } from 'lucide-react';
 import Link from 'next/link';
 import { AccountCredentialsButton } from '@/components/shop/account-credentials-button';
+import { paymentStatusLabel, paymentStatusBadgeVariant } from '@/lib/shop/labels';
 
 interface OrderDetailPageProps {
   params: Promise<{
@@ -80,16 +81,13 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
           </p>
         </div>
         <div>
-          <Badge
-            variant={isPaid ? 'default' : order.status === 'PENDING' ? 'outline' : 'secondary'}
-            className="px-3 py-1 text-sm"
-          >
+          <Badge variant={paymentStatusBadgeVariant(order.status)} className="px-3 py-1 text-sm">
             {isPaid ? (
               <CheckCircle2 className="mr-1.5 h-4 w-4 text-green-500" />
             ) : (
               <Clock className="mr-1.5 h-4 w-4" />
             )}
-            {order.status}
+            {paymentStatusLabel(order.status)}
           </Badge>
         </div>
       </div>

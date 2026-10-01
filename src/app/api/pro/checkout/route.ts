@@ -58,6 +58,7 @@ export async function POST(req: NextRequest) {
       orderCode: numericOrderCode,
       amount: plan.priceVnd,
       description: orderCode,
+      expiredAt: Math.floor((Date.now() + PRO_ORDER_TTL_MS) / 1000),
       items: [{ name: plan.label, quantity: 1, price: plan.priceVnd }],
       returnUrl: `${siteConfig.url}/account?tab=pro&order=${orderCode}`,
       cancelUrl: `${siteConfig.url}/account?tab=pro&cancelled=1`,

@@ -6,7 +6,10 @@ import { siteConfig } from '@/config/site';
  */
 export function persistentReplyKeyboard(): Keyboard {
   return new Keyboard()
-    .text('📂 Sản phẩm')
+    .text('☁️ Cloud VPS')
+    .text('🖥️ Cloud VDS')
+    .row()
+    .text('📂 Danh mục')
     .text('📋 Đơn hàng')
     .row()
     .text('🔍 Tìm kiếm')
@@ -39,11 +42,13 @@ export function isValidTelegramUrl(url?: string | null): boolean {
  */
 export function mainMenuKeyboard(): InlineKeyboard {
   const keyboard = new InlineKeyboard()
-    .text('📁 File Code & Dự án mẫu', 'cat:DOWNLOAD')
+    .text('☁️ Cloud VPS', 'cat:VPS')
+    .text('🖥️ Cloud VDS', 'cat:VDS')
     .row()
-    .text('🔐 Tài khoản Bản quyền', 'cat:ACCOUNT')
+    .text('📁 File Code & Dự án', 'cat:DOWNLOAD')
+    .text('🔐 Tài khoản khác', 'cat:ACCOUNT')
     .row()
-    .text('🔍 Đơn hàng của tôi', 'nav:orders')
+    .text('📋 Đơn hàng của tôi', 'nav:orders')
     .text('💬 Hỗ trợ kỹ thuật', 'nav:support');
 
   if (isValidTelegramUrl(siteConfig.url)) {
@@ -54,13 +59,15 @@ export function mainMenuKeyboard(): InlineKeyboard {
 }
 
 /**
- * Menu chọn danh mục sản phẩm (chỉ hỗ trợ DOWNLOAD và ACCOUNT)
+ * Menu chọn danh mục sản phẩm (VPS, VDS, DOWNLOAD, ACCOUNT)
  */
 export function categoryKeyboard(): InlineKeyboard {
   return new InlineKeyboard()
-    .text('📁 File Code & Dự án', 'cat:DOWNLOAD')
+    .text('☁️ Cloud VPS', 'cat:VPS')
+    .text('🖥️ Cloud VDS', 'cat:VDS')
     .row()
-    .text('🔐 Tài khoản Bản quyền', 'cat:ACCOUNT')
+    .text('📁 File Code & Dự án', 'cat:DOWNLOAD')
+    .text('🔐 Tài khoản khác', 'cat:ACCOUNT')
     .row()
     .text('🔙 Quay lại Menu chính', 'nav:menu');
 }
@@ -75,6 +82,7 @@ export function productsListKeyboard(
     minPrice: number;
     stockText: string;
   }>,
+  backAction: string = 'nav:categories',
 ): InlineKeyboard {
   const keyboard = new InlineKeyboard();
 
@@ -82,7 +90,8 @@ export function productsListKeyboard(
     keyboard.text(`${p.name} · ${formatVnd(p.minPrice)}`, `prod:${p.id}`).row();
   }
 
-  keyboard.text('🔙 Quay lại Menu', 'nav:menu');
+  keyboard.text('🔙 Quay lại danh mục', backAction).row();
+  keyboard.text('🏠 Menu chính', 'nav:menu');
   return keyboard;
 }
 
@@ -91,7 +100,7 @@ export function productsListKeyboard(
  */
 export function productDetailKeyboard(params: {
   productId: string;
-  category: 'ACCOUNT' | 'DOWNLOAD';
+  category: string;
   variants: Array<{
     id: string;
     name: string;
@@ -104,13 +113,13 @@ export function productDetailKeyboard(params: {
 
   for (const v of params.variants) {
     if (!v.isAvailable) {
-      keyboard.text(`❌ ${v.name} (Hết hàng)`, 'noop').row();
+      keyboard.text(`${v.name} (Hết hàng)`, 'noop').row();
     } else {
-      keyboard.text(`⚡ Mua ${v.name} · ${formatVnd(v.priceVnd)}`, `buy:${v.id}`).row();
+      keyboard.text(`Mua ${v.name} · ${formatVnd(v.priceVnd)}`, `buy:${v.id}`).row();
     }
   }
 
-  keyboard.text('⬅️ Danh mục', `cat:${params.category}`).text('🏠 Menu chính', 'nav:menu');
+  keyboard.text('🔙 Quay lại danh mục', `cat:${params.category}`).text('🏠 Menu chính', 'nav:menu');
 
   return keyboard;
 }

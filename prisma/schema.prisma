@@ -165,6 +165,8 @@ model Product {
   warrantyNote  String? // Ví dụ "Bảo hành 7 ngày"
   deliveryMode  DeliveryMode? // Bắt buộc khi type = ACCOUNT
   gallery       String[]         @default([]) // URL ảnh, theo thứ tự hiển thị
+  showOnTelegram Boolean         @default(true) // Cho phép hiển thị & bán qua Telegram Bot
+  isFeatured    Boolean          @default(false) // Sản phẩm nổi bật
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

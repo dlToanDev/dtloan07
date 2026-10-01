@@ -8,6 +8,7 @@ import { releaseOrderInventory } from '@/lib/shop/inventory';
 import { releaseAccountsForOrder } from '@/lib/shop/account-stock';
 import { releaseCouponForOrder } from '@/lib/coupons';
 import { sendOrderStatusEmail } from '@/lib/mail';
+import { fulfillmentStatusLabel } from '@/lib/shop/labels';
 
 export type OrderActionState = { error?: string; success?: string };
 
@@ -41,7 +42,9 @@ export async function advanceFulfillment(
   const order = await db.order.findUnique({ where: { id: orderId } });
   if (!order) return { error: 'Không tìm thấy đơn hàng.' };
   if (!order.fulfillmentStatus || !transition.from.includes(order.fulfillmentStatus)) {
-    return { error: `Đơn đang ở trạng thái ${order.fulfillmentStatus ?? 'không giao hàng'}.` };
+    return {
+      error: `Đơn đang ở trạng thái ${fulfillmentStatusLabel(order.fulfillmentStatus) || 'không giao hàng'}.`,
+    };
   }
 
   const markPaid = transition.to === 'DELIVERED' && order.paymentMethod === 'COD';

@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { buttonStyles } from '@/components/ui/button';
 import { Users, Mail, DollarSign, TrendingUp, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
+import { paymentStatusLabel, paymentStatusBadgeVariant } from '@/lib/shop/labels';
 
 export const dynamic = 'force-dynamic';
 
@@ -156,11 +157,8 @@ export default async function AdminDashboardPage() {
                     </div>
                     <div className="text-right">
                       <div className="font-medium">{order.totalVnd.toLocaleString('vi-VN')} đ</div>
-                      <Badge
-                        variant={order.status === 'PAID' ? 'default' : 'outline'}
-                        className="text-xs"
-                      >
-                        {order.status}
+                      <Badge variant={paymentStatusBadgeVariant(order.status)} className="text-xs">
+                        {paymentStatusLabel(order.status)}
                       </Badge>
                     </div>
                   </div>

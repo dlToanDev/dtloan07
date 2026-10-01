@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 
 const { mockSetting, mockAnnouncement, mockUser, mockCoupon } = vi.hoisted(() => ({
@@ -38,6 +39,8 @@ vi.mock('@/lib/auth', () => ({
 
 vi.mock('next/cache', () => ({
   revalidatePath: vi.fn(),
+  revalidateTag: vi.fn(),
+  unstable_cache: vi.fn((fn: any) => fn),
 }));
 
 import { auth } from '@/lib/auth';

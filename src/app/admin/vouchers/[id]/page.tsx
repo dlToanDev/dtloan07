@@ -6,6 +6,7 @@ import { listCategories } from '@/lib/shop/categories';
 import { FormSection } from '@/components/admin/shop/form-section';
 import { VoucherForm } from '@/components/admin/vouchers/voucher-form';
 import { GrantManager } from '@/components/admin/vouchers/grant-manager';
+import { paymentStatusLabel } from '@/lib/shop/labels';
 
 export const dynamic = 'force-dynamic';
 
@@ -103,7 +104,7 @@ export default async function EditVoucherPage({ params }: { params: Promise<{ id
                   {redemption.order.orderCode}
                 </Link>
                 <span className="text-muted-foreground min-w-0 flex-1 truncate">
-                  {redemption.email} · {redemption.order.status}
+                  {redemption.email} · {paymentStatusLabel(redemption.order.status)}
                 </span>
                 <span className="font-medium text-emerald-600">
                   -{redemption.discountVnd.toLocaleString('vi-VN')} đ

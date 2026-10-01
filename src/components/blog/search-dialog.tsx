@@ -9,6 +9,7 @@ import { Loader2, Search } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useI18n } from '@/components/i18n-provider';
 
 interface IndexItem {
   slug: string;
@@ -20,6 +21,7 @@ interface IndexItem {
 }
 
 export function SearchDialog() {
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [index, setIndex] = useState<IndexItem[] | null>(null);
@@ -97,7 +99,7 @@ export function SearchDialog() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        aria-label="Tìm kiếm bài viết"
+        aria-label={t('search.button_label', 'Tìm kiếm bài viết')}
         className="hover:bg-muted inline-flex size-9 items-center justify-center rounded-lg transition-colors"
       >
         <Search className="size-5" aria-hidden="true" />
@@ -106,27 +108,29 @@ export function SearchDialog() {
       <Dialog
         open={open}
         onClose={() => setOpen(false)}
-        title="Tìm kiếm bài viết"
-        description="Gõ ít nhất 2 ký tự. Mẹo: Ctrl/⌘ + K."
+        title={t('search.title', 'Tìm kiếm bài viết')}
+        description={t('search.desc', 'Gõ ít nhất 2 ký tự. Mẹo: Ctrl/⌘ + K.')}
       >
         <Input
           ref={inputRef}
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="Nginx, Docker, Zod..."
-          aria-label="Từ khoá"
+          placeholder={t('search.placeholder', 'Nginx, Docker, Zod...')}
+          aria-label={t('search.input_label', 'Từ khoá')}
         />
 
         <div aria-live="polite" className="mt-4">
           {!fuse && (
             <div className="text-muted-foreground flex items-center justify-center gap-2 py-4 text-xs">
               <Loader2 className="text-primary size-3.5 animate-spin" />
-              <span>Đang tải chỉ mục tìm kiếm...</span>
+              <span>{t('search.loading', 'Đang tải chỉ mục tìm kiếm...')}</span>
             </div>
           )}
 
           {fuse && query.trim().length >= 2 && results.length === 0 ? (
-            <p className="text-muted-foreground text-sm">Không tìm thấy bài nào khớp.</p>
+            <p className="text-muted-foreground text-sm">
+              {t('search.empty', 'Không tìm thấy bài nào khớp.')}
+            </p>
           ) : null}
 
           <ul className="flex flex-col">

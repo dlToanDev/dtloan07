@@ -14,6 +14,9 @@ export const metadata: Metadata = buildMetadata({
   pathname: '/blog',
 });
 
+// Bật ISR tự động tạo trang tĩnh và lưu cache 60s, loại bỏ hoàn toàn skeleton loading khi bấm chuyển trang
+export const revalidate = 60;
+
 export default async function BlogIndexPage() {
   const posts = await getPostMetas();
 

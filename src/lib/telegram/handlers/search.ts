@@ -1,6 +1,7 @@
 import { db } from '@/lib/db';
 import { escapeHtml } from '../config';
 import { formatVnd, productsListKeyboard, backToMenuKeyboard } from '../keyboards';
+import { safeEditOrReply } from '../helpers';
 import { handleCheckOrder } from './order';
 import type { Context } from 'grammy';
 
@@ -16,11 +17,7 @@ export async function handleSearchPrompt(ctx: Context) {
     `2️⃣ <b>Tra cứu đơn hàng:</b> Gõ mã đơn hàng dạng <code>DH-xxxxx</code> để xem trạng thái và lấy lại tài khoản / link tải code.\n\n` +
     `👉 Hãy gửi từ khóa bạn muốn tìm vào đây:`;
 
-  if (ctx.callbackQuery) {
-    await ctx.editMessageText(text, { parse_mode: 'HTML', reply_markup: backToMenuKeyboard() });
-  } else {
-    await ctx.reply(text, { parse_mode: 'HTML', reply_markup: backToMenuKeyboard() });
-  }
+  await safeEditOrReply(ctx, text, { parse_mode: 'HTML', reply_markup: backToMenuKeyboard() });
 }
 
 /**
@@ -40,7 +37,7 @@ export async function searchProductsOrOrders(ctx: Context, query: string) {
     const products = await db.product.findMany({
       where: {
         status: 'ACTIVE',
-        type: { in: ['ACCOUNT', 'DOWNLOAD'] },
+        showOnTelegram: true,
         OR: [
           { name: { contains: cleanQuery, mode: 'insensitive' } },
           { description: { contains: cleanQuery, mode: 'insensitive' } },

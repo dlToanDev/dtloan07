@@ -51,6 +51,8 @@ type Product = {
   gallery: string[];
   hasOrders: boolean;
   variants: VariantDefault[];
+  showOnTelegram?: boolean;
+  isFeatured?: boolean;
 };
 
 /** Ảnh bìa + tối đa 20 ảnh thư viện (giới hạn `gallerySchema` phía server). */
@@ -241,6 +243,10 @@ export function ProductForm({
   const [submitStatus, setSubmitStatus] = useState<'DRAFT' | 'ACTIVE'>(
     product?.status === 'DRAFT' ? 'DRAFT' : 'ACTIVE',
   );
+  const [showOnTelegram, setShowOnTelegram] = useState(
+    product ? (product.showOnTelegram ?? true) : true,
+  );
+  const [isFeatured, setIsFeatured] = useState(product ? (product.isFeatured ?? false) : false);
 
   const isSource = shop.type === 'DOWNLOAD';
   const typeChosen = shop.type !== '';
@@ -320,6 +326,104 @@ export function ProductForm({
             categories={categoryList}
             onCategoryCreated={(category) => setCategoryList((prev) => [...prev, category])}
           />
+        </FormSection>
+
+        {/* Cài đặt hiển thị & Kênh bán (Website & Telegram) */}
+        <FormSection
+          title="Kênh bán & Trạng thái hiển thị"
+          hint="Cấu hình hiển thị sản phẩm trên website và đồng bộ bán hàng qua Telegram Bot."
+        >
+          <div className="border-border divide-border bg-card/60 divide-y rounded-xl border">
+            {/* 1. Hiển thị sản phẩm */}
+            <div className="flex items-center justify-between p-4">
+              <div className="space-y-0.5 pr-4">
+                <label
+                  htmlFor="toggle-product-active"
+                  className="text-foreground cursor-pointer text-sm font-semibold"
+                >
+                  Hiển thị sản phẩm
+                </label>
+                <p className="text-muted-foreground text-xs">
+                  Cho phép sản phẩm này xuất hiện trên trang cửa hàng (Website).
+                </p>
+              </div>
+              <label className="relative inline-flex shrink-0 cursor-pointer items-center">
+                <input
+                  id="toggle-product-active"
+                  type="checkbox"
+                  checked={submitStatus === 'ACTIVE'}
+                  onChange={(e) => {
+                    const next = e.target.checked ? 'ACTIVE' : 'DRAFT';
+                    setSubmitStatus(next);
+                    if (statusInputRef.current) statusInputRef.current.value = next;
+                  }}
+                  className="peer sr-only"
+                />
+                <div className="peer bg-muted-foreground/30 dark:bg-muted-foreground/40 h-6 w-11 rounded-full transition-colors peer-checked:bg-emerald-600 peer-focus:outline-none after:absolute after:top-[2px] after:left-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:shadow-sm after:transition-all after:content-[''] peer-checked:after:translate-x-full" />
+              </label>
+            </div>
+
+            {/* 2. Hiển thị / Bán trên Telegram */}
+            <div className="flex items-center justify-between p-4">
+              <div className="space-y-0.5 pr-4">
+                <div className="flex items-center gap-1.5">
+                  <label
+                    htmlFor="toggle-show-telegram"
+                    className="text-foreground cursor-pointer text-sm font-semibold"
+                  >
+                    Bán trên Telegram Bot
+                  </label>
+                  <Badge
+                    variant="secondary"
+                    className="border-cyan-500/30 bg-cyan-500/10 text-[10px] text-cyan-600 dark:text-cyan-400"
+                  >
+                    @dltoan07_bot
+                  </Badge>
+                </div>
+                <p className="text-muted-foreground text-xs">
+                  Bật để sản phẩm xuất hiện trong danh mục và tra cứu mua hàng trên Bot Telegram.
+                  Tắt để chỉ bán trên Web.
+                </p>
+              </div>
+              <label className="relative inline-flex shrink-0 cursor-pointer items-center">
+                <input
+                  id="toggle-show-telegram"
+                  type="checkbox"
+                  name="showOnTelegram"
+                  checked={showOnTelegram}
+                  onChange={(e) => setShowOnTelegram(e.target.checked)}
+                  className="peer sr-only"
+                />
+                <div className="peer bg-muted-foreground/30 dark:bg-muted-foreground/40 h-6 w-11 rounded-full transition-colors peer-checked:bg-cyan-600 peer-focus:outline-none after:absolute after:top-[2px] after:left-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:shadow-sm after:transition-all after:content-[''] peer-checked:after:translate-x-full" />
+              </label>
+            </div>
+
+            {/* 3. Sản phẩm nổi bật */}
+            <div className="flex items-center justify-between p-4">
+              <div className="space-y-0.5 pr-4">
+                <label
+                  htmlFor="toggle-is-featured"
+                  className="text-foreground cursor-pointer text-sm font-semibold"
+                >
+                  Sản phẩm nổi bật
+                </label>
+                <p className="text-muted-foreground text-xs">
+                  Đánh dấu là sản phẩm nổi bật để hiển thị ở vị trí ưu tiên.
+                </p>
+              </div>
+              <label className="relative inline-flex shrink-0 cursor-pointer items-center">
+                <input
+                  id="toggle-is-featured"
+                  type="checkbox"
+                  name="isFeatured"
+                  checked={isFeatured}
+                  onChange={(e) => setIsFeatured(e.target.checked)}
+                  className="peer sr-only"
+                />
+                <div className="peer bg-muted-foreground/30 dark:bg-muted-foreground/40 h-6 w-11 rounded-full transition-colors peer-checked:bg-amber-500 peer-focus:outline-none after:absolute after:top-[2px] after:left-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:shadow-sm after:transition-all after:content-[''] peer-checked:after:translate-x-full" />
+              </label>
+            </div>
+          </div>
         </FormSection>
 
         <FormSection title="Thông tin sản phẩm">

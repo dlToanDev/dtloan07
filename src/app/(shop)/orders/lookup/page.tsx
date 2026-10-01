@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Search, Download, Key, CheckCircle2, Clock, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 import { AccountCredentialsButton } from '@/components/shop/account-credentials-button';
+import { paymentStatusLabel, paymentStatusBadgeVariant } from '@/lib/shop/labels';
 
 interface OrderItemInfo {
   id: string;
@@ -152,16 +153,13 @@ export default function OrderLookupPage() {
                   Tạo lúc {new Date(order.createdAt).toLocaleString('vi-VN')}
                 </CardDescription>
               </div>
-              <Badge
-                variant={order.status === 'PAID' ? 'default' : 'outline'}
-                className="px-3 py-1"
-              >
+              <Badge variant={paymentStatusBadgeVariant(order.status)} className="px-3 py-1">
                 {order.status === 'PAID' ? (
                   <CheckCircle2 className="mr-1 h-3.5 w-3.5 text-green-500" />
                 ) : (
                   <Clock className="mr-1 h-3.5 w-3.5" />
                 )}
-                {order.status}
+                {paymentStatusLabel(order.status)}
               </Badge>
             </CardHeader>
             <CardContent className="divide-border divide-y">

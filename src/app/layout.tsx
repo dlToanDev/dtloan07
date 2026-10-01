@@ -16,6 +16,8 @@ import {
   getPublicLoginAdConfig,
   getPublicActiveAnnouncements,
 } from '@/server/actions/settings';
+import { getServerLocale } from '@/lib/i18n/server';
+import { I18nProvider } from '@/components/i18n-provider';
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
 
@@ -36,46 +38,51 @@ export const viewport: Viewport = {
 };
 
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  const [adConfig, activeAnnouncement, announcements] = await Promise.all([
+  const [adConfig, activeAnnouncement, announcements, locale] = await Promise.all([
     getPublicLoginAdConfig(),
     getActiveBannerAnnouncement(),
     getPublicActiveAnnouncements(),
+    getServerLocale(),
   ]);
+
+  const skipToContent = locale === 'en' ? 'Skip to main content' : 'Bỏ qua, tới nội dung chính';
 
   return (
     // suppressHydrationWarning: next-themes gắn class vào <html> trước khi React
     // hydrate, nên markup server và client khác nhau một cách có chủ đích.
-    <html lang="vi" suppressHydrationWarning>
+    <html lang={locale} suppressHydrationWarning>
       <body className={cn(fontSans.variable, fontMono.variable, 'font-sans')}>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
-          <a
-            href="#main"
-            className="bg-primary text-primary-foreground sr-only rounded-lg px-4 py-2 focus:not-sr-only focus:absolute focus:top-3 focus:left-3 focus:z-50"
+        <I18nProvider initialLocale={locale}>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
           >
-            Bỏ qua, tới nội dung chính
-          </a>
+            <a
+              href="#main"
+              className="bg-primary text-primary-foreground sr-only rounded-lg px-4 py-2 focus:not-sr-only focus:absolute focus:top-3 focus:left-3 focus:z-50"
+            >
+              {skipToContent}
+            </a>
 
-          <ProgressBar />
-          <AnnouncementBar announcement={activeAnnouncement} />
-          <div className="flex min-h-dvh flex-col">
-            <Header announcements={announcements} />
-            <main id="main" className="flex-1">
-              {children}
-            </main>
-            <ConditionalFooter>
-              <Footer />
-            </ConditionalFooter>
-          </div>
-          <ExitIntentPopup />
-          <LoginAdPopup initialConfig={adConfig} />
-          <CartDrawer />
-          <FloatingContactWidget />
-        </ThemeProvider>
+            <ProgressBar />
+            <AnnouncementBar announcement={activeAnnouncement} />
+            <div className="flex min-h-dvh flex-col">
+              <Header announcements={announcements} />
+              <main id="main" className="flex-1">
+                {children}
+              </main>
+              <ConditionalFooter>
+                <Footer />
+              </ConditionalFooter>
+            </div>
+            <ExitIntentPopup />
+            <LoginAdPopup initialConfig={adConfig} />
+            <CartDrawer />
+            <FloatingContactWidget />
+          </ThemeProvider>
+        </I18nProvider>
       </body>
     </html>
   );

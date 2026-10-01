@@ -13,6 +13,7 @@ import { db } from '@/lib/db';
 import { getAffiliatePath } from '@/lib/affiliate-token';
 import { getPublicHeroBannerConfig } from '@/server/actions/settings';
 import { HeroBannerCarousel } from '@/components/marketing/hero-banner-carousel';
+import { getServerTranslator } from '@/lib/i18n/server';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ArrowRight, Sparkles, Server, ShieldCheck, Zap, Tag, BookOpen } from 'lucide-react';
@@ -27,10 +28,11 @@ export const revalidate = 60; // 60s ISR
 
 export default async function HomePage() {
   const affiliatePath = getAffiliatePath();
-  const [posts, categories, heroBannerConfig] = await Promise.all([
+  const [posts, categories, heroBannerConfig, { t }] = await Promise.all([
     getPostMetas(),
     getAllCategories(),
     getPublicHeroBannerConfig(),
+    getServerTranslator(),
   ]);
 
   let products: Awaited<ReturnType<typeof db.product.findMany>> = [];
@@ -76,10 +78,10 @@ export default async function HomePage() {
                 href={`${siteConfig.shopPath}?c=source-code`}
                 className={buttonStyles({ size: 'md' })}
               >
-                Xem sản phẩm số <ArrowRight className="ml-1.5 size-4" />
+                {t('home.cta_products', 'Xem sản phẩm số')} <ArrowRight className="ml-1.5 size-4" />
               </Link>
               <Link href="/blog" className={buttonStyles({ variant: 'outline', size: 'md' })}>
-                <BookOpen className="mr-1.5 size-4" /> Đọc bài viết
+                <BookOpen className="mr-1.5 size-4" /> {t('home.cta_blog', 'Đọc bài viết')}
               </Link>
               <Link
                 href={affiliatePath}
@@ -89,13 +91,16 @@ export default async function HomePage() {
                   className: 'text-amber-600 hover:bg-amber-500/10 dark:text-amber-400',
                 })}
               >
-                <Tag className="mr-1.5 size-4" /> Ưu đãi Hosting & Tools
+                <Tag className="mr-1.5 size-4" /> {t('home.cta_deals', 'Ưu đãi Hosting & Tools')}
               </Link>
             </div>
 
             <div className="text-muted-foreground bg-muted/40 border-border/60 hidden items-center gap-2 rounded-full border px-3.5 py-1.5 text-xs sm:flex">
               <span className="size-2 animate-pulse rounded-full bg-emerald-500" />
-              <span>Đối tác hạ tầng &amp; công nghệ chính thức của {siteConfig.name}</span>
+              <span>
+                {t('home.hero_partner', 'Đối tác hạ tầng & công nghệ chính thức của')}{' '}
+                {siteConfig.name}
+              </span>
             </div>
           </div>
         </section>
@@ -103,7 +108,12 @@ export default async function HomePage() {
         <section className="flex max-w-3xl flex-col items-start gap-6">
           <div className="border-primary/20 bg-primary/10 text-primary inline-flex items-center gap-2 rounded-full border px-3.5 py-1 text-xs font-semibold">
             <Sparkles className="size-3.5" />
-            <span>Kinh nghiệm DevOps thực chiến & Giải pháp máy chủ tự vận hành</span>
+            <span>
+              {t(
+                'home.hero_badge',
+                'Kinh nghiệm DevOps thực chiến & Giải pháp máy chủ tự vận hành',
+              )}
+            </span>
           </div>
 
           <h1 className="text-foreground text-4xl font-extrabold tracking-tight text-balance sm:text-5xl lg:text-6xl">
@@ -121,10 +131,10 @@ export default async function HomePage() {
               href={`${siteConfig.shopPath}?c=source-code`}
               className={buttonStyles({ size: 'lg' })}
             >
-              Xem sản phẩm số <ArrowRight className="ml-1.5 size-4" />
+              {t('home.cta_products', 'Xem sản phẩm số')} <ArrowRight className="ml-1.5 size-4" />
             </Link>
             <Link href="/blog" className={buttonStyles({ variant: 'outline', size: 'lg' })}>
-              <BookOpen className="mr-1.5 size-4" /> Đọc bài viết
+              <BookOpen className="mr-1.5 size-4" /> {t('home.cta_blog', 'Đọc bài viết')}
             </Link>
             <Link
               href={affiliatePath}
@@ -134,7 +144,7 @@ export default async function HomePage() {
                 className: 'text-amber-600 hover:bg-amber-500/10 dark:text-amber-400',
               })}
             >
-              <Tag className="mr-1.5 size-4" /> Ưu đãi Hosting & Tools
+              <Tag className="mr-1.5 size-4" /> {t('home.cta_deals', 'Ưu đãi Hosting & Tools')}
             </Link>
           </div>
         </section>
@@ -148,8 +158,12 @@ export default async function HomePage() {
               <Server className="size-5" />
             </div>
             <div>
-              <h3 className="text-sm font-bold">100% Thực chiến</h3>
-              <p className="text-muted-foreground text-xs">Kinh nghiệm vận hành VPS thực tế</p>
+              <h3 className="text-sm font-bold">
+                {t('home.val_realworld_title', '100% Thực chiến')}
+              </h3>
+              <p className="text-muted-foreground text-xs">
+                {t('home.val_realworld_desc', 'Kinh nghiệm vận hành VPS thực tế')}
+              </p>
             </div>
           </div>
         </div>
@@ -160,8 +174,10 @@ export default async function HomePage() {
               <Zap className="size-5" />
             </div>
             <div>
-              <h3 className="text-sm font-bold">Tối ưu chi phí</h3>
-              <p className="text-muted-foreground text-xs">Hạ tầng tự vận hành, chi phí $0</p>
+              <h3 className="text-sm font-bold">{t('home.val_cost_title', 'Tối ưu chi phí')}</h3>
+              <p className="text-muted-foreground text-xs">
+                {t('home.val_cost_desc', 'Hạ tầng tự vận hành, chi phí $0')}
+              </p>
             </div>
           </div>
         </div>
@@ -172,8 +188,12 @@ export default async function HomePage() {
               <ShieldCheck className="size-5" />
             </div>
             <div>
-              <h3 className="text-sm font-bold">Bảo mật chuẩn A+</h3>
-              <p className="text-muted-foreground text-xs">Hardening Nginx, SSL, Rate-limit</p>
+              <h3 className="text-sm font-bold">
+                {t('home.val_security_title', 'Bảo mật chuẩn A+')}
+              </h3>
+              <p className="text-muted-foreground text-xs">
+                {t('home.val_security_desc', 'Hardening Nginx, SSL, Rate-limit')}
+              </p>
             </div>
           </div>
         </div>
@@ -184,8 +204,12 @@ export default async function HomePage() {
               <Sparkles className="size-5" />
             </div>
             <div>
-              <h3 className="text-sm font-bold">Mã giảm giá độc quyền</h3>
-              <p className="text-muted-foreground text-xs">Credit dùng thử VPS & Tools</p>
+              <h3 className="text-sm font-bold">
+                {t('home.val_deals_title', 'Mã giảm giá độc quyền')}
+              </h3>
+              <p className="text-muted-foreground text-xs">
+                {t('home.val_deals_desc', 'Credit dùng thử VPS & Tools')}
+              </p>
             </div>
           </div>
         </div>
@@ -197,17 +221,20 @@ export default async function HomePage() {
           <div className="flex items-baseline justify-between gap-4">
             <div>
               <h2 id="products-heading" className="text-2xl font-bold tracking-tight">
-                Sản phẩm số & Template giải pháp
+                {t('home.products_title', 'Sản phẩm số & Template giải pháp')}
               </h2>
               <p className="text-muted-foreground mt-1 text-sm">
-                Các bộ cấu hình và template kiểm chứng thực tế, sẵn sàng cho môi trường production.
+                {t(
+                  'home.products_desc',
+                  'Các bộ cấu hình và template kiểm chứng thực tế, sẵn sàng cho môi trường production.',
+                )}
               </p>
             </div>
             <Link
               href={`${siteConfig.shopPath}?c=source-code`}
               className="text-primary inline-flex items-center gap-1 text-sm font-semibold hover:underline"
             >
-              Xem tất cả <ArrowRight className="size-3.5" />
+              {t('home.products_view_all', 'Xem tất cả')} <ArrowRight className="size-3.5" />
             </Link>
           </div>
 
@@ -225,21 +252,23 @@ export default async function HomePage() {
           <div className="flex items-baseline justify-between gap-4">
             <div>
               <div className="mb-1 inline-flex items-center gap-1.5 text-xs font-semibold text-amber-600 dark:text-amber-400">
-                <Sparkles className="size-3.5" /> Độc quyền & Tiết kiệm
+                <Sparkles className="size-3.5" /> {t('home.deals_badge', 'Độc quyền & Tiết kiệm')}
               </div>
               <h2 id="affiliate-heading" className="text-2xl font-bold tracking-tight">
-                Ưu đãi Hosting & Công cụ khuyên dùng
+                {t('home.deals_title', 'Ưu đãi Hosting & Công cụ khuyên dùng')}
               </h2>
               <p className="text-muted-foreground text-sm">
-                Danh sách các nhà cung cấp VPS, tên miền và công cụ dev được blog đàm phán ưu đãi
-                tốt nhất.
+                {t(
+                  'home.deals_desc',
+                  'Danh sách các nhà cung cấp VPS, tên miền và công cụ dev được blog đàm phán ưu đãi tốt nhất.',
+                )}
               </p>
             </div>
             <Link
               href={affiliatePath}
               className="text-primary inline-flex items-center gap-1 text-sm font-semibold hover:underline"
             >
-              Xem tất cả ưu đãi <ArrowRight className="size-3.5" />
+              {t('home.deals_view_all', 'Xem tất cả ưu đãi')} <ArrowRight className="size-3.5" />
             </Link>
           </div>
 
@@ -256,17 +285,20 @@ export default async function HomePage() {
         <div className="flex items-baseline justify-between gap-4">
           <div>
             <h2 id="blog-heading" className="text-2xl font-bold tracking-tight">
-              Bài viết kỹ thuật chuyên sâu
+              {t('home.blog_title', 'Bài viết kỹ thuật chuyên sâu')}
             </h2>
             <p className="text-muted-foreground mt-1 text-sm">
-              Hướng dẫn từng bước về tối ưu Nginx, Docker, CI/CD và quản trị server Linux.
+              {t(
+                'home.blog_desc',
+                'Hướng dẫn từng bước về tối ưu Nginx, Docker, CI/CD và quản trị server Linux.',
+              )}
             </p>
           </div>
           <Link
             href="/blog"
             className="text-primary inline-flex items-center gap-1 text-sm font-semibold hover:underline"
           >
-            Xem tất cả bài viết <ArrowRight className="size-3.5" />
+            {t('home.blog_view_all', 'Xem tất cả bài viết')} <ArrowRight className="size-3.5" />
           </Link>
         </div>
 
@@ -287,7 +319,7 @@ export default async function HomePage() {
         {featuredPosts.length > 0 && (
           <div className="space-y-4">
             <h3 className="text-muted-foreground text-sm font-bold tracking-wider uppercase">
-              Bài viết tiêu biểu
+              {t('home.blog_featured', 'Bài viết tiêu biểu')}
             </h3>
             <div className="flex flex-col gap-6">
               {featuredPosts.map((post) => (
@@ -300,7 +332,7 @@ export default async function HomePage() {
         {/* Latest Posts */}
         <div className="border-border space-y-4 border-t pt-4">
           <h3 className="text-muted-foreground text-sm font-bold tracking-wider uppercase">
-            Mới cập nhật
+            {t('home.blog_latest', 'Mới cập nhật')}
           </h3>
           <div className="flex flex-col gap-6">
             {latestPosts.map((post) => (
@@ -320,17 +352,19 @@ export default async function HomePage() {
             id="newsletter-heading"
             className="text-foreground text-2xl font-bold tracking-tight sm:text-3xl"
           >
-            Nhận tài liệu kỹ thuật & bài viết mới
+            {t('home.newsletter_title', 'Nhận tài liệu kỹ thuật & bài viết mới')}
           </h2>
           <p className="text-muted-foreground mt-2 text-sm leading-relaxed">
-            Kinh nghiệm thực chiến về Nginx, Docker, quản trị VPS và tối ưu chi phí máy chủ. Đăng ký
-            ngay để nhận miễn phí bộ <strong>Checklist Nginx Hardening</strong>.
+            {t(
+              'home.newsletter_desc',
+              'Kinh nghiệm thực chiến về Nginx, Docker, quản trị VPS và tối ưu chi phí máy chủ. Đăng ký ngay để nhận miễn phí bộ Checklist Nginx Hardening.',
+            )}
           </p>
           <div className="mt-6">
             <NewsletterForm
               source="homepage-footer"
               leadTitle="Checklist Nginx Hardening"
-              buttonText="Nhận tài liệu miễn phí"
+              buttonText={t('home.newsletter_btn', 'Nhận tài liệu miễn phí')}
             />
           </div>
         </div>

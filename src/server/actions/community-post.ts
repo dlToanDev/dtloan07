@@ -3,7 +3,7 @@
 import { randomUUID } from 'node:crypto';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, revalidateTag } from 'next/cache';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { isPro } from '@/lib/membership';
@@ -40,6 +40,7 @@ async function requireProAuthor() {
 }
 
 function revalidateCommunity(slug?: string) {
+  revalidateTag('community-posts');
   for (const route of [
     '/',
     '/blog',

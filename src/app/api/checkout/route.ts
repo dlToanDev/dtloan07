@@ -553,13 +553,14 @@ export async function POST(req: NextRequest) {
     }
 
     // 8. Đơn PayOS: giữ kho rồi tạo link thanh toán
+    // Đơn đang giam hàng thì hạn thanh toán ngắn, đơn chỉ có file giữ nguyên 24h.
+    const holdsStock = reserveLines.length > 0 || autoAccountVariantIds.size > 0;
+    const ttl = holdsStock ? RESERVED_STOCK_TTL_MS : DIGITAL_ORDER_TTL_MS;
+    const expiresAt = new Date(Date.now() + ttl);
+
     const { reservedCount } = await db.$transaction(async (tx) => {
       const reserve = await reserveVariantStock(tx, reserveLines);
       if (!reserve.ok) throw new Error(`STOCK:${reserve.error}`);
-      // Đơn đang giam hàng thì hạn thanh toán ngắn, đơn chỉ có file giữ nguyên 24h.
-      const holdsStock = reserve.reservedCount > 0 || autoAccountVariantIds.size > 0;
-      const ttl = holdsStock ? RESERVED_STOCK_TTL_MS : DIGITAL_ORDER_TTL_MS;
-      const expiresAt = new Date(Date.now() + ttl);
       const order = await tx.order.create({
         data: {
           ...orderBase,
@@ -576,6 +577,7 @@ export async function POST(req: NextRequest) {
       orderCode: numericOrderCode,
       amount: totalVnd,
       description: formattedOrderCode,
+      expiredAt: Math.floor(expiresAt.getTime() / 1000),
       items: [
         ...pricing.items.map((item) => {
           const line = lineMap.get(lineKey(item.productId, item.variantId));

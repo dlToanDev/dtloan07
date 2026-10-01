@@ -84,6 +84,7 @@ export async function createDepositPaymentLink(
       orderCode: numericOrderCode,
       amount: amountVnd,
       description: `NAP ${currency} ${orderCode}`,
+      expiredAt: Math.floor((Date.now() + 30 * 60 * 1000) / 1000),
       items: [
         {
           name: `Nạp ${currency === 'USD' ? `$${amount}` : `${amount.toLocaleString('vi-VN')} đ`} vào ví`,
@@ -1004,6 +1005,7 @@ export async function createCoursePayOSPaymentLink(courseId: string): Promise<De
       orderCode: numericOrderCode,
       amount: course.priceVnd,
       description: `KHOA HOC ${orderCode}`,
+      expiredAt: Math.floor((Date.now() + 30 * 60 * 1000) / 1000),
       items: [
         {
           name: course.title.slice(0, 50),

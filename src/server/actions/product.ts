@@ -241,7 +241,20 @@ export async function saveProduct(_state: { error?: string; success?: string }, 
     ...baseData
   } = data;
   /* eslint-enable @typescript-eslint/no-unused-vars */
-  const productData = { ...baseData, ...shopFields };
+
+  const showOnTelegram = form.has('showOnTelegram')
+    ? form.get('showOnTelegram') === 'on' || form.get('showOnTelegram') === 'true'
+    : false;
+  const isFeatured = form.has('isFeatured')
+    ? form.get('isFeatured') === 'on' || form.get('isFeatured') === 'true'
+    : false;
+
+  const productData = {
+    ...baseData,
+    ...shopFields,
+    showOnTelegram,
+    isFeatured,
+  };
 
   let savedId = id;
   try {
@@ -362,4 +375,21 @@ export async function saveProduct(_state: { error?: string; success?: string }, 
     return { error: 'Không thể lưu sản phẩm. Vui lòng thử lại.' };
   }
   redirect(`/admin/shop/${savedId}/edit?saved=1`);
+}
+
+export async function toggleProductTelegram(productId: string) {
+  await requireProductAdmin();
+  const product = await db.product.findUnique({
+    where: { id: productId },
+    select: { id: true, showOnTelegram: true },
+  });
+  if (!product) throw new Error('Không tìm thấy sản phẩm.');
+
+  await db.product.update({
+    where: { id: productId },
+    data: { showOnTelegram: !product.showOnTelegram },
+  });
+
+  revalidatePath('/admin/products');
+  revalidatePath('/admin/shop');
 }

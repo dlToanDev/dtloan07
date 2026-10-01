@@ -6,6 +6,7 @@ import {
   backToMenuKeyboard,
   persistentReplyKeyboard,
 } from './keyboards';
+import { safeEditOrReply } from './helpers';
 import { showCatalog, showProductDetail } from './handlers/catalog';
 import {
   initiateCheckout,
@@ -40,8 +41,10 @@ export async function registerBotCommands() {
   try {
     await bot.api.setMyCommands([
       { command: 'start', description: '🏠 Khởi động bot & Menu chính' },
-      { command: 'menu', description: '📂 Danh mục sản phẩm (Tài khoản & Code)' },
-      { command: 'product', description: '📦 Danh sách tất cả sản phẩm' },
+      { command: 'vps', description: '☁️ Danh mục Cloud VPS' },
+      { command: 'vds', description: '🖥️ Danh mục Cloud VDS' },
+      { command: 'menu', description: '📂 Danh mục sản phẩm (VPS, VDS, Code)' },
+      { command: 'product', description: '📦 Danh mục tất cả sản phẩm' },
       { command: 'orders', description: '📋 Đơn hàng & Tra cứu của bạn' },
       { command: 'find', description: '🔍 Tìm kiếm sản phẩm hoặc mã đơn' },
       { command: 'support', description: '💬 Hỗ trợ kỹ thuật & bảo hành' },
@@ -53,7 +56,7 @@ export async function registerBotCommands() {
 }
 
 // ==========================================
-// 1. COMMANDS (/start, /menu, /product, /orders, /find, /support)
+// 1. COMMANDS (/start, /menu, /vps, /vds, /product, /orders, /find, /support)
 // ==========================================
 
 bot.command('start', async (ctx) => {
@@ -61,12 +64,12 @@ bot.command('start', async (ctx) => {
     const name = ctx.from?.first_name || 'bạn';
     const welcomeText =
       `👋 <b>Xin chào ${escapeHtml(name)}!</b>\n\n` +
-      `Chào mừng bạn đến với Cửa Hàng <b>Mã Nguồn & Tài Khoản Bản Quyền</b>.\n\n` +
+      `Chào mừng bạn đến với Cửa Hàng <b>Cloud VPS, Cloud VDS, Mã Nguồn & Tài Khoản Bản Quyền</b>.\n\n` +
       `🚀 <b>Ưu điểm khi mua tại Bot:</b>\n` +
       `• Bàn giao tự động qua Telegram & Email trong <b>3 giây</b>\n` +
       `• Thanh toán quét mã <b>VietQR Napas 24/7</b> trực tiếp từng đơn (không cần nạp tiền)\n` +
-      `• Tự động kiểm tra giao dịch và gửi mã bản quyền / link tải ngay\n` +
-      `• Bảo hành 1 đổi 1 uy tín\n\n` +
+      `• Tự động kiểm tra giao dịch và kích hoạt đơn hàng ngay\n` +
+      `• Bảo hành & Hỗ trợ kỹ thuật chu đáo\n\n` +
       `Vui lòng bấm chọn các nút trên Menu bên dưới để bắt đầu:`;
 
     // Gửi kèm Persistent Reply Keyboard dưới thanh chat
@@ -91,22 +94,30 @@ bot.command('start', async (ctx) => {
   }
 });
 
-bot.command('menu', async (ctx) => {
+bot.command(['vps', 'cloudvps'], async (ctx) => {
   try {
-    await ctx.reply('📂 <b>Chọn danh mục sản phẩm:</b>', {
+    await showCatalog(ctx, 'VPS');
+  } catch (error) {
+    console.error('Lỗi khi xử lý lệnh /vps:', error);
+  }
+});
+
+bot.command(['vds', 'cloudvds'], async (ctx) => {
+  try {
+    await showCatalog(ctx, 'VDS');
+  } catch (error) {
+    console.error('Lỗi khi xử lý lệnh /vds:', error);
+  }
+});
+
+bot.command(['menu', 'product', 'products'], async (ctx) => {
+  try {
+    await ctx.reply('<b>Chọn danh mục sản phẩm:</b>', {
       parse_mode: 'HTML',
       reply_markup: categoryKeyboard(),
     });
   } catch (error) {
-    console.error('Lỗi khi xử lý lệnh /menu:', error);
-  }
-});
-
-bot.command(['product', 'products'], async (ctx) => {
-  try {
-    await showCatalog(ctx, 'ACCOUNT');
-  } catch (error) {
-    console.error('Lỗi khi xử lý lệnh /product:', error);
+    console.error('Lỗi khi xử lý lệnh /menu /product:', error);
   }
 });
 
@@ -212,26 +223,27 @@ bot.on('callback_query:data', async (ctx) => {
   try {
     if (data === 'nav:menu') {
       const name = ctx.from?.first_name || 'bạn';
-      await ctx.editMessageText(
+      await safeEditOrReply(
+        ctx,
         `👋 Xin chào <b>${escapeHtml(name)}</b>! Vui lòng chọn danh mục bạn quan tâm:`,
         {
           parse_mode: 'HTML',
           reply_markup: mainMenuKeyboard(),
         },
       );
-      await ctx.answerCallbackQuery();
+      await ctx.answerCallbackQuery().catch(() => {});
       return;
     }
 
     if (data === 'nav:orders') {
       await handleMyOrders(ctx);
-      await ctx.answerCallbackQuery();
+      await ctx.answerCallbackQuery().catch(() => {});
       return;
     }
 
     if (data === 'nav:find') {
       await handleSearchPrompt(ctx);
-      await ctx.answerCallbackQuery();
+      await ctx.answerCallbackQuery().catch(() => {});
       return;
     }
 
@@ -243,23 +255,27 @@ bot.on('callback_query:data', async (ctx) => {
         `• <b>Chính sách bảo hành:</b> Cam kết 1 đổi 1 nếu tài khoản lỗi từ phía nhà cung cấp trong thời gian sử dụng.\n\n` +
         `Nếu bạn có bất kỳ câu hỏi nào về sản phẩm hoặc đơn hàng, đừng ngần ngại nhắn tin cho Admin nhé!`;
 
-      await ctx.editMessageText(supportText, {
+      await safeEditOrReply(ctx, supportText, {
         parse_mode: 'HTML',
         reply_markup: backToMenuKeyboard(),
       });
-      await ctx.answerCallbackQuery();
+      await ctx.answerCallbackQuery().catch(() => {});
       return;
     }
 
-    if (data === 'cat:DOWNLOAD') {
-      await showCatalog(ctx, 'DOWNLOAD');
-      await ctx.answerCallbackQuery();
+    if (data === 'nav:categories') {
+      await safeEditOrReply(ctx, '📂 <b>Chọn danh mục sản phẩm:</b>', {
+        parse_mode: 'HTML',
+        reply_markup: categoryKeyboard(),
+      });
+      await ctx.answerCallbackQuery().catch(() => {});
       return;
     }
 
-    if (data === 'cat:ACCOUNT') {
-      await showCatalog(ctx, 'ACCOUNT');
-      await ctx.answerCallbackQuery();
+    if (data.startsWith('cat:')) {
+      const category = data.replace('cat:', '');
+      await showCatalog(ctx, category);
+      await ctx.answerCallbackQuery().catch(() => {});
       return;
     }
 
@@ -296,7 +312,8 @@ bot.on('callback_query:data', async (ctx) => {
           expiresAt: Date.now() + 10 * 60 * 1000,
         });
       }
-      await ctx.editMessageText(
+      await safeEditOrReply(
+        ctx,
         `✉️ <b>Nhập Email nhận hàng mới</b>\n\n` +
           `Vui lòng gõ địa chỉ email của bạn vào ô chat bên dưới:`,
         {
@@ -304,30 +321,30 @@ bot.on('callback_query:data', async (ctx) => {
           reply_markup: backToMenuKeyboard(),
         },
       );
-      await ctx.answerCallbackQuery();
+      await ctx.answerCallbackQuery().catch(() => {});
       return;
     }
 
     if (data.startsWith('check:')) {
       const orderCode = data.replace('check:', '');
       await handleCheckOrder(ctx, orderCode);
-      await ctx.answerCallbackQuery();
+      await ctx.answerCallbackQuery().catch(() => {});
       return;
     }
 
     if (data.startsWith('cancel:')) {
       const orderCode = data.replace('cancel:', '');
       await handleCancelOrder(ctx, orderCode);
-      await ctx.answerCallbackQuery();
+      await ctx.answerCallbackQuery().catch(() => {});
       return;
     }
 
     if (data === 'noop') {
-      await ctx.answerCallbackQuery('Gói này hiện đang hết hàng trong kho.');
+      await ctx.answerCallbackQuery('Gói này hiện đang hết hàng trong kho.').catch(() => {});
       return;
     }
 
-    await ctx.answerCallbackQuery();
+    await ctx.answerCallbackQuery().catch(() => {});
   } catch (err) {
     console.error('Lỗi xử lý callback query:', err);
     await ctx.answerCallbackQuery('Có lỗi xảy ra, vui lòng thử lại.');
@@ -343,24 +360,42 @@ bot.on('message:text', async (ctx) => {
   const chatId = ctx.chat.id;
 
   // 1. Phím tắt từ Persistent Keyboard
-  if (text === '📂 Sản phẩm') {
-    await showCatalog(ctx, 'ACCOUNT');
+  if (text === '☁️ Cloud VPS' || text === 'Cloud VPS' || text === 'VPS') {
+    await showCatalog(ctx, 'VPS');
     return;
   }
 
-  if (text === '📋 Đơn hàng') {
+  if (text === '🖥️ Cloud VDS' || text === 'Cloud VDS' || text === 'VDS') {
+    await showCatalog(ctx, 'VDS');
+    return;
+  }
+
+  if (
+    text === '📂 Danh mục' ||
+    text === 'Danh mục' ||
+    text === '📂 Sản phẩm' ||
+    text === 'Sản phẩm'
+  ) {
+    await ctx.reply('📂 <b>Chọn danh mục sản phẩm bạn quan tâm:</b>', {
+      parse_mode: 'HTML',
+      reply_markup: categoryKeyboard(),
+    });
+    return;
+  }
+
+  if (text === '📋 Đơn hàng' || text === 'Đơn hàng') {
     await handleMyOrders(ctx);
     return;
   }
 
-  if (text === '🔍 Tìm kiếm') {
+  if (text === '🔍 Tìm kiếm' || text === 'Tìm kiếm') {
     await handleSearchPrompt(ctx);
     return;
   }
 
-  if (text === '💬 Hỗ trợ') {
+  if (text === '💬 Hỗ trợ' || text === 'Hỗ trợ') {
     await ctx.reply(
-      `💬 <b>HỖ TRỢ KỸ THUẬT & BẢO HÀNH</b>\n\n` +
+      `<b>HỖ TRỢ KỸ THUẬT & BẢO HÀNH</b>\n\n` +
         `• <b>Admin hỗ trợ:</b> @dltoan07\n` +
         `• <b>Thời gian hỗ trợ:</b> 8h00 - 23h00 hàng ngày\n` +
         `• <b>Chính sách bảo hành:</b> Cam kết 1 đổi 1 nhanh chóng.`,
@@ -369,8 +404,8 @@ bot.on('message:text', async (ctx) => {
     return;
   }
 
-  if (text === '🏠 Menu chính') {
-    await ctx.reply('👋 Danh mục thao tác chính:', {
+  if (text === '🏠 Menu chính' || text === 'Menu chính') {
+    await ctx.reply('Danh mục thao tác chính:', {
       reply_markup: mainMenuKeyboard(),
     });
     return;

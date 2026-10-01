@@ -67,66 +67,120 @@ export interface MainGroupConfig {
 // CẤU TRÚC 2 TẦNG: TẦNG 1 (LOẠI HÀNG CHÍNH) -> TẦNG 2 (DANH MỤC CON CHI TIẾT)
 export const SHOP_TIERS: MainGroupConfig[] = [
   {
-    id: 'FASHION',
-    name: '👕 Thời trang',
+    id: 'ACCOUNT',
+    name: 'Tài khoản bản quyền',
     match: (p) => {
-      const cat = p.category?.slug || '';
+      const cat = (p.category?.slug || '').toLowerCase();
       const catId = p.categoryId || '';
-      const slug = p.slug || '';
-      const name = (p.name || '').toLowerCase();
       return (
-        cat === 'thoi-trang' ||
-        cat === 'quan-ao' ||
-        cat === 'mu' ||
-        catId === 'cat_apparel' ||
-        catId === 'cat_hat' ||
-        slug.startsWith('ao-') ||
-        slug.startsWith('quan-') ||
-        slug.startsWith('mu-') ||
-        name.includes('áo') ||
-        name.includes('quần') ||
-        name.includes('mũ')
+        p.type === 'ACCOUNT' ||
+        cat === 'tai-khoan' ||
+        catId === 'cat_account' ||
+        cat === 'vps' ||
+        cat === 'vds' ||
+        (p.slug || '').startsWith('cloud-vp') ||
+        (p.slug || '').startsWith('cloud-vd')
       );
     },
     subcategories: [
       {
-        id: 'SHIRT',
-        name: '👕 Áo (Hoodie, Thun, Polo)',
+        id: 'VPS',
+        name: 'Cloud VPS',
         match: (p) => {
+          const cat = (p.category?.slug || '').toLowerCase();
           const s = (p.slug || '').toLowerCase();
           const n = (p.name || '').toLowerCase();
           return (
-            s.includes('ao-') || n.includes('áo') || n.includes('hoodie') || n.includes('thun')
+            cat === 'vps' ||
+            s.startsWith('cloud-vps') ||
+            (s.includes('vps') && !s.includes('vds')) ||
+            (n.includes('vps') && !n.includes('vds'))
           );
         },
       },
       {
-        id: 'PANTS',
-        name: '👖 Quần (Jogger, Short, Kaki)',
+        id: 'VDS',
+        name: 'Cloud VDS',
         match: (p) => {
+          const cat = (p.category?.slug || '').toLowerCase();
           const s = (p.slug || '').toLowerCase();
           const n = (p.name || '').toLowerCase();
           return (
-            s.includes('quan-') || n.includes('quần') || n.includes('jogger') || n.includes('short')
+            cat === 'vds' || s.startsWith('cloud-vds') || s.includes('vds') || n.includes('vds')
           );
         },
       },
       {
-        id: 'HAT',
-        name: '🧢 Mũ & Nón',
+        id: 'AI_CHAT',
+        name: 'ChatGPT Plus & AI',
+        match: (p) => {
+          const s = (p.slug || '').toLowerCase();
+          const n = (p.name || '').toLowerCase();
+          return s.includes('chatgpt') || s.includes('openai') || n.includes('chatgpt');
+        },
+      },
+      {
+        id: 'DEV_AI',
+        name: 'Cursor Pro & Copilot',
         match: (p) => {
           const s = (p.slug || '').toLowerCase();
           const n = (p.name || '').toLowerCase();
           return (
-            s.includes('mu-') || n.includes('mũ') || n.includes('nón') || p.categoryId === 'cat_hat'
+            s.includes('cursor') ||
+            s.includes('copilot') ||
+            n.includes('cursor') ||
+            n.includes('copilot')
           );
         },
       },
     ],
   },
   {
+    id: 'SOURCE_CODE',
+    name: 'Source Code & Mã nguồn',
+    match: (p) => {
+      const cat = p.category?.slug || '';
+      const catId = p.categoryId || '';
+      return p.type === 'DOWNLOAD' || cat === 'source-code' || catId === 'cat_source_code';
+    },
+    subcategories: [
+      {
+        id: 'SAAS',
+        name: 'SaaS & Fullstack Starter',
+        match: (p) => {
+          const s = (p.slug || '').toLowerCase();
+          const n = (p.name || '').toLowerCase();
+          return s.includes('saas') || n.includes('saas') || n.includes('fullstack');
+        },
+      },
+      {
+        id: 'DEVOPS_TEMPLATE',
+        name: 'Nginx & Docker Starter',
+        match: (p) => {
+          const s = (p.slug || '').toLowerCase();
+          const n = (p.name || '').toLowerCase();
+          return (
+            s.includes('nginx') ||
+            s.includes('docker') ||
+            n.includes('nginx') ||
+            n.includes('docker')
+          );
+        },
+      },
+      {
+        id: 'MICROSERVICES',
+        name: 'Microservices & Backend',
+        match: (p) => {
+          const s = (p.slug || '').toLowerCase();
+          const n = (p.name || '').toLowerCase();
+          return s.includes('microservices') || n.includes('microservices') || n.includes('nestjs');
+        },
+      },
+    ],
+  },
+  {
     id: 'TECH',
-    name: '🎧 Đồ công nghệ & Setup',
+    name: 'Đồ công nghệ & Setup',
     match: (p) => {
       const cat = p.category?.slug || '';
       const catId = p.categoryId || '';
@@ -150,7 +204,7 @@ export const SHOP_TIERS: MainGroupConfig[] = [
     subcategories: [
       {
         id: 'KEYBOARD',
-        name: '⌨️ Bàn phím cơ',
+        name: 'Bàn phím cơ',
         match: (p) => {
           const s = (p.slug || '').toLowerCase();
           const n = (p.name || '').toLowerCase();
@@ -159,7 +213,7 @@ export const SHOP_TIERS: MainGroupConfig[] = [
       },
       {
         id: 'MOUSE_PAD',
-        name: '🖱️ Chuột & Lót chuột',
+        name: 'Chuột & Lót chuột',
         match: (p) => {
           const s = (p.slug || '').toLowerCase();
           const n = (p.name || '').toLowerCase();
@@ -173,7 +227,7 @@ export const SHOP_TIERS: MainGroupConfig[] = [
       },
       {
         id: 'DECOR',
-        name: '☕ Cốc sứ & Decor bàn làm việc',
+        name: 'Cốc sứ & Decor bàn làm việc',
         match: (p) => {
           const s = (p.slug || '').toLowerCase();
           const n = (p.name || '').toLowerCase();
@@ -183,77 +237,58 @@ export const SHOP_TIERS: MainGroupConfig[] = [
     ],
   },
   {
-    id: 'SOURCE_CODE',
-    name: '💻 Source Code & Mã nguồn',
+    id: 'FASHION',
+    name: 'Thời trang',
     match: (p) => {
       const cat = p.category?.slug || '';
       const catId = p.categoryId || '';
-      return p.type === 'DOWNLOAD' || cat === 'source-code' || catId === 'cat_source_code';
+      const slug = p.slug || '';
+      const name = (p.name || '').toLowerCase();
+      return (
+        cat === 'thoi-trang' ||
+        cat === 'quan-ao' ||
+        cat === 'mu' ||
+        catId === 'cat_apparel' ||
+        catId === 'cat_hat' ||
+        slug.startsWith('ao-') ||
+        slug.startsWith('quan-') ||
+        slug.startsWith('mu-') ||
+        name.includes('áo') ||
+        name.includes('quần') ||
+        name.includes('mũ')
+      );
     },
     subcategories: [
       {
-        id: 'SAAS',
-        name: '🚀 SaaS & Fullstack Starter',
-        match: (p) => {
-          const s = (p.slug || '').toLowerCase();
-          const n = (p.name || '').toLowerCase();
-          return s.includes('saas') || n.includes('saas') || n.includes('fullstack');
-        },
-      },
-      {
-        id: 'DEVOPS_TEMPLATE',
-        name: '🌐 Nginx & Docker Starter',
+        id: 'SHIRT',
+        name: 'Áo (Hoodie, Thun, Polo)',
         match: (p) => {
           const s = (p.slug || '').toLowerCase();
           const n = (p.name || '').toLowerCase();
           return (
-            s.includes('nginx') ||
-            s.includes('docker') ||
-            n.includes('nginx') ||
-            n.includes('docker')
+            s.includes('ao-') || n.includes('áo') || n.includes('hoodie') || n.includes('thun')
           );
         },
       },
       {
-        id: 'MICROSERVICES',
-        name: '⚡ Microservices & Backend',
-        match: (p) => {
-          const s = (p.slug || '').toLowerCase();
-          const n = (p.name || '').toLowerCase();
-          return s.includes('microservices') || n.includes('microservices') || n.includes('nestjs');
-        },
-      },
-    ],
-  },
-  {
-    id: 'ACCOUNT',
-    name: '🔑 Tài khoản bản quyền',
-    match: (p) => {
-      const cat = p.category?.slug || '';
-      const catId = p.categoryId || '';
-      return p.type === 'ACCOUNT' || cat === 'tai-khoan' || catId === 'cat_account';
-    },
-    subcategories: [
-      {
-        id: 'AI_CHAT',
-        name: '🤖 ChatGPT Plus & AI',
-        match: (p) => {
-          const s = (p.slug || '').toLowerCase();
-          const n = (p.name || '').toLowerCase();
-          return s.includes('chatgpt') || s.includes('openai') || n.includes('chatgpt');
-        },
-      },
-      {
-        id: 'DEV_AI',
-        name: '💻 Cursor Pro & Copilot',
+        id: 'PANTS',
+        name: 'Quần (Jogger, Short, Kaki)',
         match: (p) => {
           const s = (p.slug || '').toLowerCase();
           const n = (p.name || '').toLowerCase();
           return (
-            s.includes('cursor') ||
-            s.includes('copilot') ||
-            n.includes('cursor') ||
-            n.includes('copilot')
+            s.includes('quan-') || n.includes('quần') || n.includes('jogger') || n.includes('short')
+          );
+        },
+      },
+      {
+        id: 'HAT',
+        name: 'Mũ & Nón',
+        match: (p) => {
+          const s = (p.slug || '').toLowerCase();
+          const n = (p.name || '').toLowerCase();
+          return (
+            s.includes('mu-') || n.includes('mũ') || n.includes('nón') || p.categoryId === 'cat_hat'
           );
         },
       },
@@ -281,14 +316,21 @@ export function ShopProductList({ products, initialCategorySlug = 'all' }: ShopP
   // Khởi tạo theo initialCategorySlug nếu có
   useEffect(() => {
     if (initialCategorySlug && initialCategorySlug !== 'all') {
-      const found = SHOP_TIERS.find(
-        (t) =>
-          t.id.toLowerCase() === initialCategorySlug.toLowerCase() ||
-          t.name.toLowerCase().includes(initialCategorySlug.toLowerCase()),
-      );
-      if (found) {
-        setSelectedMainTier(found.id);
-        setSelectedSubTier('ALL');
+      const slugLower = initialCategorySlug.toLowerCase();
+      for (const tier of SHOP_TIERS) {
+        if (tier.id.toLowerCase() === slugLower || tier.name.toLowerCase().includes(slugLower)) {
+          setSelectedMainTier(tier.id);
+          setSelectedSubTier('ALL');
+          return;
+        }
+        const sub = tier.subcategories.find(
+          (s) => s.id.toLowerCase() === slugLower || s.name.toLowerCase().includes(slugLower),
+        );
+        if (sub) {
+          setSelectedMainTier(tier.id);
+          setSelectedSubTier(sub.id);
+          return;
+        }
       }
     }
   }, [initialCategorySlug]);
@@ -450,7 +492,7 @@ export function ShopProductList({ products, initialCategorySlug = 'all' }: ShopP
               aria-label="Tầng 1: Chọn loại hàng chính"
               className="border-input bg-background text-foreground focus:ring-primary/40 h-10 w-full cursor-pointer rounded-md border px-3 text-xs font-medium outline-none focus:ring-2"
             >
-              <option value="ALL">📦 Tất cả loại hàng</option>
+              <option value="ALL">Tất cả loại hàng</option>
               {SHOP_TIERS.map((tier) => (
                 <option key={tier.id} value={tier.id}>
                   {tier.name}
@@ -475,8 +517,8 @@ export function ShopProductList({ products, initialCategorySlug = 'all' }: ShopP
             >
               <option value="ALL">
                 {selectedMainTier === 'ALL'
-                  ? '📁 Chọn loại hàng trước'
-                  : `📂 Tất cả ${activeMainGroup?.name.split(' ')[1] || 'chi tiết'}`}
+                  ? 'Chọn loại hàng trước'
+                  : `Tất cả ${activeMainGroup?.name || 'chi tiết'}`}
               </option>
               {availableSubcategories.map((sub) => (
                 <option key={sub.id} value={sub.id}>
@@ -495,8 +537,8 @@ export function ShopProductList({ products, initialCategorySlug = 'all' }: ShopP
               aria-label="Khoảng giá"
               className="border-input bg-background text-foreground focus:ring-primary/40 h-10 w-full cursor-pointer rounded-md border px-3 text-xs font-medium outline-none focus:ring-2"
             >
-              <option value="ALL">💰 Mọi mức giá</option>
-              <option value="FREE">🎉 Miễn phí</option>
+              <option value="ALL">Mọi mức giá</option>
+              <option value="FREE">Miễn phí</option>
               <option value="UNDER_200">Dưới 200.000 đ</option>
               <option value="200_500">200.000 đ - 500.000 đ</option>
               <option value="500_1000">500.000 đ - 1.000.000 đ</option>
@@ -513,10 +555,10 @@ export function ShopProductList({ products, initialCategorySlug = 'all' }: ShopP
               aria-label="Sắp xếp sản phẩm"
               className="border-input bg-background text-foreground focus:ring-primary/40 h-10 w-full cursor-pointer rounded-md border px-3 text-xs font-medium outline-none focus:ring-2"
             >
-              <option value="newest">🕒 Mới nhất</option>
-              <option value="price_asc">⬆️ Giá: Thấp đến cao</option>
-              <option value="price_desc">⬇️ Giá: Cao đến thấp</option>
-              <option value="discount">🔥 Giảm giá nhiều nhất</option>
+              <option value="newest">Mới nhất</option>
+              <option value="price_asc">Giá: Thấp đến cao</option>
+              <option value="price_desc">Giá: Cao đến thấp</option>
+              <option value="discount">Giảm giá nhiều nhất</option>
             </select>
           </div>
         </div>

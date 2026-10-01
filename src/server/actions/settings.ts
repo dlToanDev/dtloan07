@@ -2,8 +2,7 @@
 
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { isPro } from '@/lib/membership';
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, revalidateTag, unstable_cache } from 'next/cache';
 import { randomUUID } from 'node:crypto';
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -20,21 +19,13 @@ async function requireAdmin(): Promise<void> {
   }
 }
 
-async function checkIsUserPro(): Promise<boolean> {
-  try {
-    const session = await auth();
-    if (!session?.user?.id) return false;
-    const user = await db.user.findUnique({
-      where: { id: session.user.id },
-      select: { role: true, proUntil: true },
-    });
-    if (!user) return false;
-    if (user.role === 'ADMIN') return true;
-    return isPro(user);
-  } catch {
-    return false;
-  }
-}
+import { getCurrentUserData } from '@/lib/current-user';
+
+/** Tự động deduplicate kiểm tra quyền PRO trong cùng một request (tránh query DB nhiều lần) */
+const checkIsUserPro = async (): Promise<boolean> => {
+  const userData = await getCurrentUserData();
+  return userData?.isPro ?? false;
+};
 
 // -----------------------------------------------------------------------------
 // 1. CẤU HÌNH QUẢNG CÁO ĐĂNG NHẬP (LOGIN AD POPUP)
@@ -97,23 +88,31 @@ export async function getLoginAdConfig(): Promise<LoginAdConfig> {
   }
 }
 
+const getPublicLoginAdConfigCached = unstable_cache(
+  async (): Promise<LoginAdConfig | null> => {
+    try {
+      const row = await db.systemSetting.findUnique({
+        where: { key: SETTING_KEY_LOGIN_AD },
+      });
+      if (!row?.value) return null;
+      const parsed = JSON.parse(row.value) as LoginAdConfig;
+      if (!parsed.enabled || !parsed.imageUrl) return null;
+      return {
+        ...DEFAULT_LOGIN_AD_CONFIG,
+        ...parsed,
+        updatedAt: row.updatedAt.toISOString(),
+      };
+    } catch {
+      return null;
+    }
+  },
+  ['public-login-ad-config'],
+  { revalidate: 300, tags: ['settings', 'login-ad'] },
+);
+
 /** Lấy cấu hình quảng cáo công khai cho client popup (Không cần đăng nhập admin) */
 export async function getPublicLoginAdConfig(): Promise<LoginAdConfig | null> {
-  try {
-    const row = await db.systemSetting.findUnique({
-      where: { key: SETTING_KEY_LOGIN_AD },
-    });
-    if (!row?.value) return null;
-    const parsed = JSON.parse(row.value) as LoginAdConfig;
-    if (!parsed.enabled || !parsed.imageUrl) return null;
-    return {
-      ...DEFAULT_LOGIN_AD_CONFIG,
-      ...parsed,
-      updatedAt: row.updatedAt.toISOString(),
-    };
-  } catch {
-    return null;
-  }
+  return getPublicLoginAdConfigCached();
 }
 
 /** Lưu cấu hình quảng cáo popup */
@@ -145,6 +144,8 @@ export async function saveLoginAdConfig(
       create: { key: SETTING_KEY_LOGIN_AD, value: payload },
     });
 
+    revalidateTag('settings');
+    revalidateTag('login-ad');
     revalidatePath('/', 'layout');
     revalidatePath('/admin/settings');
 
@@ -261,26 +262,24 @@ export async function getAnnouncements(): Promise<AnnouncementItem[]> {
   }
 }
 
-/** Lấy thông báo banner đang kích hoạt gần nhất để hiển thị thanh top banner */
-export async function getActiveBannerAnnouncement(): Promise<AnnouncementItem | null> {
-  try {
-    const isUserPro = await checkIsUserPro();
+const getProBannerAnnouncementCached = unstable_cache(
+  async (): Promise<AnnouncementItem | null> => {
+    return db.systemAnnouncement.findFirst({
+      where: {
+        isActive: true,
+        showBanner: true,
+        proOnly: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  },
+  ['pro-banner-announcement'],
+  { revalidate: 120, tags: ['announcements'] },
+);
 
-    // Nếu là thành viên PRO, ưu tiên hiển thị banner đặc quyền dành riêng cho PRO trước
-    if (isUserPro) {
-      const proBanner = await db.systemAnnouncement.findFirst({
-        where: {
-          isActive: true,
-          showBanner: true,
-          proOnly: true,
-        },
-        orderBy: { createdAt: 'desc' },
-      });
-      if (proBanner) return proBanner;
-    }
-
-    // Hiển thị banner chung công khai (chưa/không phải Pro hoặc không có banner Pro riêng)
-    const item = await db.systemAnnouncement.findFirst({
+const getPublicBannerAnnouncementCached = unstable_cache(
+  async (): Promise<AnnouncementItem | null> => {
+    return db.systemAnnouncement.findFirst({
       where: {
         isActive: true,
         showBanner: true,
@@ -288,11 +287,57 @@ export async function getActiveBannerAnnouncement(): Promise<AnnouncementItem | 
       },
       orderBy: { createdAt: 'desc' },
     });
-    return item;
+  },
+  ['public-banner-announcement'],
+  { revalidate: 120, tags: ['announcements'] },
+);
+
+/** Lấy thông báo banner đang kích hoạt gần nhất để hiển thị thanh top banner */
+export async function getActiveBannerAnnouncement(): Promise<AnnouncementItem | null> {
+  try {
+    const isUserPro = await checkIsUserPro();
+
+    // Nếu là thành viên PRO, ưu tiên hiển thị banner đặc quyền dành riêng cho PRO trước
+    if (isUserPro) {
+      const proBanner = await getProBannerAnnouncementCached();
+      if (proBanner) return proBanner;
+    }
+
+    // Hiển thị banner chung công khai (chưa/không phải Pro hoặc không có banner Pro riêng)
+    return await getPublicBannerAnnouncementCached();
   } catch {
     return null;
   }
 }
+
+const getProActiveAnnouncementsCached = unstable_cache(
+  async (): Promise<AnnouncementItem[]> => {
+    return db.systemAnnouncement.findMany({
+      where: {
+        isActive: true,
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 20,
+    });
+  },
+  ['pro-active-announcements'],
+  { revalidate: 120, tags: ['announcements'] },
+);
+
+const getPublicActiveAnnouncementsCached = unstable_cache(
+  async (): Promise<AnnouncementItem[]> => {
+    return db.systemAnnouncement.findMany({
+      where: {
+        isActive: true,
+        proOnly: false,
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 20,
+    });
+  },
+  ['public-active-announcements'],
+  { revalidate: 120, tags: ['announcements'] },
+);
 
 /** Lấy danh sách các thông báo hệ thống đang kích hoạt để hiển thị trong chuông thông báo (Notification Bell) */
 export async function getPublicActiveAnnouncements(): Promise<AnnouncementItem[]> {
@@ -301,15 +346,10 @@ export async function getPublicActiveAnnouncements(): Promise<AnnouncementItem[]
 
     // Tài khoản PRO và ADMIN xem được cả thông báo chung lẫn thông báo dành riêng cho PRO
     // Khách vãng lai và tài khoản thường CHỈ xem được thông báo proOnly = false
-    const list = await db.systemAnnouncement.findMany({
-      where: {
-        isActive: true,
-        ...(isUserPro ? {} : { proOnly: false }),
-      },
-      orderBy: { createdAt: 'desc' },
-      take: 20,
-    });
-    return list;
+    if (isUserPro) {
+      return await getProActiveAnnouncementsCached();
+    }
+    return await getPublicActiveAnnouncementsCached();
   } catch (err) {
     console.error('Lỗi lấy thông báo chuông:', err);
     return [];
@@ -385,6 +425,7 @@ export async function createAnnouncement(
       }
     }
 
+    revalidateTag('announcements');
     revalidatePath('/', 'layout');
     revalidatePath('/admin/settings');
 
@@ -452,6 +493,7 @@ export async function updateAnnouncement(
       },
     });
 
+    revalidateTag('announcements');
     revalidatePath('/', 'layout');
     revalidatePath('/admin/settings');
 
@@ -485,6 +527,7 @@ export async function toggleAnnouncementState(
       data: { [field]: nextVal },
     });
 
+    revalidateTag('announcements');
     revalidatePath('/', 'layout');
     revalidatePath('/admin/settings');
 
@@ -540,6 +583,7 @@ export async function deleteAnnouncement(
 
   try {
     await db.systemAnnouncement.delete({ where: { id } });
+    revalidateTag('announcements');
     revalidatePath('/', 'layout');
     revalidatePath('/admin/settings');
     return { success: true };
@@ -600,29 +644,37 @@ export async function getHeroBannerConfig(): Promise<HeroBannerConfig> {
   }
 }
 
-/** Lấy cấu hình banner quảng cáo công khai cho trang chủ (Client / Server Component) */
-export async function getPublicHeroBannerConfig(): Promise<HeroBannerConfig> {
-  try {
-    const row = await db.systemSetting.findUnique({
-      where: { key: SETTING_KEY_HERO_BANNER },
-    });
-    if (!row?.value) {
+const getPublicHeroBannerConfigCached = unstable_cache(
+  async (): Promise<HeroBannerConfig> => {
+    try {
+      const row = await db.systemSetting.findUnique({
+        where: { key: SETTING_KEY_HERO_BANNER },
+      });
+      if (!row?.value) {
+        return DEFAULT_HERO_BANNER_CONFIG;
+      }
+      const parsed = JSON.parse(row.value) as Partial<HeroBannerConfig>;
+      return {
+        ...DEFAULT_HERO_BANNER_CONFIG,
+        ...parsed,
+        banners:
+          parsed.banners && parsed.banners.length > 0
+            ? parsed.banners
+            : DEFAULT_HERO_BANNER_CONFIG.banners,
+        updatedAt: row.updatedAt.toISOString(),
+      };
+    } catch (err) {
+      console.error('Lỗi đọc public cấu hình banner quảng cáo:', err);
       return DEFAULT_HERO_BANNER_CONFIG;
     }
-    const parsed = JSON.parse(row.value) as Partial<HeroBannerConfig>;
-    return {
-      ...DEFAULT_HERO_BANNER_CONFIG,
-      ...parsed,
-      banners:
-        parsed.banners && parsed.banners.length > 0
-          ? parsed.banners
-          : DEFAULT_HERO_BANNER_CONFIG.banners,
-      updatedAt: row.updatedAt.toISOString(),
-    };
-  } catch (err) {
-    console.error('Lỗi đọc public cấu hình banner quảng cáo:', err);
-    return DEFAULT_HERO_BANNER_CONFIG;
-  }
+  },
+  ['public-hero-banner-config'],
+  { revalidate: 300, tags: ['settings', 'hero-banner'] },
+);
+
+/** Lấy cấu hình banner quảng cáo công khai cho trang chủ (Client / Server Component) */
+export async function getPublicHeroBannerConfig(): Promise<HeroBannerConfig> {
+  return getPublicHeroBannerConfigCached();
 }
 
 /** Lưu cấu hình banner quảng cáo trang chủ */
@@ -647,6 +699,8 @@ export async function saveHeroBannerConfig(
       create: { key: SETTING_KEY_HERO_BANNER, value },
     });
 
+    revalidateTag('settings');
+    revalidateTag('hero-banner');
     revalidatePath('/');
     revalidatePath('/admin/settings');
 

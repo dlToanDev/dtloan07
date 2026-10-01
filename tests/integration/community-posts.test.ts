@@ -1,12 +1,17 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * Test tích hợp bài cộng đồng trên PostgreSQL thật: Pro đăng bài, admin gỡ + cảnh báo, 3 cảnh báo khóa.
  * Chạy bằng `pnpm test:int` sau `pnpm prisma migrate deploy`.
  */
-import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 
 const session = { current: null as null | { user: { id: string; role: string } } };
 vi.mock('@/lib/auth', () => ({ auth: async () => session.current }));
-vi.mock('next/cache', () => ({ revalidatePath: () => {} }));
+vi.mock('next/cache', () => ({
+  revalidatePath: () => {},
+  revalidateTag: () => {},
+  unstable_cache: (fn: any) => fn,
+}));
 vi.mock('@/lib/mail', () => ({ sendUserWarningEmail: async () => ({ success: true }) }));
 
 const { db } = await import('@/lib/db');

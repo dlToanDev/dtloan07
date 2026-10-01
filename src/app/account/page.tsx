@@ -28,95 +28,95 @@ export default async function AccountPage({
 
   const { tab, order: orderCode, cancelled } = await searchParams;
 
-  // 1. Lấy thông tin user trước
-  const userDb = await db.user.findUnique({
-    where: { id: userId },
-    select: {
-      id: true,
-      email: true,
-      name: true,
-      image: true,
-      role: true,
-      proUntil: true,
-      createdAt: true,
-      password: true,
-      age: true,
-      address: true,
-      education: true,
-      bio: true,
-      balanceVnd: true,
-      balanceUsd: true,
-    },
-  });
+  // Lấy toàn bộ dữ liệu user, đơn hàng, license, bài viết song song cùng lúc (1 lượt truy vấn thay vì chờ tuần tự)
+  const [userDb, warnings, licenses, orders, grants, posts, walletTransactions] = await Promise.all(
+    [
+      db.user.findUnique({
+        where: { id: userId },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          image: true,
+          role: true,
+          proUntil: true,
+          createdAt: true,
+          password: true,
+          age: true,
+          address: true,
+          education: true,
+          bio: true,
+          balanceVnd: true,
+          balanceUsd: true,
+        },
+      }),
+      db.userWarning.findMany({
+        where: { userId },
+        select: { id: true, reason: true, createdAt: true },
+        orderBy: { createdAt: 'desc' },
+        take: 20,
+      }),
+      db.license.findMany({
+        where: {
+          OR: [{ userId }, { email: userEmail }],
+        },
+        include: {
+          product: {
+            select: {
+              name: true,
+              version: true,
+            },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 30,
+      }),
+      db.order.findMany({
+        where: {
+          OR: [{ userId }, { email: userEmail }],
+        },
+        include: {
+          items: true,
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 30,
+      }),
+      db.couponGrant.findMany({
+        where: { userId },
+        include: {
+          coupon: {
+            include: {
+              categories: { select: { name: true } },
+            },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 30,
+      }),
+      db.communityPost.findMany({
+        where: { authorId: userId },
+        select: {
+          id: true,
+          title: true,
+          slug: true,
+          status: true,
+          removedReason: true,
+          createdAt: true,
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 30,
+      }),
+      db.walletTransaction.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'desc' },
+        take: 30,
+      }),
+    ],
+  );
 
   if (!userDb) {
     redirect('/login?callbackUrl=/account');
   }
-
-  // 2. Lấy dữ liệu liên quan song song với giới hạn tải hợp lý
-  const [warnings, licenses, orders, grants, posts, walletTransactions] = await Promise.all([
-    db.userWarning.findMany({
-      where: { userId },
-      select: { id: true, reason: true, createdAt: true },
-      orderBy: { createdAt: 'desc' },
-      take: 20,
-    }),
-    db.license.findMany({
-      where: {
-        OR: [{ userId }, { email: userEmail }],
-      },
-      include: {
-        product: {
-          select: {
-            name: true,
-            version: true,
-          },
-        },
-      },
-      orderBy: { createdAt: 'desc' },
-      take: 30,
-    }),
-    db.order.findMany({
-      where: {
-        OR: [{ userId }, { email: userEmail }],
-      },
-      include: {
-        items: true,
-      },
-      orderBy: { createdAt: 'desc' },
-      take: 30,
-    }),
-    db.couponGrant.findMany({
-      where: { userId },
-      include: {
-        coupon: {
-          include: {
-            categories: { select: { name: true } },
-          },
-        },
-      },
-      orderBy: { createdAt: 'desc' },
-      take: 30,
-    }),
-    db.communityPost.findMany({
-      where: { authorId: userId },
-      select: {
-        id: true,
-        title: true,
-        slug: true,
-        status: true,
-        removedReason: true,
-        createdAt: true,
-      },
-      orderBy: { createdAt: 'desc' },
-      take: 30,
-    }),
-    db.walletTransaction.findMany({
-      where: { userId },
-      orderBy: { createdAt: 'desc' },
-      take: 30,
-    }),
-  ]);
 
   const pro = isPro(userDb);
   const daysLeft = proDaysLeft(userDb.proUntil ?? null);

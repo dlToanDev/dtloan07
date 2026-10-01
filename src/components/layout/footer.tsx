@@ -1,5 +1,6 @@
 import { siteConfig } from '@/config/site';
 import { getAffiliatePath } from '@/lib/affiliate-token';
+import { getServerTranslator } from '@/lib/i18n/server';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Mail, Phone, MapPin, Truck, ShieldCheck, BookOpen, ShoppingBag } from 'lucide-react';
@@ -48,30 +49,44 @@ function TelegramIcon({ className }: { className?: string }) {
   );
 }
 
-const trustFeatures = [
-  {
-    icon: Truck,
-    title: 'Ship nhanh & Bàn giao 24/7',
-    desc: 'Cấp mã bản quyền & tài khoản tự động sau 5s, giao hàng vật lý siêu tốc toàn quốc.',
-  },
-  {
-    icon: ShieldCheck,
-    title: 'Đồ chất lượng & Uy tín',
-    desc: 'Mã nguồn chuẩn Production, tài nguyên số chính hãng, bảo hành rõ ràng.',
-  },
-  {
-    icon: BookOpen,
-    title: 'Chia sẻ kiến thức & Kinh nghiệm',
-    desc: 'Blog thực chiến về Linux, Docker, DevOps, tối ưu máy chủ và lập trình.',
-  },
-  {
-    icon: ShoppingBag,
-    title: 'Shop tài nguyên & Khóa học',
-    desc: 'Kho phần mềm, source code độc quyền và các khóa học chất lượng cao.',
-  },
-];
+export async function Footer() {
+  const { t } = await getServerTranslator();
 
-export function Footer() {
+  const trustFeatures = [
+    {
+      icon: Truck,
+      title: t('footer.trust_delivery_title', 'Ship nhanh & Bàn giao 24/7'),
+      desc: t(
+        'footer.trust_delivery_desc',
+        'Cấp mã bản quyền & tài khoản tự động sau 5s, giao hàng vật lý siêu tốc toàn quốc.',
+      ),
+    },
+    {
+      icon: ShieldCheck,
+      title: t('footer.trust_quality_title', 'Đồ chất lượng & Uy tín'),
+      desc: t(
+        'footer.trust_quality_desc',
+        'Mã nguồn chuẩn Production, tài nguyên số chính hãng, bảo hành rõ ràng.',
+      ),
+    },
+    {
+      icon: BookOpen,
+      title: t('footer.trust_knowledge_title', 'Chia sẻ kiến thức & Kinh nghiệm'),
+      desc: t(
+        'footer.trust_knowledge_desc',
+        'Blog thực chiến về Linux, Docker, DevOps, tối ưu máy chủ và lập trình.',
+      ),
+    },
+    {
+      icon: ShoppingBag,
+      title: t('footer.trust_shop_title', 'Shop tài nguyên & Khóa học'),
+      desc: t(
+        'footer.trust_shop_desc',
+        'Kho phần mềm, source code độc quyền và các khóa học chất lượng cao.',
+      ),
+    },
+  ];
+
   return (
     <footer id="footer" className="border-border bg-muted/20 mt-16 border-t">
       {/* 1. THANH CAM KẾT & TIÊU CHÍ UY TÍN */}
@@ -118,26 +133,32 @@ export function Footer() {
 
             <div className="space-y-2 text-xs leading-relaxed">
               <p className="text-foreground font-semibold">
-                Xin chào, mình là{' '}
+                {t('footer.greeting', 'Xin chào, mình là')}{' '}
                 <span className="text-primary font-bold">{siteConfig.author.name}</span>.
               </p>
               <p className="text-muted-foreground">
-                Hiện đang sinh sống và làm việc tại{' '}
-                <strong className="text-foreground font-semibold">Hà Nội</strong>. Blog là nơi mình
-                chia sẻ kiến thức, kinh nghiệm thực tế về lập trình backend, quản trị server Linux,
-                Docker, DevOps cũng như cung cấp các sản phẩm số, template và khóa học chất lượng
-                cao.
+                {t('footer.bio_intro', 'Hiện đang sinh sống và làm việc tại')}{' '}
+                <strong className="text-foreground font-semibold">
+                  {t('footer.bio_location', 'Hà Nội')}
+                </strong>
+                .{' '}
+                {t(
+                  'footer.bio_desc',
+                  'Blog là nơi mình chia sẻ kiến thức, kinh nghiệm thực tế về lập trình backend, quản trị server Linux, Docker, DevOps cũng như cung cấp các sản phẩm số, template và khóa học chất lượng cao.',
+                )}
               </p>
               <p className="text-muted-foreground">
-                Tất cả các sản phẩm số tại Shop đều được kiểm tra kỹ lưỡng, hỗ trợ kỹ thuật tận tâm
-                và giao dịch bảo mật 100%.
+                {t(
+                  'footer.bio_warranty',
+                  'Tất cả các sản phẩm số tại Shop đều được kiểm tra kỹ lưỡng, hỗ trợ kỹ thuật tận tâm và giao dịch bảo mật 100%.',
+                )}
               </p>
             </div>
 
             {/* Mạng xã hội */}
             <div className="pt-2">
               <span className="text-muted-foreground mb-2.5 block text-xs font-semibold">
-                Kết nối với mình qua mạng xã hội:
+                {t('footer.social_connect', 'Kết nối với mình qua mạng xã hội:')}
               </span>
               <div className="flex flex-wrap items-center gap-2">
                 <a
@@ -192,20 +213,24 @@ export function Footer() {
           {/* Cột 2: Thông tin liên hệ trực tiếp (3 cols) */}
           <div className="space-y-4 lg:col-span-3">
             <h4 className="text-foreground text-xs font-bold tracking-wider uppercase">
-              Thông tin liên hệ
+              {t('footer.contact_info', 'Thông tin liên hệ')}
             </h4>
             <ul className="space-y-3 text-xs">
               <li className="flex items-start gap-2.5">
                 <MapPin className="text-primary mt-0.5 size-4 shrink-0" />
                 <span className="text-muted-foreground">
-                  <strong className="text-foreground font-medium">Địa chỉ: </strong>
+                  <strong className="text-foreground font-medium">
+                    {t('footer.address', 'Địa chỉ')}:{' '}
+                  </strong>
                   {siteConfig.author.address}
                 </span>
               </li>
               <li className="flex items-center gap-2.5">
                 <Phone className="text-primary size-4 shrink-0" />
                 <span className="text-muted-foreground">
-                  <strong className="text-foreground font-medium">Hotline / Zalo: </strong>
+                  <strong className="text-foreground font-medium">
+                    {t('footer.hotline', 'Hotline / Zalo')}:{' '}
+                  </strong>
                   <a
                     href={`tel:${siteConfig.author.phone}`}
                     className="text-foreground hover:text-primary font-bold transition"
@@ -217,7 +242,9 @@ export function Footer() {
               <li className="flex items-center gap-2.5">
                 <Mail className="text-primary size-4 shrink-0" />
                 <span className="text-muted-foreground">
-                  <strong className="text-foreground font-medium">Email: </strong>
+                  <strong className="text-foreground font-medium">
+                    {t('footer.email', 'Email')}:{' '}
+                  </strong>
                   <a
                     href={`mailto:${siteConfig.author.email}`}
                     className="text-foreground hover:text-primary font-medium underline underline-offset-2 transition"
@@ -229,7 +256,9 @@ export function Footer() {
               <li className="flex items-center gap-2.5">
                 <TelegramIcon className="text-primary size-4 shrink-0" />
                 <span className="text-muted-foreground">
-                  <strong className="text-foreground font-medium">Telegram: </strong>
+                  <strong className="text-foreground font-medium">
+                    {t('footer.telegram', 'Telegram')}:{' '}
+                  </strong>
                   <a
                     href={siteConfig.links.telegram}
                     target="_blank"
@@ -245,14 +274,16 @@ export function Footer() {
 
           {/* Cột 3: Khám phá dịch vụ (2 cols) */}
           <div className="space-y-4 lg:col-span-2">
-            <h4 className="text-foreground text-xs font-bold tracking-wider uppercase">Khám phá</h4>
+            <h4 className="text-foreground text-xs font-bold tracking-wider uppercase">
+              {t('footer.explore', 'Khám phá')}
+            </h4>
             <ul className="space-y-2 text-xs">
               <li>
                 <Link
                   href="/blog"
                   className="text-muted-foreground hover:text-foreground transition"
                 >
-                  Bài viết mới nhất
+                  {t('footer.latest_posts', 'Bài viết mới nhất')}
                 </Link>
               </li>
               <li>
@@ -260,7 +291,7 @@ export function Footer() {
                   href="/courses"
                   className="text-muted-foreground hover:text-foreground transition"
                 >
-                  Khóa học lập trình
+                  {t('footer.courses', 'Khóa học lập trình')}
                 </Link>
               </li>
               <li>
@@ -268,7 +299,7 @@ export function Footer() {
                   href={siteConfig.shopPath}
                   className="text-muted-foreground hover:text-foreground transition"
                 >
-                  Shop sản phẩm số
+                  {t('footer.shop', 'Shop sản phẩm số')}
                 </Link>
               </li>
               <li>
@@ -276,7 +307,7 @@ export function Footer() {
                   href={getAffiliatePath()}
                   className="text-muted-foreground hover:text-foreground transition"
                 >
-                  Ưu đãi & Khuyến mãi
+                  {t('footer.deals', 'Ưu đãi & Khuyến mãi')}
                 </Link>
               </li>
               <li>
@@ -284,7 +315,7 @@ export function Footer() {
                   href="/account?tab=wallet"
                   className="text-muted-foreground hover:text-foreground transition"
                 >
-                  Nạp tiền ví tài khoản
+                  {t('footer.deposit_wallet', 'Nạp tiền ví tài khoản')}
                 </Link>
               </li>
               <li>
@@ -292,7 +323,7 @@ export function Footer() {
                   href="/account?tab=pro"
                   className="text-muted-foreground hover:text-foreground transition"
                 >
-                  Đăng ký tài khoản PRO
+                  {t('footer.pro_account', 'Đăng ký tài khoản PRO')}
                 </Link>
               </li>
             </ul>
@@ -301,7 +332,7 @@ export function Footer() {
           {/* Cột 4: Hỗ trợ & Chính sách (2 cols) */}
           <div className="space-y-4 lg:col-span-2">
             <h4 className="text-foreground text-xs font-bold tracking-wider uppercase">
-              Hỗ trợ & Pháp lý
+              {t('footer.support_policy', 'Hỗ trợ & Pháp lý')}
             </h4>
             <ul className="space-y-2 text-xs">
               <li>
@@ -309,7 +340,7 @@ export function Footer() {
                   href="/orders/lookup"
                   className="text-muted-foreground hover:text-foreground transition"
                 >
-                  Tra cứu đơn hàng
+                  {t('footer.order_lookup', 'Tra cứu đơn hàng')}
                 </Link>
               </li>
               <li>
@@ -317,7 +348,7 @@ export function Footer() {
                   href="/terms"
                   className="text-muted-foreground hover:text-foreground transition"
                 >
-                  Điều khoản dịch vụ
+                  {t('footer.terms', 'Điều khoản dịch vụ')}
                 </Link>
               </li>
               <li>
@@ -325,7 +356,7 @@ export function Footer() {
                   href="/privacy"
                   className="text-muted-foreground hover:text-foreground transition"
                 >
-                  Chính sách bảo mật
+                  {t('footer.privacy', 'Chính sách bảo mật')}
                 </Link>
               </li>
               <li>
@@ -333,7 +364,7 @@ export function Footer() {
                   href="/rss.xml"
                   className="text-muted-foreground hover:text-foreground transition"
                 >
-                  Nguồn tin RSS
+                  {t('footer.rss', 'Nguồn tin RSS')}
                 </Link>
               </li>
             </ul>
@@ -346,12 +377,13 @@ export function Footer() {
         <div className="container-page flex flex-col items-center justify-between gap-3 text-center sm:flex-row sm:text-left">
           <p className="text-muted-foreground text-xs">
             © {new Date().getFullYear()}{' '}
-            <strong className="text-foreground">{siteConfig.name}</strong>. Bản quyền thuộc về{' '}
+            <strong className="text-foreground">{siteConfig.name}</strong>.{' '}
+            {t('footer.rights_reserved', 'Bản quyền thuộc về')}{' '}
             <strong className="text-foreground">{siteConfig.author.name}</strong> (
             {siteConfig.author.address}).
           </p>
           <div className="text-muted-foreground flex items-center gap-4 text-xs">
-            <span>Uy tín • Ship nhanh • Chất lượng</span>
+            <span>{t('footer.slogan', 'Uy tín • Ship nhanh • Chất lượng')}</span>
           </div>
         </div>
       </div>

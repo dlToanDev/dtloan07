@@ -13,6 +13,7 @@ export function NavLink({ href, children }: { href: string; children: ReactNode 
   return (
     <Link
       href={href}
+      prefetch={true}
       aria-current={active ? 'page' : undefined}
       className={cn(
         'hover:bg-muted rounded-lg px-3 py-2 text-sm font-medium transition-colors',

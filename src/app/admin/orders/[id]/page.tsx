@@ -11,16 +11,15 @@ import {
   ManualAccountDelivery,
 } from '@/components/admin/order-actions';
 import { provinceName } from '@/config/provinces';
+import {
+  paymentStatusLabel,
+  paymentStatusBadgeVariant,
+  ORDER_FULFILLMENT_STATUS_LABELS,
+} from '@/lib/shop/labels';
 
 export const dynamic = 'force-dynamic';
 
-const FULFILLMENT_LABEL: Record<string, string> = {
-  PENDING: 'Chờ xác nhận',
-  CONFIRMED: 'Đã xác nhận',
-  SHIPPING: 'Đang giao',
-  DELIVERED: 'Đã giao',
-  CANCELLED: 'Đã hủy',
-};
+const FULFILLMENT_LABEL = ORDER_FULFILLMENT_STATUS_LABELS;
 
 const money = (value: number) => `${value.toLocaleString('vi-VN')} đ`;
 
@@ -52,7 +51,9 @@ export default async function AdminOrderDetailPage({
         </Link>
         <div className="flex flex-wrap items-center gap-3">
           <h1 className="font-mono text-2xl font-bold">{order.orderCode}</h1>
-          <Badge variant={order.status === 'PAID' ? 'default' : 'outline'}>{order.status}</Badge>
+          <Badge variant={paymentStatusBadgeVariant(order.status)}>
+            {paymentStatusLabel(order.status)}
+          </Badge>
           {order.fulfillmentStatus && (
             <Badge variant="secondary">{FULFILLMENT_LABEL[order.fulfillmentStatus]}</Badge>
           )}

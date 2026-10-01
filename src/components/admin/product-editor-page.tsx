@@ -92,6 +92,8 @@ export async function ProductEditorPage({
                   warrantyNote: product.warrantyNote,
                   deliveryMode: product.deliveryMode,
                   gallery: product.gallery,
+                  showOnTelegram: product.showOnTelegram,
+                  isFeatured: product.isFeatured,
                   hasOrders: product._count.orderItems > 0,
                   variants: product.variants.map((variant) => ({
                     id: variant.id,

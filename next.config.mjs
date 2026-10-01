@@ -2,8 +2,10 @@
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  compress: true,
   serverExternalPackages: ['resend', '@prisma/client', 'prisma'],
   experimental: {
+    optimizePackageImports: ['lucide-react', 'date-fns', 'fuse.js', '@tiptap/core'],
     serverActions: {
       // Chừa phần overhead multipart; action upload ảnh vẫn tự giới hạn file ở 8 MB.
       bodySizeLimit: '10mb',

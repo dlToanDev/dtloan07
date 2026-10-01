@@ -5,6 +5,12 @@ import { Badge } from '@/components/ui/badge';
 import { buttonStyles } from '@/components/ui/button';
 import Link from 'next/link';
 import type { Prisma } from '@prisma/client';
+import {
+  ORDER_PAYMENT_STATUS_LABELS,
+  paymentStatusLabel,
+  paymentStatusBadgeVariant,
+  ORDER_FULFILLMENT_STATUS_LABELS,
+} from '@/lib/shop/labels';
 
 interface AdminOrdersPageProps {
   searchParams: Promise<{
@@ -25,13 +31,7 @@ const FULFILLMENT_STATUSES = [
   'CANCELLED',
 ] as const;
 const ORDER_SOURCES = ['WEB', 'TELEGRAM'] as const;
-const FULFILLMENT_LABEL: Record<string, string> = {
-  PENDING: 'Chờ xác nhận',
-  CONFIRMED: 'Đã xác nhận',
-  SHIPPING: 'Đang giao',
-  DELIVERED: 'Đã giao',
-  CANCELLED: 'Đã hủy',
-};
+const FULFILLMENT_LABEL = ORDER_FULFILLMENT_STATUS_LABELS;
 
 export default async function AdminOrdersPage({ searchParams }: AdminOrdersPageProps) {
   const { status, fulfillment, source } = await searchParams;
@@ -123,7 +123,7 @@ export default async function AdminOrdersPage({ searchParams }: AdminOrdersPageP
                   className: 'text-xs',
                 })}
               >
-                {value}
+                {ORDER_PAYMENT_STATUS_LABELS[value] || value}
               </Link>
             ))}
           </div>
@@ -196,8 +196,8 @@ export default async function AdminOrdersPage({ searchParams }: AdminOrdersPageP
           <CardDescription>
             {validStatus || validFulfillment || validSource
               ? `Đang lọc: ${[
-                  validStatus,
-                  validFulfillment && FULFILLMENT_LABEL[validFulfillment],
+                  validStatus && paymentStatusLabel(validStatus),
+                  validFulfillment && (FULFILLMENT_LABEL[validFulfillment] || validFulfillment),
                   validSource === 'TELEGRAM'
                     ? '📱 Telegram Bot'
                     : validSource === 'WEB'
@@ -274,11 +274,8 @@ export default async function AdminOrdersPage({ searchParams }: AdminOrdersPageP
                         {o.totalVnd.toLocaleString('vi-VN')} đ
                       </td>
                       <td className="px-2 py-3 text-center">
-                        <Badge
-                          variant={o.status === 'PAID' ? 'default' : 'outline'}
-                          className="text-xs"
-                        >
-                          {o.status}
+                        <Badge variant={paymentStatusBadgeVariant(o.status)} className="text-xs">
+                          {paymentStatusLabel(o.status)}
                         </Badge>
                       </td>
                       <td className="px-2 py-3 text-center">

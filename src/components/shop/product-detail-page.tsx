@@ -304,18 +304,43 @@ export async function ProductDetailPage({ params }: Props) {
 
                   {/* Cam kết giao nhận & kiểm hàng */}
                   <div className="border-border text-muted-foreground space-y-2 border-t pt-4 text-xs">
-                    <div className="flex items-center gap-2">
-                      <Truck className="h-4 w-4 shrink-0 text-emerald-500" />
-                      <span>Phí ship tính theo tỉnh khi thanh toán</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500" />
-                      <span>Được kiểm tra hàng trước khi nhận</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <RotateCcw className="h-4 w-4 shrink-0 text-indigo-500" />
-                      <span>Hỗ trợ đổi size miễn phí trong 7 ngày</span>
-                    </div>
+                    {product.type === 'ACCOUNT' ? (
+                      <>
+                        <div className="flex items-center gap-2">
+                          <ShieldCheck className="h-4 w-4 shrink-0 text-emerald-500" />
+                          <span>
+                            {product.deliveryMode === 'MANUAL'
+                              ? 'Bàn giao thủ công: Người bán chủ động liên hệ gửi tài khoản'
+                              : 'Cấp tài khoản tự động ngay sau khi thanh toán'}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500" />
+                          <span>Hỗ trợ cấu hình OS & kiểm tra kết nối SSH ban đầu</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <RotateCcw className="h-4 w-4 shrink-0 text-indigo-500" />
+                          <span>
+                            {product.warrantyNote || 'Bảo hành đầy đủ trong suốt thời gian sử dụng'}
+                          </span>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="flex items-center gap-2">
+                          <Truck className="h-4 w-4 shrink-0 text-emerald-500" />
+                          <span>Phí ship tính theo tỉnh khi thanh toán</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500" />
+                          <span>Được kiểm tra hàng trước khi nhận</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <RotateCcw className="h-4 w-4 shrink-0 text-indigo-500" />
+                          <span>Hỗ trợ đổi size miễn phí trong 7 ngày</span>
+                        </div>
+                      </>
+                    )}
                   </div>
                 </>
               ) : (

@@ -12,7 +12,7 @@ import { readFile, readdir, stat } from 'node:fs/promises';
 import path from 'node:path';
 import readingTime from 'reading-time';
 import { cache } from 'react';
-import { loadCommunityPosts } from '@/lib/community/posts';
+import { loadCommunityPosts, loadCommunityPostMetas } from '@/lib/community/posts';
 import { siteConfig } from '@/config/site';
 
 const POSTS_DIR = path.join(process.cwd(), 'content', 'posts');
@@ -136,12 +136,21 @@ export const getPostBySlug = cache(async (slug: string): Promise<Post | null> =>
 });
 
 export async function getPostMetas(): Promise<PostMeta[]> {
-  const posts = await getAllPosts();
-  return posts.map((post) => {
+  const diskPosts = await getAllPostsFromDisk();
+  const posts = diskPosts.filter((post) => !post.draft || process.env.NODE_ENV === 'development');
+  const communityMetas = await loadCommunityPostMetas().catch((error) => {
+    console.warn('Cảnh báo: không tải được metadata bài cộng đồng:', error);
+    return [];
+  });
+  const mdxSlugs = new Set(posts.map((post) => post.slug));
+  const mdxMetas: PostMeta[] = posts.map((post) => {
     const { content, ...meta } = post;
     void content;
     return meta;
   });
+  return [...mdxMetas, ...communityMetas.filter((post) => !mdxSlugs.has(post.slug))].sort((a, b) =>
+    b.publishedAt.localeCompare(a.publishedAt),
+  );
 }
 
 /** Trang admin phải thấy cả draft; các trang public vẫn dùng `getPostMetas()`. */

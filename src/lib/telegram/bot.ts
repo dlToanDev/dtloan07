@@ -3,6 +3,7 @@ import { getTelegramConfig, escapeHtml } from './config';
 import {
   mainMenuKeyboard,
   categoryKeyboard,
+  accountSubCategoryKeyboard,
   backToMenuKeyboard,
   persistentReplyKeyboard,
 } from './keyboards';
@@ -267,6 +268,18 @@ bot.on('callback_query:data', async (ctx) => {
       await safeEditOrReply(ctx, '📂 <b>Chọn danh mục sản phẩm:</b>', {
         parse_mode: 'HTML',
         reply_markup: categoryKeyboard(),
+      });
+      await ctx.answerCallbackQuery().catch(() => {});
+      return;
+    }
+
+    if (data === 'cat:ACCOUNT') {
+      const text =
+        `🔐 <b>DANH MỤC TÀI KHOẢN BẢN QUYỀN & MÁY CHỦ</b>\n\n` +
+        `Vui lòng chọn loại dịch vụ / máy chủ bạn muốn xem:`;
+      await safeEditOrReply(ctx, text, {
+        parse_mode: 'HTML',
+        reply_markup: accountSubCategoryKeyboard(),
       });
       await ctx.answerCallbackQuery().catch(() => {});
       return;

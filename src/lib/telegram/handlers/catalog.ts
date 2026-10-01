@@ -17,30 +17,15 @@ export async function showCatalog(ctx: Context, category: string) {
   try {
     const catUpper = category.toUpperCase();
 
-    // Nếu chọn mục lớn "Tài khoản bản quyền" -> hiển thị menu phân loại con (Cloud VPS, Cloud VDS, v.v.)
+    // Nếu chọn mục lớn "Tài khoản bản quyền" -> hiển thị menu phân loại con (Cloud VPS, Cloud VDS)
     if (catUpper === 'ACCOUNT') {
-      const otherCount = await db.product.count({
-        where: {
-          type: 'ACCOUNT',
-          status: 'ACTIVE',
-          showOnTelegram: true,
-          NOT: [
-            { category: { slug: { in: ['vps', 'vds'] } } },
-            { slug: { startsWith: 'cloud-vp' } },
-            { slug: { startsWith: 'cloud-vd' } },
-            { name: { contains: 'VPS', mode: 'insensitive' } },
-            { name: { contains: 'VDS', mode: 'insensitive' } },
-          ],
-        },
-      });
-
       const text =
         `🔐 <b>DANH MỤC TÀI KHOẢN BẢN QUYỀN & MÁY CHỦ</b>\n\n` +
         `Vui lòng chọn loại dịch vụ / máy chủ bạn muốn xem:`;
 
       await safeEditOrReply(ctx, text, {
         parse_mode: 'HTML',
-        reply_markup: accountSubCategoryKeyboard(otherCount > 0),
+        reply_markup: accountSubCategoryKeyboard(),
       });
       return;
     }
@@ -58,13 +43,9 @@ export async function showCatalog(ctx: Context, category: string) {
         OR: [
           { category: { slug: 'vps' } },
           { slug: { startsWith: 'cloud-vps' } },
-          { name: { contains: 'VPS', mode: 'insensitive' } },
+          { name: { contains: 'VPS' } },
         ],
-        NOT: [
-          { category: { slug: 'vds' } },
-          { slug: { startsWith: 'cloud-vds' } },
-          { name: { contains: 'VDS', mode: 'insensitive' } },
-        ],
+        NOT: [{ category: { slug: 'vds' } }, { slug: { startsWith: 'cloud-vds' } }],
       };
     } else if (catUpper === 'VDS') {
       categoryTitle = '🖥️ <b>Danh Mục Máy Chủ Dedicated Cloud VDS</b>';
@@ -75,13 +56,9 @@ export async function showCatalog(ctx: Context, category: string) {
         OR: [
           { category: { slug: 'vds' } },
           { slug: { startsWith: 'cloud-vds' } },
-          { name: { contains: 'VDS', mode: 'insensitive' } },
+          { name: { contains: 'VDS' } },
         ],
-        NOT: [
-          { category: { slug: 'vps' } },
-          { slug: { startsWith: 'cloud-vps' } },
-          { name: { contains: 'VPS', mode: 'insensitive' } },
-        ],
+        NOT: [{ category: { slug: 'vps' } }, { slug: { startsWith: 'cloud-vps' } }],
       };
     } else if (catUpper === 'DOWNLOAD') {
       categoryTitle = '📁 <b>File Code & Dự Án Mẫu</b>';
@@ -102,8 +79,6 @@ export async function showCatalog(ctx: Context, category: string) {
           { category: { slug: { in: ['vps', 'vds'] } } },
           { slug: { startsWith: 'cloud-vp' } },
           { slug: { startsWith: 'cloud-vd' } },
-          { name: { contains: 'VPS', mode: 'insensitive' } },
-          { name: { contains: 'VDS', mode: 'insensitive' } },
         ],
       };
     }

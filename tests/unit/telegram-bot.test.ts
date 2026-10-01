@@ -80,7 +80,7 @@ describe('Telegram Sales Bot (Accounts & Source Code) Unit Tests', () => {
     });
 
     it('accountSubCategoryKeyboard cho phép chọn Cloud VPS và Cloud VDS bên trong mục Tài khoản bản quyền', () => {
-      const kb = accountSubCategoryKeyboard(false);
+      const kb = accountSubCategoryKeyboard();
       const buttons = kb.inline_keyboard.flat();
       const callbackDatas = buttons.map((b: any) => b.callback_data);
 

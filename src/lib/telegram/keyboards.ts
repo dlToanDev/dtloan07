@@ -66,18 +66,13 @@ export function categoryKeyboard(): InlineKeyboard {
 /**
  * Menu chọn phân loại trong Tài khoản bản quyền (Cloud VPS, Cloud VDS, v.v.)
  */
-export function accountSubCategoryKeyboard(hasOtherAccounts: boolean = false): InlineKeyboard {
-  const keyboard = new InlineKeyboard()
+export function accountSubCategoryKeyboard(): InlineKeyboard {
+  return new InlineKeyboard()
     .text('☁️ Cloud VPS', 'cat:VPS')
-    .text('🖥️ Cloud VDS', 'cat:VDS');
-
-  if (hasOtherAccounts) {
-    keyboard.row().text('🔑 Tài khoản & Dịch vụ khác', 'cat:OTHER_ACCOUNT');
-  }
-
-  keyboard.row().text('🔙 Quay lại danh mục', 'nav:categories').text('🏠 Menu chính', 'nav:menu');
-
-  return keyboard;
+    .text('🖥️ Cloud VDS', 'cat:VDS')
+    .row()
+    .text('🔙 Quay lại danh mục', 'nav:categories')
+    .text('🏠 Menu chính', 'nav:menu');
 }
 
 /**

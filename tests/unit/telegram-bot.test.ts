@@ -17,6 +17,7 @@ import {
   handleCancelOrder,
   handleCheckOrder,
 } from '@/lib/telegram/handlers/order';
+import { searchProductsOrOrders } from '@/lib/telegram/handlers/search';
 import { sendTelegramOrderDelivery } from '@/lib/telegram/delivery';
 import { db } from '@/lib/db';
 import { bot } from '@/lib/telegram/bot';
@@ -475,6 +476,59 @@ describe('Telegram Sales Bot (Accounts & Source Code) Unit Tests', () => {
         '987654321',
         expect.stringContaining('LIC-ABC-XYZ-2026'),
         expect.anything(),
+      );
+    });
+  });
+
+  describe('6. Tìm kiếm sản phẩm & An toàn truy vấn (Search Handler)', () => {
+    it('lọc bỏ emoji khi tìm kiếm và nhắc nhở nếu từ khóa rỗng hoặc chỉ có icon', async () => {
+      const replyMock = vi.fn();
+      const mockCtx: any = { reply: replyMock };
+
+      await searchProductsOrOrders(mockCtx, '📦');
+      expect(replyMock).toHaveBeenCalledWith(
+        expect.stringContaining('Vui lòng nhập từ khóa tìm kiếm'),
+        expect.anything(),
+      );
+    });
+
+    it('loại bỏ icon/emoji trước khi truy vấn PostgreSQL để tránh lỗi collation', async () => {
+      const replyMock = vi.fn();
+      const mockCtx: any = { reply: replyMock };
+
+      const findManySpy = vi.spyOn(db.product, 'findMany').mockResolvedValue([]);
+
+      await searchProductsOrOrders(mockCtx, '📦 VPS 16GB');
+
+      expect(findManySpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            OR: [
+              { name: { contains: 'VPS 16GB', mode: 'insensitive' } },
+              { description: { contains: 'VPS 16GB', mode: 'insensitive' } },
+            ],
+          }),
+        }),
+      );
+      expect(replyMock).toHaveBeenCalledWith(
+        expect.stringContaining('Không tìm thấy sản phẩm nào khớp với từ khóa'),
+        expect.anything(),
+      );
+    });
+
+    it('trả về menu danh mục fallback an toàn nếu truy vấn database phát sinh lỗi', async () => {
+      const replyMock = vi.fn();
+      const mockCtx: any = { reply: replyMock };
+
+      vi.spyOn(db.product, 'findMany').mockRejectedValue(new Error('DB Connection Timeout'));
+
+      await searchProductsOrOrders(mockCtx, 'ChatGPT');
+
+      expect(replyMock).toHaveBeenCalledWith(
+        expect.stringContaining('Không thể tìm kiếm lúc này'),
+        expect.objectContaining({
+          reply_markup: expect.anything(),
+        }),
       );
     });
   });

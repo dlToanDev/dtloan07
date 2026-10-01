@@ -1,6 +1,11 @@
 import { db } from '@/lib/db';
 import { escapeHtml } from '../config';
-import { formatVnd, productsListKeyboard, backToMenuKeyboard } from '../keyboards';
+import {
+  formatVnd,
+  productsListKeyboard,
+  backToMenuKeyboard,
+  categoryKeyboard,
+} from '../keyboards';
 import { safeEditOrReply } from '../helpers';
 import { handleCheckOrder } from './order';
 import type { Context } from 'grammy';
@@ -13,7 +18,7 @@ export async function handleSearchPrompt(ctx: Context) {
     `🔍 <b>TÌM KIẾM SẢN PHẨM & ĐƠN HÀNG</b>\n\n` +
     `Bạn có thể tìm kiếm nhanh bằng cách gõ vào ô chat:\n\n` +
     `1️⃣ <b>Tìm sản phẩm:</b> Gõ tên sản phẩm bạn quan tâm.\n` +
-    `   <i>(Ví dụ: <code>chatgpt</code>, <code>copilot</code>, <code>nextjs</code>, <code>source code</code>...)</i>\n\n` +
+    `   <i>(Ví dụ: <code>VPS</code>, <code>VDS</code>, <code>NextJS</code>, <code>Source code</code>...)</i>\n\n` +
     `2️⃣ <b>Tra cứu đơn hàng:</b> Gõ mã đơn hàng dạng <code>DH-xxxxx</code> để xem trạng thái và lấy lại tài khoản / link tải code.\n\n` +
     `👉 Hãy gửi từ khóa bạn muốn tìm vào đây:`;
 
@@ -33,14 +38,27 @@ export async function searchProductsOrOrders(ctx: Context, query: string) {
     return;
   }
 
+  // Lọc ký tự emoji để tránh lỗi PostgreSQL collation với ILIKE
+  const textQuery = cleanQuery
+    .replace(/[^\p{L}\p{N}\s_.-]/gu, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!textQuery || textQuery.length < 2) {
+    await ctx.reply(
+      '🔍 Vui lòng nhập từ khóa tìm kiếm (Ví dụ: <code>VPS</code>, <code>VDS</code>, <code>Source code</code>...):',
+      { parse_mode: 'HTML', reply_markup: backToMenuKeyboard() },
+    );
+    return;
+  }
+
   try {
     const products = await db.product.findMany({
       where: {
         status: 'ACTIVE',
         showOnTelegram: true,
         OR: [
-          { name: { contains: cleanQuery, mode: 'insensitive' } },
-          { description: { contains: cleanQuery, mode: 'insensitive' } },
+          { name: { contains: textQuery, mode: 'insensitive' } },
+          { description: { contains: textQuery, mode: 'insensitive' } },
         ],
       },
       include: {
@@ -54,9 +72,9 @@ export async function searchProductsOrOrders(ctx: Context, query: string) {
 
     if (products.length === 0) {
       await ctx.reply(
-        `🔍 Không tìm thấy sản phẩm nào khớp với từ khóa: <b>"${escapeHtml(cleanQuery)}"</b>.\n` +
-          `Bạn vui lòng thử từ khóa khác hoặc bấm /product để xem tất cả sản phẩm nhé!`,
-        { parse_mode: 'HTML', reply_markup: backToMenuKeyboard() },
+        `🔍 Không tìm thấy sản phẩm nào khớp với từ khóa: <b>"${escapeHtml(textQuery)}"</b>.\n` +
+          `Bạn vui lòng thử từ khóa khác hoặc bấm danh mục bên dưới nhé!`,
+        { parse_mode: 'HTML', reply_markup: categoryKeyboard() },
       );
       return;
     }
@@ -64,15 +82,23 @@ export async function searchProductsOrOrders(ctx: Context, query: string) {
     const items = products.map((p) => {
       const prices = p.variants.map((v) => v.priceVnd);
       const minPrice = prices.length > 0 ? Math.min(...prices) : 0;
+      let stockText = 'Sản phẩm';
+      if (p.type === 'ACCOUNT') stockText = 'Tài khoản';
+      else if (p.type === 'DOWNLOAD') stockText = 'File code';
+      else if (p.name.toUpperCase().includes('VPS') || p.slug.includes('vps'))
+        stockText = 'Cloud VPS';
+      else if (p.name.toUpperCase().includes('VDS') || p.slug.includes('vds'))
+        stockText = 'Cloud VDS';
+
       return {
         id: p.id,
         name: p.name,
         minPrice,
-        stockText: p.type === 'ACCOUNT' ? 'Tài khoản' : 'File code',
+        stockText,
       };
     });
 
-    let text = `🔍 <b>KẾT QUẢ TÌM KIẾM CHO "${escapeHtml(cleanQuery)}"</b> (${items.length} sản phẩm):\n\n`;
+    let text = `🔍 <b>KẾT QUẢ TÌM KIẾM CHO "${escapeHtml(textQuery)}"</b> (${items.length} sản phẩm):\n\n`;
     items.forEach((item, index) => {
       text += `${index + 1}. <b>${escapeHtml(item.name)}</b>\n`;
       text += `   💰 Giá từ: <b>${formatVnd(item.minPrice)}</b> · 📦 <i>${item.stockText}</i>\n\n`;
@@ -84,6 +110,9 @@ export async function searchProductsOrOrders(ctx: Context, query: string) {
     });
   } catch (error) {
     console.error('Lỗi searchProductsOrOrders:', error);
-    await ctx.reply('⚠️ Có lỗi xảy ra trong quá trình tìm kiếm.');
+    await ctx.reply(
+      '⚠️ Không thể tìm kiếm lúc này. Vui lòng bấm vào danh mục bên dưới để chọn sản phẩm:',
+      { reply_markup: categoryKeyboard() },
+    );
   }
 }

@@ -356,46 +356,116 @@ bot.on('callback_query:data', async (ctx) => {
 // ==========================================
 
 bot.on('message:text', async (ctx) => {
-  const text = ctx.message.text.trim();
+  const rawText = ctx.message.text.trim();
   const chatId = ctx.chat.id;
 
-  // 1. Phím tắt từ Persistent Keyboard
-  if (text === '☁️ Cloud VPS' || text === 'Cloud VPS' || text === 'VPS') {
+  // Chuẩn hóa chuỗi không dấu / bỏ emoji để nhận diện nút bấm chính xác nhất
+  const cleanText = rawText
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^\w\s]/gi, '')
+    .toLowerCase()
+    .trim();
+
+  // 1. Phím tắt từ Persistent Keyboard & Điều hướng nhanh
+  const isVps =
+    rawText === '☁️ Cloud VPS' ||
+    rawText === 'Cloud VPS' ||
+    rawText === 'VPS' ||
+    cleanText === 'cloud vps' ||
+    cleanText === 'vps';
+  if (isVps) {
     await showCatalog(ctx, 'VPS');
     return;
   }
 
-  if (text === '🖥️ Cloud VDS' || text === 'Cloud VDS' || text === 'VDS') {
+  const isVds =
+    rawText === '🖥️ Cloud VDS' ||
+    rawText === 'Cloud VDS' ||
+    rawText === 'VDS' ||
+    cleanText === 'cloud vds' ||
+    cleanText === 'vds';
+  if (isVds) {
     await showCatalog(ctx, 'VDS');
     return;
   }
 
-  if (
-    text === '📂 Danh mục' ||
-    text === 'Danh mục' ||
-    text === '📂 Sản phẩm' ||
-    text === 'Sản phẩm'
-  ) {
-    await ctx.reply('📂 <b>Chọn danh mục sản phẩm bạn quan tâm:</b>', {
+  const isProductMenu =
+    rawText === '📦 Sản phẩm' ||
+    rawText === '📂 Sản phẩm' ||
+    rawText === 'Sản phẩm' ||
+    rawText === '📂 Danh mục' ||
+    rawText === '📦 Danh mục' ||
+    rawText === 'Danh mục' ||
+    cleanText === 'san pham' ||
+    cleanText === 'danh muc' ||
+    cleanText === 'menu san pham' ||
+    (rawText.length <= 15 && (rawText.includes('Sản phẩm') || rawText.includes('Danh mục')));
+  if (isProductMenu) {
+    await ctx.reply('📂 <b>Chọn danh mục sản phẩm bạn muốn xem:</b>', {
       parse_mode: 'HTML',
       reply_markup: categoryKeyboard(),
     });
     return;
   }
 
-  if (text === '📋 Đơn hàng' || text === 'Đơn hàng') {
+  const isCode =
+    rawText === '📁 File Code & Dự án' ||
+    rawText === 'File Code' ||
+    cleanText === 'file code' ||
+    cleanText === 'source code';
+  if (isCode) {
+    await showCatalog(ctx, 'DOWNLOAD');
+    return;
+  }
+
+  const isAccount =
+    rawText === '🔐 Tài khoản bản quyền' ||
+    rawText === 'Tài khoản bản quyền' ||
+    rawText === 'Tài khoản' ||
+    cleanText === 'tai khoan' ||
+    cleanText === 'tai khoan ban quyen';
+  if (isAccount) {
+    await showCatalog(ctx, 'ACCOUNT');
+    return;
+  }
+
+  const isOrder =
+    rawText === '📋 Đơn hàng' ||
+    rawText === '📋 Đơn hàng của tôi' ||
+    rawText === 'Đơn hàng của tôi' ||
+    rawText === 'Đơn hàng' ||
+    cleanText === 'don hang' ||
+    cleanText === 'don hang cua toi' ||
+    cleanText === 'my orders' ||
+    cleanText === 'orders';
+  if (isOrder) {
     await handleMyOrders(ctx);
     return;
   }
 
-  if (text === '🔍 Tìm kiếm' || text === 'Tìm kiếm') {
+  const isSearchPrompt =
+    rawText === '🔍 Tìm kiếm' ||
+    rawText === 'Tìm kiếm' ||
+    cleanText === 'tim kiem' ||
+    cleanText === 'search' ||
+    cleanText === 'find';
+  if (isSearchPrompt) {
     await handleSearchPrompt(ctx);
     return;
   }
 
-  if (text === '💬 Hỗ trợ' || text === 'Hỗ trợ') {
+  const isSupport =
+    rawText === '💬 Hỗ trợ' ||
+    rawText === '💬 Hỗ trợ kỹ thuật' ||
+    rawText === 'Hỗ trợ' ||
+    rawText === 'Hỗ trợ kỹ thuật' ||
+    cleanText === 'ho tro' ||
+    cleanText === 'ho tro ky thuat' ||
+    cleanText === 'support';
+  if (isSupport) {
     await ctx.reply(
-      `<b>HỖ TRỢ KỸ THUẬT & BẢO HÀNH</b>\n\n` +
+      `💬 <b>HỖ TRỢ KỸ THUẬT & BẢO HÀNH</b>\n\n` +
         `• <b>Admin hỗ trợ:</b> @dltoan07\n` +
         `• <b>Thời gian hỗ trợ:</b> 8h00 - 23h00 hàng ngày\n` +
         `• <b>Chính sách bảo hành:</b> Cam kết 1 đổi 1 nhanh chóng.`,
@@ -404,20 +474,27 @@ bot.on('message:text', async (ctx) => {
     return;
   }
 
-  if (text === '🏠 Menu chính' || text === 'Menu chính') {
-    await ctx.reply('Danh mục thao tác chính:', {
+  const isMainMenu =
+    rawText === '🏠 Menu chính' ||
+    rawText === 'Menu chính' ||
+    cleanText === 'menu' ||
+    cleanText === 'menu chinh' ||
+    cleanText === 'trang chu';
+  if (isMainMenu) {
+    await ctx.reply('👉 <b>Danh mục thao tác chính:</b>', {
+      parse_mode: 'HTML',
       reply_markup: mainMenuKeyboard(),
     });
     return;
   }
 
   // Nếu là lệnh (/...) thì grammY command handler xử lý
-  if (text.startsWith('/')) return;
+  if (rawText.startsWith('/')) return;
 
   // 2. Kiểm tra xem user có đang ở trạng thái nhập Email hay không
   const pendingState = userCheckoutState.get(chatId);
   if (pendingState && pendingState.expiresAt > Date.now()) {
-    const emailMatch = text.match(/[\w.+-]+@[\w-]+\.[\w.-]+/);
+    const emailMatch = rawText.match(/[\w.+-]+@[\w-]+\.[\w.-]+/);
     if (emailMatch) {
       const email = emailMatch[0].toLowerCase();
       userCheckoutState.delete(chatId);
@@ -434,5 +511,5 @@ bot.on('message:text', async (ctx) => {
   }
 
   // 3. Tra cứu nhanh hoặc tìm kiếm sản phẩm theo từ khóa
-  await searchProductsOrOrders(ctx, text);
+  await searchProductsOrOrders(ctx, rawText);
 });

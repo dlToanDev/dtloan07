@@ -5,6 +5,7 @@ import {
   productsListKeyboard,
   productDetailKeyboard,
   backToMenuKeyboard,
+  accountSubCategoryKeyboard,
 } from '../keyboards';
 import { safeEditOrReply } from '../helpers';
 import type { Context } from 'grammy';
@@ -14,14 +15,43 @@ import type { Context } from 'grammy';
  */
 export async function showCatalog(ctx: Context, category: string) {
   try {
+    const catUpper = category.toUpperCase();
+
+    // Nếu chọn mục lớn "Tài khoản bản quyền" -> hiển thị menu phân loại con (Cloud VPS, Cloud VDS, v.v.)
+    if (catUpper === 'ACCOUNT') {
+      const otherCount = await db.product.count({
+        where: {
+          type: 'ACCOUNT',
+          status: 'ACTIVE',
+          showOnTelegram: true,
+          NOT: [
+            { category: { slug: { in: ['vps', 'vds'] } } },
+            { slug: { startsWith: 'cloud-vp' } },
+            { slug: { startsWith: 'cloud-vd' } },
+            { name: { contains: 'VPS', mode: 'insensitive' } },
+            { name: { contains: 'VDS', mode: 'insensitive' } },
+          ],
+        },
+      });
+
+      const text =
+        `🔐 <b>DANH MỤC TÀI KHOẢN BẢN QUYỀN & MÁY CHỦ</b>\n\n` +
+        `Vui lòng chọn loại dịch vụ / máy chủ bạn muốn xem:`;
+
+      await safeEditOrReply(ctx, text, {
+        parse_mode: 'HTML',
+        reply_markup: accountSubCategoryKeyboard(otherCount > 0),
+      });
+      return;
+    }
+
     let whereCondition: Record<string, unknown>;
     let categoryTitle: string;
-    const backAction = 'nav:categories';
-
-    const catUpper = category.toUpperCase();
+    let backAction = 'nav:categories';
 
     if (catUpper === 'VPS') {
       categoryTitle = '☁️ <b>Danh Mục Máy Chủ Cloud VPS</b>';
+      backAction = 'cat:ACCOUNT';
       whereCondition = {
         status: 'ACTIVE',
         showOnTelegram: true,
@@ -38,6 +68,7 @@ export async function showCatalog(ctx: Context, category: string) {
       };
     } else if (catUpper === 'VDS') {
       categoryTitle = '🖥️ <b>Danh Mục Máy Chủ Dedicated Cloud VDS</b>';
+      backAction = 'cat:ACCOUNT';
       whereCondition = {
         status: 'ACTIVE',
         showOnTelegram: true,
@@ -54,13 +85,15 @@ export async function showCatalog(ctx: Context, category: string) {
       };
     } else if (catUpper === 'DOWNLOAD') {
       categoryTitle = '📁 <b>File Code & Dự Án Mẫu</b>';
+      backAction = 'nav:categories';
       whereCondition = {
         type: 'DOWNLOAD',
         status: 'ACTIVE',
         showOnTelegram: true,
       };
     } else {
-      categoryTitle = '🔐 <b>Tài Khoản Bản Quyền & AI</b>';
+      categoryTitle = '🔑 <b>Tài Khoản Phần Mềm & AI Khác</b>';
+      backAction = 'cat:ACCOUNT';
       whereCondition = {
         type: 'ACCOUNT',
         status: 'ACTIVE',

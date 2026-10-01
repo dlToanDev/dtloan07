@@ -5,6 +5,7 @@ import {
   formatVnd,
   mainMenuKeyboard,
   categoryKeyboard,
+  accountSubCategoryKeyboard,
   productsListKeyboard,
   productDetailKeyboard,
   orderPaymentKeyboard,
@@ -56,29 +57,37 @@ describe('Telegram Sales Bot (Accounts & Source Code) Unit Tests', () => {
       expect(isValidTelegramUrl('')).toBe(false);
     });
 
-    it('mainMenuKeyboard chứa các nút điều hướng danh mục VPS, VDS, ACCOUNT, DOWNLOAD và hỗ trợ', () => {
+    it('mainMenuKeyboard chứa các nút điều hướng danh mục chính (ACCOUNT, DOWNLOAD) và hỗ trợ', () => {
       const kb = mainMenuKeyboard();
       const buttons = kb.inline_keyboard.flat();
       const callbackDatas = buttons.map((b: any) => b.callback_data).filter(Boolean);
 
-      expect(callbackDatas).toContain('cat:VPS');
-      expect(callbackDatas).toContain('cat:VDS');
-      expect(callbackDatas).toContain('cat:DOWNLOAD');
       expect(callbackDatas).toContain('cat:ACCOUNT');
+      expect(callbackDatas).toContain('cat:DOWNLOAD');
       expect(callbackDatas).toContain('nav:orders');
       expect(callbackDatas).toContain('nav:support');
     });
 
-    it('categoryKeyboard cho phép chọn các danh mục máy chủ & hàng số (VPS, VDS, DOWNLOAD, ACCOUNT)', () => {
+    it('categoryKeyboard cho phép chọn các nhóm sản phẩm chính (ACCOUNT, DOWNLOAD)', () => {
       const kb = categoryKeyboard();
+      const buttons = kb.inline_keyboard.flat();
+      const callbackDatas = buttons.map((b: any) => b.callback_data);
+
+      expect(callbackDatas).toContain('cat:ACCOUNT');
+      expect(callbackDatas).toContain('cat:DOWNLOAD');
+      expect(callbackDatas).toContain('nav:menu');
+      expect(callbackDatas).not.toContain('cat:PHYSICAL');
+    });
+
+    it('accountSubCategoryKeyboard cho phép chọn Cloud VPS và Cloud VDS bên trong mục Tài khoản bản quyền', () => {
+      const kb = accountSubCategoryKeyboard(false);
       const buttons = kb.inline_keyboard.flat();
       const callbackDatas = buttons.map((b: any) => b.callback_data);
 
       expect(callbackDatas).toContain('cat:VPS');
       expect(callbackDatas).toContain('cat:VDS');
-      expect(callbackDatas).toContain('cat:DOWNLOAD');
-      expect(callbackDatas).toContain('cat:ACCOUNT');
-      expect(callbackDatas).not.toContain('cat:PHYSICAL');
+      expect(callbackDatas).toContain('nav:categories');
+      expect(callbackDatas).toContain('nav:menu');
     });
 
     it('productsListKeyboard tạo danh sách sản phẩm và các nút quay lại', () => {

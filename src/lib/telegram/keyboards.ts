@@ -39,11 +39,8 @@ export function isValidTelegramUrl(url?: string | null): boolean {
  */
 export function mainMenuKeyboard(): InlineKeyboard {
   const keyboard = new InlineKeyboard()
-    .text('☁️ Cloud VPS', 'cat:VPS')
-    .text('🖥️ Cloud VDS', 'cat:VDS')
-    .row()
-    .text('📁 File Code & Dự án', 'cat:DOWNLOAD')
     .text('🔐 Tài khoản bản quyền', 'cat:ACCOUNT')
+    .text('📁 File Code & Dự án', 'cat:DOWNLOAD')
     .row()
     .text('📋 Đơn hàng của tôi', 'nav:orders')
     .text('💬 Hỗ trợ kỹ thuật', 'nav:support');
@@ -56,17 +53,31 @@ export function mainMenuKeyboard(): InlineKeyboard {
 }
 
 /**
- * Menu chọn danh mục sản phẩm (VPS, VDS, DOWNLOAD, ACCOUNT)
+ * Menu chọn danh mục sản phẩm chính (khi bấm 📦 Sản phẩm)
  */
 export function categoryKeyboard(): InlineKeyboard {
   return new InlineKeyboard()
-    .text('☁️ Cloud VPS', 'cat:VPS')
-    .text('🖥️ Cloud VDS', 'cat:VDS')
-    .row()
-    .text('📁 File Code & Dự án', 'cat:DOWNLOAD')
     .text('🔐 Tài khoản bản quyền', 'cat:ACCOUNT')
+    .text('📁 File Code & Dự án', 'cat:DOWNLOAD')
     .row()
     .text('🔙 Quay lại Menu chính', 'nav:menu');
+}
+
+/**
+ * Menu chọn phân loại trong Tài khoản bản quyền (Cloud VPS, Cloud VDS, v.v.)
+ */
+export function accountSubCategoryKeyboard(hasOtherAccounts: boolean = false): InlineKeyboard {
+  const keyboard = new InlineKeyboard()
+    .text('☁️ Cloud VPS', 'cat:VPS')
+    .text('🖥️ Cloud VDS', 'cat:VDS');
+
+  if (hasOtherAccounts) {
+    keyboard.row().text('🔑 Tài khoản & Dịch vụ khác', 'cat:OTHER_ACCOUNT');
+  }
+
+  keyboard.row().text('🔙 Quay lại danh mục', 'nav:categories').text('🏠 Menu chính', 'nav:menu');
+
+  return keyboard;
 }
 
 /**

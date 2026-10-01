@@ -5,6 +5,7 @@ import {
   productsListKeyboard,
   productDetailKeyboard,
   backToMenuKeyboard,
+  mainMenuKeyboard,
   accountSubCategoryKeyboard,
 } from '../keyboards';
 import { safeEditOrReply } from '../helpers';
@@ -39,26 +40,14 @@ export async function showCatalog(ctx: Context, category: string) {
       backAction = 'cat:ACCOUNT';
       whereCondition = {
         status: 'ACTIVE',
-        showOnTelegram: true,
-        OR: [
-          { category: { slug: 'vps' } },
-          { slug: { startsWith: 'cloud-vps' } },
-          { name: { contains: 'VPS' } },
-        ],
-        NOT: [{ category: { slug: 'vds' } }, { slug: { startsWith: 'cloud-vds' } }],
+        OR: [{ category: { slug: 'vps' } }, { slug: { startsWith: 'cloud-vps' } }],
       };
     } else if (catUpper === 'VDS') {
       categoryTitle = '🖥️ <b>Danh Mục Máy Chủ Dedicated Cloud VDS</b>';
       backAction = 'cat:ACCOUNT';
       whereCondition = {
         status: 'ACTIVE',
-        showOnTelegram: true,
-        OR: [
-          { category: { slug: 'vds' } },
-          { slug: { startsWith: 'cloud-vds' } },
-          { name: { contains: 'VDS' } },
-        ],
-        NOT: [{ category: { slug: 'vps' } }, { slug: { startsWith: 'cloud-vps' } }],
+        OR: [{ category: { slug: 'vds' } }, { slug: { startsWith: 'cloud-vds' } }],
       };
     } else if (catUpper === 'DOWNLOAD') {
       categoryTitle = '📁 <b>File Code & Dự Án Mẫu</b>';
@@ -66,7 +55,6 @@ export async function showCatalog(ctx: Context, category: string) {
       whereCondition = {
         type: 'DOWNLOAD',
         status: 'ACTIVE',
-        showOnTelegram: true,
       };
     } else {
       categoryTitle = '🔑 <b>Tài Khoản Phần Mềm & AI Khác</b>';
@@ -74,16 +62,10 @@ export async function showCatalog(ctx: Context, category: string) {
       whereCondition = {
         type: 'ACCOUNT',
         status: 'ACTIVE',
-        showOnTelegram: true,
-        NOT: [
-          { category: { slug: { in: ['vps', 'vds'] } } },
-          { slug: { startsWith: 'cloud-vp' } },
-          { slug: { startsWith: 'cloud-vd' } },
-        ],
       };
     }
 
-    const products = await db.product.findMany({
+    const rawProducts = await db.product.findMany({
       where: whereCondition,
       include: {
         variants: {
@@ -93,6 +75,11 @@ export async function showCatalog(ctx: Context, category: string) {
       },
       orderBy: { priceVnd: 'asc' },
     });
+
+    // Lọc showOnTelegram trong JavaScript để an toàn tuyệt đối nếu server chưa chạy prisma generate
+    const products = rawProducts.filter(
+      (p) => (p as { showOnTelegram?: boolean }).showOnTelegram !== false,
+    );
 
     if (products.length === 0) {
       const emptyMsg =
@@ -116,13 +103,17 @@ export async function showCatalog(ctx: Context, category: string) {
         if (p.deliveryMode === 'MANUAL') {
           stockText = 'Tự giao (Admin)';
         } else if (p.type === 'ACCOUNT' && p.deliveryMode === 'AUTO') {
-          const availableStock = await db.accountStock.count({
-            where: {
-              variantId: { in: p.variants.map((v) => v.id) },
-              status: 'AVAILABLE',
-            },
-          });
-          stockText = availableStock > 0 ? `Còn ${availableStock} kho` : 'Tạm hết';
+          try {
+            const availableStock = await db.accountStock.count({
+              where: {
+                variantId: { in: p.variants.map((v) => v.id) },
+                status: 'AVAILABLE',
+              },
+            });
+            stockText = availableStock > 0 ? `Còn ${availableStock} kho` : 'Tạm hết';
+          } catch {
+            stockText = 'Có sẵn';
+          }
         }
 
         return {
@@ -150,7 +141,11 @@ export async function showCatalog(ctx: Context, category: string) {
     });
   } catch (error) {
     console.error('Lỗi khi tải danh mục sản phẩm Telegram:', error);
-    await ctx.reply('⚠️ Có lỗi xảy ra khi tải danh sách sản phẩm. Vui lòng thử lại sau.');
+    const errText = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+    await ctx.reply(
+      `⚠️ <b>Có lỗi xảy ra khi tải danh sách sản phẩm:</b>\n<code>${escapeHtml(errText.slice(0, 500))}</code>`,
+      { parse_mode: 'HTML', reply_markup: mainMenuKeyboard() },
+    );
   }
 }
 

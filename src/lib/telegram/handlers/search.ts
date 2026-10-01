@@ -52,10 +52,9 @@ export async function searchProductsOrOrders(ctx: Context, query: string) {
   }
 
   try {
-    const products = await db.product.findMany({
+    const rawProducts = await db.product.findMany({
       where: {
         status: 'ACTIVE',
-        showOnTelegram: true,
         OR: [
           { name: { contains: textQuery, mode: 'insensitive' } },
           { description: { contains: textQuery, mode: 'insensitive' } },
@@ -67,8 +66,12 @@ export async function searchProductsOrOrders(ctx: Context, query: string) {
           orderBy: { sortOrder: 'asc' },
         },
       },
-      take: 8,
+      take: 12,
     });
+
+    const products = rawProducts
+      .filter((p) => (p as { showOnTelegram?: boolean }).showOnTelegram !== false)
+      .slice(0, 8);
 
     if (products.length === 0) {
       await ctx.reply(

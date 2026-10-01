@@ -6,10 +6,7 @@ import { siteConfig } from '@/config/site';
  */
 export function persistentReplyKeyboard(): Keyboard {
   return new Keyboard()
-    .text('☁️ Cloud VPS')
-    .text('🖥️ Cloud VDS')
-    .row()
-    .text('📂 Danh mục')
+    .text('📦 Sản phẩm')
     .text('📋 Đơn hàng')
     .row()
     .text('🔍 Tìm kiếm')
@@ -46,7 +43,7 @@ export function mainMenuKeyboard(): InlineKeyboard {
     .text('🖥️ Cloud VDS', 'cat:VDS')
     .row()
     .text('📁 File Code & Dự án', 'cat:DOWNLOAD')
-    .text('🔐 Tài khoản khác', 'cat:ACCOUNT')
+    .text('🔐 Tài khoản bản quyền', 'cat:ACCOUNT')
     .row()
     .text('📋 Đơn hàng của tôi', 'nav:orders')
     .text('💬 Hỗ trợ kỹ thuật', 'nav:support');
@@ -67,7 +64,7 @@ export function categoryKeyboard(): InlineKeyboard {
     .text('🖥️ Cloud VDS', 'cat:VDS')
     .row()
     .text('📁 File Code & Dự án', 'cat:DOWNLOAD')
-    .text('🔐 Tài khoản khác', 'cat:ACCOUNT')
+    .text('🔐 Tài khoản bản quyền', 'cat:ACCOUNT')
     .row()
     .text('🔙 Quay lại Menu chính', 'nav:menu');
 }

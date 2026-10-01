@@ -123,14 +123,15 @@ describe('Telegram Sales Bot (Accounts & Source Code) Unit Tests', () => {
       expect(cancelBtn).toBeDefined();
     });
 
-    it('persistentReplyKeyboard hiển thị các nút điều hướng nhanh Cloud VPS và Cloud VDS', () => {
+    it('persistentReplyKeyboard hiển thị các nút điều hướng menu nhanh', () => {
       const kb = persistentReplyKeyboard();
       const keyboardRows = (kb as any).keyboard;
       const texts = keyboardRows.flat().map((btn: any) => btn.text);
 
-      expect(texts).toContain('☁️ Cloud VPS');
-      expect(texts).toContain('🖥️ Cloud VDS');
-      expect(texts).toContain('📂 Danh mục');
+      expect(texts).toContain('📦 Sản phẩm');
+      expect(texts).toContain('📋 Đơn hàng');
+      expect(texts).toContain('🔍 Tìm kiếm');
+      expect(texts).toContain('💬 Hỗ trợ');
       expect(texts).toContain('🏠 Menu chính');
     });
   });

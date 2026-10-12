@@ -135,7 +135,7 @@ export default async function AdminOrderDetailPage({
                   <span>{money(order.subtotalVnd)}</span>
                 </div>
                 {order.discountVnd > 0 && (
-                  <div className="flex justify-between text-emerald-600">
+                  <div className="text-success flex justify-between">
                     <span>
                       Giảm giá
                       {order.coupon ? ` (${order.coupon.code ?? order.coupon.name})` : ''}
@@ -144,7 +144,7 @@ export default async function AdminOrderDetailPage({
                   </div>
                 )}
                 {order.shippingDiscountVnd > 0 && (
-                  <div className="flex justify-between text-emerald-600">
+                  <div className="text-success flex justify-between">
                     <span>Được miễn phí ship</span>
                     <span>-{money(order.shippingDiscountVnd)}</span>
                   </div>
@@ -202,10 +202,7 @@ export default async function AdminOrderDetailPage({
               <div className="text-muted-foreground text-xs uppercase">Nguồn đơn hàng</div>
               <div className="mt-1 flex items-center gap-1.5 font-medium">
                 {order.source === 'TELEGRAM' ? (
-                  <Badge
-                    variant="secondary"
-                    className="bg-sky-500/10 text-sky-700 dark:text-sky-300"
-                  >
+                  <Badge variant="secondary" className="bg-info/10 text-info">
                     📱 Telegram Bot
                   </Badge>
                 ) : (

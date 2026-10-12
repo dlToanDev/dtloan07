@@ -59,9 +59,9 @@ export function QuizGame({
   };
 
   return (
-    <div className="via-card to-card space-y-5 rounded-2xl border border-indigo-500/20 bg-gradient-to-b from-indigo-500/5 p-4 text-left sm:p-6">
+    <div className="border-primary/20 from-primary/5 via-card to-card space-y-5 rounded-2xl border bg-gradient-to-b p-4 text-left sm:p-6">
       <div className="flex items-center justify-between">
-        <div className="inline-flex items-center gap-1.5 rounded-full bg-indigo-500/10 px-3 py-1 text-xs font-semibold text-indigo-600 dark:text-indigo-400">
+        <div className="bg-primary/10 text-primary inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold">
           <HelpCircle className="size-3.5" />
           <span>Thử Thách Trả Lời Câu Hỏi</span>
         </div>
@@ -85,11 +85,9 @@ export function QuizGame({
 
           if (submitted) {
             if (i === correctIndex) {
-              btnStyle =
-                'border-emerald-500 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 font-semibold';
+              btnStyle = 'border-success bg-success/10 text-success font-semibold';
             } else if (isSelected && !isCorrect) {
-              btnStyle =
-                'border-rose-500 bg-rose-500/10 text-rose-700 dark:text-rose-400 line-through';
+              btnStyle = 'border-destructive bg-destructive/10 text-destructive line-through';
             } else {
               btnStyle = 'border-border/40 opacity-50';
             }
@@ -115,10 +113,10 @@ export function QuizGame({
                 <span className="leading-snug">{opt}</span>
               </div>
               {submitted && i === correctIndex && (
-                <CheckCircle2 className="size-4 shrink-0 text-emerald-500" />
+                <CheckCircle2 className="text-success size-4 shrink-0" />
               )}
               {submitted && isSelected && !isCorrect && (
-                <XCircle className="size-4 shrink-0 text-rose-500" />
+                <XCircle className="text-destructive size-4 shrink-0" />
               )}
             </button>
           );
@@ -138,8 +136,8 @@ export function QuizGame({
       ) : (
         <div className="space-y-4 pt-2">
           {isCorrect ? (
-            <div className="animate-in zoom-in-95 space-y-3 rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-4">
-              <div className="flex items-center gap-2 text-sm font-bold text-emerald-600 sm:text-base dark:text-emerald-400">
+            <div className="border-success/30 bg-success/10 animate-in zoom-in-95 space-y-3 rounded-xl border p-4">
+              <div className="text-success flex items-center gap-2 text-sm font-bold sm:text-base">
                 <Gift className="size-5 shrink-0" />
                 <span>Xuất sắc! Bạn đã trả lời hoàn toàn chính xác.</span>
               </div>
@@ -147,7 +145,7 @@ export function QuizGame({
                 Tặng bạn mã ưu đãi {rewardDiscount} áp dụng khi mua sản phẩm hoặc khóa học:
               </p>
               <div className="flex items-center gap-2">
-                <div className="bg-background rounded-lg border border-dashed border-emerald-500 px-4 py-2 font-mono text-base font-black tracking-wider text-emerald-600 dark:text-emerald-400">
+                <div className="bg-background border-success text-success rounded-lg border border-dashed px-4 py-2 font-mono text-base font-black tracking-wider">
                   {rewardCode}
                 </div>
                 <Button
@@ -155,11 +153,11 @@ export function QuizGame({
                   size="sm"
                   variant="outline"
                   onClick={handleCopy}
-                  className="border-emerald-500/40 text-emerald-600 hover:bg-emerald-500/10"
+                  className="border-success/40 text-success hover:bg-success/10"
                 >
                   {copied ? (
                     <>
-                      <Check className="mr-1 size-4 text-emerald-500" />
+                      <Check className="text-success mr-1 size-4" />
                       Đã chép
                     </>
                   ) : (
@@ -180,8 +178,8 @@ export function QuizGame({
               </div>
             </div>
           ) : (
-            <div className="animate-in fade-in space-y-3 rounded-xl border border-rose-500/30 bg-rose-500/10 p-4 text-center">
-              <p className="text-sm font-medium text-rose-600 dark:text-rose-400">
+            <div className="animate-in fade-in border-destructive/30 bg-destructive/10 space-y-3 rounded-xl border p-4 text-center">
+              <p className="text-destructive text-sm font-medium">
                 Rất tiếc! Đáp án bạn chọn chưa chính xác.
               </p>
               <Button

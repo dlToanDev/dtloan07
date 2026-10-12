@@ -96,16 +96,16 @@ export function GrantManager({
   return (
     <div className="space-y-4">
       {error && (
-        <p role="alert" className="rounded-lg bg-red-500/10 p-3 text-sm text-red-600">
+        <p role="alert" className="bg-destructive/10 text-destructive rounded-lg p-3 text-sm">
           {error}
         </p>
       )}
       {notice && (
-        <p role="status" className="rounded-lg bg-green-500/10 p-3 text-sm text-green-600">
+        <p role="status" className="bg-success/10 text-success rounded-lg p-3 text-sm">
           {notice}
         </p>
       )}
-      <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-sm">
+      <div className="border-warning/30 bg-warning/5 flex flex-wrap items-center justify-between gap-2 rounded-lg border px-3 py-2 text-sm">
         <span>{proCount} tài khoản Pro đang còn hạn</span>
         <div className="flex flex-wrap items-center gap-2">
           <Button
@@ -121,7 +121,7 @@ export function GrantManager({
             type="button"
             size="sm"
             variant="primary"
-            className="flex items-center gap-1.5 bg-amber-600 font-semibold text-white hover:bg-amber-700"
+            className="flex items-center gap-1.5 font-semibold"
             onClick={broadcastToPro}
             disabled={pending}
           >
@@ -172,7 +172,7 @@ export function GrantManager({
                   type="button"
                   size="sm"
                   variant="ghost"
-                  className="text-xs text-red-600"
+                  className="text-destructive hover:bg-destructive/10 text-xs"
                   onClick={() => revoke(grant)}
                   disabled={pending}
                 >

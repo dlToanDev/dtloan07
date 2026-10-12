@@ -169,7 +169,7 @@ function FilePicker({ label, accept }: { label: string; accept?: string }) {
         </button>
       )}
       {error && (
-        <p role="alert" className="text-xs text-red-600">
+        <p role="alert" className="text-destructive text-xs">
           {error}
         </p>
       )}
@@ -301,12 +301,12 @@ export function ProductForm({
         <input ref={statusInputRef} type="hidden" name="status" value={submitStatus} />
 
         {state.error && (
-          <p role="alert" className="rounded-lg bg-red-500/10 p-3 text-sm text-red-600">
+          <p role="alert" className="bg-destructive/10 text-destructive rounded-lg p-3 text-sm">
             {state.error}
           </p>
         )}
         {!state.error && justSaved && (
-          <p role="status" className="rounded-lg bg-green-500/10 p-3 text-sm text-green-600">
+          <p role="status" className="bg-success/10 text-success rounded-lg p-3 text-sm">
             Đã lưu sản phẩm.
           </p>
         )}
@@ -359,7 +359,7 @@ export function ProductForm({
                   }}
                   className="peer sr-only"
                 />
-                <div className="peer bg-muted-foreground/30 dark:bg-muted-foreground/40 h-6 w-11 rounded-full transition-colors peer-checked:bg-emerald-600 peer-focus:outline-none after:absolute after:top-[2px] after:left-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:shadow-sm after:transition-all after:content-[''] peer-checked:after:translate-x-full" />
+                <div className="peer bg-muted-foreground/30 dark:bg-muted-foreground/40 peer-checked:bg-success h-6 w-11 rounded-full transition-colors peer-focus:outline-none after:absolute after:top-[2px] after:left-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:shadow-sm after:transition-all after:content-[''] peer-checked:after:translate-x-full" />
               </label>
             </div>
 
@@ -375,7 +375,7 @@ export function ProductForm({
                   </label>
                   <Badge
                     variant="secondary"
-                    className="border-cyan-500/30 bg-cyan-500/10 text-[10px] text-cyan-600 dark:text-cyan-400"
+                    className="border-info/30 bg-info/10 text-info text-[10px]"
                   >
                     @dltoan07_bot
                   </Badge>
@@ -394,7 +394,7 @@ export function ProductForm({
                   onChange={(e) => setShowOnTelegram(e.target.checked)}
                   className="peer sr-only"
                 />
-                <div className="peer bg-muted-foreground/30 dark:bg-muted-foreground/40 h-6 w-11 rounded-full transition-colors peer-checked:bg-cyan-600 peer-focus:outline-none after:absolute after:top-[2px] after:left-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:shadow-sm after:transition-all after:content-[''] peer-checked:after:translate-x-full" />
+                <div className="peer bg-muted-foreground/30 dark:bg-muted-foreground/40 peer-checked:bg-info h-6 w-11 rounded-full transition-colors peer-focus:outline-none after:absolute after:top-[2px] after:left-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:shadow-sm after:transition-all after:content-[''] peer-checked:after:translate-x-full" />
               </label>
             </div>
 
@@ -420,7 +420,7 @@ export function ProductForm({
                   onChange={(e) => setIsFeatured(e.target.checked)}
                   className="peer sr-only"
                 />
-                <div className="peer bg-muted-foreground/30 dark:bg-muted-foreground/40 h-6 w-11 rounded-full transition-colors peer-checked:bg-amber-500 peer-focus:outline-none after:absolute after:top-[2px] after:left-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:shadow-sm after:transition-all after:content-[''] peer-checked:after:translate-x-full" />
+                <div className="peer bg-muted-foreground/30 dark:bg-muted-foreground/40 peer-checked:bg-warning h-6 w-11 rounded-full transition-colors peer-focus:outline-none after:absolute after:top-[2px] after:left-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:shadow-sm after:transition-all after:content-[''] peer-checked:after:translate-x-full" />
               </label>
             </div>
           </div>
@@ -664,7 +664,7 @@ export function ProductForm({
             onUploadEnd={trackUpload.onUploadEnd}
           />
           {editorError && (
-            <p role="alert" className="text-sm text-red-600">
+            <p role="alert" className="text-destructive text-sm">
               {editorError}
             </p>
           )}
@@ -681,7 +681,7 @@ export function ProductForm({
                 Còn thiếu: <span className="text-foreground">{missing.join(', ')}</span>
               </span>
             ) : (
-              <span className="flex items-center gap-1 text-emerald-600">
+              <span className="text-success flex items-center gap-1">
                 <CheckCircle2 className="size-4" /> Sẵn sàng đăng
               </span>
             )}
@@ -715,7 +715,7 @@ export function ProductForm({
               type="submit"
               name="status"
               value="ACTIVE"
-              className="bg-emerald-600 text-white hover:bg-emerald-700"
+              variant="success"
               disabled={busy}
               onClick={() => {
                 setSubmitStatus('ACTIVE');

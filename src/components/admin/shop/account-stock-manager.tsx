@@ -64,12 +64,12 @@ function ImportForm({ variants }: { variants: { id: string; name: string }[] }) 
       </div>
 
       {state.error && (
-        <p role="alert" className="text-sm text-red-600">
+        <p role="alert" className="text-destructive text-sm">
           {state.error}
         </p>
       )}
       {state.success && (
-        <p role="status" className="text-sm text-emerald-600">
+        <p role="status" className="text-success text-sm">
           {state.success}
         </p>
       )}
@@ -147,12 +147,12 @@ function RowActions({ row }: { row: AccountStockRow }) {
         </pre>
       )}
       {[revealState.error, deleteState.error, replaceState.error].filter(Boolean).map((message) => (
-        <p key={message} role="alert" className="text-right text-xs text-red-600">
+        <p key={message} role="alert" className="text-destructive text-right text-xs">
           {message}
         </p>
       ))}
       {[deleteState.success, replaceState.success].filter(Boolean).map((message) => (
-        <p key={message} role="status" className="text-right text-xs text-emerald-600">
+        <p key={message} role="status" className="text-success text-right text-xs">
           {message}
         </p>
       ))}
@@ -177,7 +177,10 @@ export function AccountStockManager({
   return (
     <div className="space-y-5">
       {!keyConfigured && (
-        <p role="alert" className="rounded-lg bg-amber-500/10 p-3 text-sm text-amber-700">
+        <p
+          role="alert"
+          className="border-warning/30 bg-warning/10 text-warning rounded-lg border p-3 text-sm"
+        >
           Chưa cấu hình <code>ACCOUNT_ENCRYPTION_KEY</code> trong <code>.env</code>. Sinh khóa bằng{' '}
           <code>openssl rand -base64 32</code> rồi khởi động lại server — trước khi có khóa, không
           nhập kho và không bán được tài khoản tự động.

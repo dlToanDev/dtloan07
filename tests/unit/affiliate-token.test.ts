@@ -65,11 +65,9 @@ describe('Affiliate Dynamic Rotating Token', () => {
     expect(isValidAffiliateToken('shop', baseTime)).toBe(false);
   });
 
-  it('getAffiliatePath trả về URL tương đối bắt đầu bằng / kèm token hợp lệ', () => {
+  it('getAffiliatePath trả về đường dẫn cố định /affiliate', () => {
     const path = getAffiliatePath(baseTime);
-    expect(path.startsWith('/')).toBe(true);
-    const token = path.replace('/', '');
-    expect(isValidAffiliateToken(token, baseTime)).toBe(true);
+    expect(path).toBe('/affiliate');
   });
 
   it('tính toán chính xác thời gian hết hạn (expiry) và số giây còn lại', () => {

@@ -34,7 +34,7 @@ function Progress({
   percent: number | null;
 }) {
   if (percent === null) return <span className="text-muted-foreground">–</span>;
-  const tone = percent >= 70 ? 'bg-emerald-500' : percent >= 40 ? 'bg-amber-500' : 'bg-red-500';
+  const tone = percent >= 70 ? 'bg-success' : percent >= 40 ? 'bg-warning' : 'bg-destructive';
   return (
     <div className="flex min-w-32 items-center gap-2">
       <span className="w-12 tabular-nums">
@@ -128,7 +128,7 @@ export function EnrollmentManager({
             <UserPlus className="size-4" /> Cấp quyền học
           </Button>
         </div>
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && <p className="text-destructive text-sm">{error}</p>}
       </div>
 
       <div className="flex items-center justify-between gap-2">

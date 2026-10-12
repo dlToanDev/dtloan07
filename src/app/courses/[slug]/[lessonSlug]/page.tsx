@@ -7,6 +7,8 @@ import { buttonStyles } from '@/components/ui/button';
 import { EditorContent } from '@/components/mdx/editor-content';
 import { CompleteLessonButton } from '@/components/courses/course-actions';
 import { ExerciseWorkspace, type ExerciseView } from '@/components/courses/exercise-workspace';
+import { QuizWorkspace, type QuizExerciseView } from '@/components/courses/quiz-workspace';
+import { sanitizeQuestionsForStudent, type QuestionGradeDetail } from '@/lib/courses/quiz';
 import { LessonList } from '@/components/courses/lesson-list';
 import {
   ACCESS_MESSAGES,
@@ -93,7 +95,15 @@ export default async function LessonPage({ params }: Props) {
       where: { userId: viewer!.id, exerciseId: { in: exerciseIds } },
       orderBy: { createdAt: 'desc' },
       distinct: ['exerciseId'],
-      select: { exerciseId: true, language: true, code: true },
+      select: {
+        exerciseId: true,
+        language: true,
+        code: true,
+        verdict: true,
+        passed: true,
+        total: true,
+        details: true,
+      },
     }),
   ]);
   const solved = new Set(solvedRows.map((row) => row.exerciseId));
@@ -137,7 +147,7 @@ export default async function LessonPage({ params }: Props) {
           <p className="text-muted-foreground text-sm">Bài {index + 1}</p>
           <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl">{lesson.title}</h1>
           {lesson.status === 'DRAFT' && (
-            <p className="text-sm text-amber-600">Bản nháp — chỉ admin nhìn thấy.</p>
+            <p className="text-warning text-sm">Bản nháp — chỉ admin nhìn thấy.</p>
           )}
         </header>
 
@@ -220,6 +230,44 @@ export default async function LessonPage({ params }: Props) {
               </p>
             </div>
             {lesson.exercises.map((exercise, i) => {
+              const last = lastByExercise.get(exercise.id);
+
+              if (exercise.type === 'QUIZ') {
+                const quizView: QuizExerciseView = {
+                  id: exercise.id,
+                  title: exercise.title,
+                  statement: exercise.statement,
+                  passage: exercise.passage,
+                  audioUrl: exercise.audioUrl,
+                  imageUrl: exercise.imageUrl,
+                  videoUrl: exercise.videoUrl,
+                  questions: sanitizeQuestionsForStudent(exercise.questions),
+                };
+
+                const lastQuizResult =
+                  last && last.language === 'quiz'
+                    ? {
+                        score: last.passed,
+                        total: last.total,
+                        passed: last.verdict === 'ACCEPTED',
+                        percent: last.total > 0 ? Math.round((last.passed / last.total) * 100) : 0,
+                        details: Array.isArray(last.details)
+                          ? (last.details as unknown as QuestionGradeDetail[])
+                          : [],
+                      }
+                    : null;
+
+                return (
+                  <QuizWorkspace
+                    key={exercise.id}
+                    exercise={quizView}
+                    index={i + 1}
+                    solved={solved.has(exercise.id)}
+                    lastResult={lastQuizResult}
+                  />
+                );
+              }
+
               const languages = exercise.languages.filter(isLanguageKey);
               if (languages.length === 0) return null;
               const view: ExerciseView = {
@@ -233,8 +281,11 @@ export default async function LessonPage({ params }: Props) {
                   .filter((test) => test.isSample)
                   .map(({ input, expectedOutput }) => ({ input, expectedOutput })),
                 totalTests: exercise.testCases.length,
+                passage: exercise.passage,
+                audioUrl: exercise.audioUrl,
+                imageUrl: exercise.imageUrl,
+                videoUrl: exercise.videoUrl,
               };
-              const last = lastByExercise.get(exercise.id);
               return (
                 <ExerciseWorkspace
                   key={exercise.id}
@@ -274,7 +325,7 @@ export default async function LessonPage({ params }: Props) {
                 Bài tiếp theo <ChevronRight className="size-4" />
               </Link>
             ) : (
-              <span className="font-semibold text-emerald-600">🎉 Bạn đã hoàn thành khóa học!</span>
+              <span className="text-success font-semibold">🎉 Bạn đã hoàn thành khóa học!</span>
             )
           ) : lesson.exercises.length === 0 ? (
             <CompleteLessonButton lessonId={lesson.id} nextHref={nextHref} />

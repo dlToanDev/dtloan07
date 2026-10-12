@@ -1,6 +1,7 @@
 import { getAllCategories, getAllTags, getPostMetas } from '@/lib/mdx';
 import { POSTS_PER_PAGE } from '@/config/blog';
 import { absoluteUrl } from '@/lib/seo';
+import { db } from '@/lib/db';
 import type { MetadataRoute } from 'next';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
@@ -10,6 +11,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     getAllCategories(),
   ]);
 
+  let products: { slug: string; updatedAt: Date; createdAt: Date }[] = [];
+  try {
+    products = await db.product.findMany({
+      where: { status: 'ACTIVE' },
+      select: { slug: true, updatedAt: true, createdAt: true },
+    });
+  } catch (err) {
+    console.warn('Lỗi tải sản phẩm cho sitemap:', err);
+  }
+
   const latest = posts[0]?.publishedAt ?? new Date().toISOString().slice(0, 10);
   const totalPages = Math.ceil(posts.length / POSTS_PER_PAGE);
 
@@ -17,10 +28,22 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: absoluteUrl('/'), lastModified: latest, changeFrequency: 'weekly', priority: 1 },
     { url: absoluteUrl('/blog'), lastModified: latest, changeFrequency: 'weekly', priority: 0.9 },
     {
+      url: absoluteUrl('/shop'),
+      lastModified: latest,
+      changeFrequency: 'weekly',
+      priority: 0.9,
+    },
+    {
       url: absoluteUrl('/courses'),
       lastModified: latest,
       changeFrequency: 'weekly',
       priority: 0.9,
+    },
+    {
+      url: absoluteUrl('/affiliate'),
+      lastModified: latest,
+      changeFrequency: 'weekly',
+      priority: 0.8,
     },
     {
       url: absoluteUrl('/pro'),
@@ -58,6 +81,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: latest,
       changeFrequency: 'weekly' as const,
       priority: 0.3,
+    })),
+
+    ...products.map((product) => ({
+      url: absoluteUrl(`/shop/${product.slug}`),
+      lastModified: (product.updatedAt ?? product.createdAt).toISOString().slice(0, 10),
+      changeFrequency: 'weekly' as const,
+      priority: 0.7,
     })),
   ];
 }

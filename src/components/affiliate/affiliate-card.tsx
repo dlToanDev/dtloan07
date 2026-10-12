@@ -22,7 +22,7 @@ export function AffiliateCard({ deal, variant = 'grid' }: AffiliateCardProps) {
       rel="sponsored nofollow noopener"
       aria-label={`Xem sản phẩm ${deal.name}`}
       className={cn(
-        'group border-border bg-card focus-visible:ring-ring overflow-hidden rounded-2xl border shadow-sm transition duration-200 hover:-translate-y-1 hover:border-blue-500/50 hover:shadow-lg focus-visible:ring-2 focus-visible:outline-none',
+        'group border-border bg-card focus-visible:ring-ring hover:border-primary/50 overflow-hidden rounded-2xl border shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-lg focus-visible:ring-2 focus-visible:outline-none',
         isList ? 'flex flex-col sm:flex-row sm:items-center' : 'block',
       )}
     >
@@ -64,14 +64,19 @@ export function AffiliateCard({ deal, variant = 'grid' }: AffiliateCardProps) {
         )}
       >
         <div className="flex-1 space-y-1.5">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-1.5">
             {deal.platform && (
               <span className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
                 {deal.platform}
               </span>
             )}
+            {deal.subCategory && (
+              <span className="bg-muted text-foreground rounded px-1.5 py-0 text-[11px] font-medium">
+                {deal.subCategory}
+              </span>
+            )}
             {deal.perks && (
-              <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+              <span className="text-success inline-flex items-center gap-1 text-xs font-medium">
                 <Tag className="size-3" /> {deal.perks}
               </span>
             )}

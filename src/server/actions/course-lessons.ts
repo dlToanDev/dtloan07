@@ -1,6 +1,9 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { mkdir, writeFile } from 'node:fs/promises';
+import path from 'node:path';
+import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
@@ -128,6 +131,26 @@ export async function updateLesson(
   await db.lesson.update({ where: { id }, data: { ...data, videoUrl: data.videoUrl || null } });
   await revalidateCourse(courseId);
   return { ok: true, data: null };
+}
+
+/** Chuyển nhanh bài học giữa Nháp (DRAFT) <-> Đã xuất bản (PUBLISHED). */
+export async function toggleLessonStatus(
+  id: string,
+): Promise<Result<{ status: 'DRAFT' | 'PUBLISHED' }>> {
+  await requireAdmin();
+  const courseId = await lessonCourseId(id);
+  const current = await db.lesson.findUnique({
+    where: { id },
+    select: { id: true, status: true },
+  });
+  if (!current) return { ok: false, error: 'Không tìm thấy bài học.' };
+  const nextStatus = current.status === 'PUBLISHED' ? 'DRAFT' : 'PUBLISHED';
+  await db.lesson.update({
+    where: { id },
+    data: { status: nextStatus },
+  });
+  await revalidateCourse(courseId);
+  return { ok: true, data: { status: nextStatus } };
 }
 
 export async function deleteLesson(id: string): Promise<Result> {
@@ -367,17 +390,93 @@ export async function deleteLessonAttachment(id: string): Promise<Result> {
   return { ok: true, data: null };
 }
 
-// ---------------------------------------------------------------- Bài tập
+// ---------------------------------------------------------------- Bài tập & Trắc nghiệm / Ngữ liệu
 
-export async function createExercise(lessonId: string): Promise<Result<{ id: string }>> {
+const QUIZ_MEDIA_DIR = path.join(process.cwd(), 'public', 'uploads', 'courses', 'media');
+const ALLOWED_MEDIA_EXTS = new Set([
+  '.mp3',
+  '.wav',
+  '.ogg',
+  '.m4a',
+  '.aac',
+  '.png',
+  '.jpg',
+  '.jpeg',
+  '.webp',
+  '.svg',
+  '.gif',
+]);
+
+/** Tải lên file âm thanh (.mp3, .wav...) hoặc hình ảnh (.png, .jpg...) làm ngữ liệu bài tập */
+export async function uploadQuizMedia(formData: FormData): Promise<Result<{ url: string }>> {
+  await requireAdmin();
+  const file = formData.get('file');
+  if (!(file instanceof File) || file.size === 0) {
+    return { ok: false, error: 'Vui lòng chọn file phương tiện (âm thanh hoặc hình ảnh).' };
+  }
+  // Giới hạn 25MB cho audio/hình ảnh
+  if (file.size > 25 * 1024 * 1024) {
+    return { ok: false, error: 'File vượt quá dung lượng tối đa (25 MB).' };
+  }
+  const ext = path.extname(file.name).toLowerCase();
+  if (!ALLOWED_MEDIA_EXTS.has(ext)) {
+    return {
+      ok: false,
+      error:
+        'Định dạng file không hỗ trợ. Cho phép: MP3, WAV, OGG, M4A, PNG, JPG, JPEG, WebP, SVG.',
+    };
+  }
+  const cleanName = path
+    .basename(file.name, ext)
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .slice(0, 30);
+  const fileName = `quiz-${cleanName || 'media'}-${Date.now()}-${randomUUID().slice(0, 6)}${ext}`;
+  const targetPath = path.join(QUIZ_MEDIA_DIR, fileName);
+
+  try {
+    await mkdir(QUIZ_MEDIA_DIR, { recursive: true });
+    const buffer = Buffer.from(await file.arrayBuffer());
+    await writeFile(targetPath, buffer);
+    return { ok: true, data: { url: `/uploads/courses/media/${fileName}` } };
+  } catch (err) {
+    console.error('Lỗi lưu file media quiz:', err);
+    return { ok: false, error: 'Không thể lưu file lên máy chủ.' };
+  }
+}
+
+export async function createExercise(
+  lessonId: string,
+  type: 'CODE' | 'QUIZ' = 'CODE',
+): Promise<Result<{ id: string }>> {
   await requireAdmin();
   const count = await db.exercise.count({ where: { lessonId } });
+  const isQuiz = type === 'QUIZ';
   const exercise = await db.exercise.create({
     data: {
       lessonId,
-      title: `Bài tập ${count + 1}`,
+      type,
+      title: isQuiz ? `Trắc nghiệm & Ngữ liệu ${count + 1}` : `Bài tập ${count + 1}`,
       sortOrder: (count + 1) * 10,
-      languages: ['cpp', 'python'],
+      languages: isQuiz ? [] : ['cpp', 'python'],
+      questions: isQuiz
+        ? [
+            {
+              id: 'q1',
+              type: 'SINGLE',
+              prompt: 'Nội dung câu hỏi 1 (VD: Thông tin nào sau đây chính xác theo đoạn văn?)',
+              options: [
+                { id: 'opt-a', text: 'Lựa chọn A', isCorrect: true },
+                { id: 'opt-b', text: 'Lựa chọn B', isCorrect: false },
+                { id: 'opt-c', text: 'Lựa chọn C', isCorrect: false },
+                { id: 'opt-d', text: 'Lựa chọn D', isCorrect: false },
+              ],
+              explanation: 'Giải thích chi tiết vì sao đáp án A chính xác.',
+            },
+          ]
+        : [],
     },
   });
   await revalidateCourse(await lessonCourseId(lessonId));
@@ -390,56 +489,125 @@ const testCaseSchema = z.object({
   isSample: z.boolean(),
 });
 
-const exerciseSchema = z.object({
-  title: z.string().trim().min(1, 'Nhập tên bài tập.').max(200),
-  statement: z.string().max(200_000, 'Đề bài quá dài.'),
-  languages: z
-    .array(z.string().refine(isLanguageKey, 'Ngôn ngữ không hợp lệ.'))
-    .min(1, 'Chọn ít nhất một ngôn ngữ.'),
-  starterCode: z.record(z.string().max(MAX_CODE_BYTES, 'Code mẫu quá dài.')),
-  timeLimitMs: z.coerce
-    .number()
-    .int()
-    .min(100, 'Giới hạn thời gian tối thiểu 100 ms.')
-    .max(MAX_TIME_LIMIT_MS, `Giới hạn thời gian tối đa ${MAX_TIME_LIMIT_MS} ms.`),
-  memoryLimitMb: z.coerce
-    .number()
-    .int()
-    .min(16, 'Giới hạn bộ nhớ tối thiểu 16 MB.')
-    .max(MAX_MEMORY_LIMIT_MB, `Giới hạn bộ nhớ tối đa ${MAX_MEMORY_LIMIT_MB} MB.`),
-  testCases: z.array(testCaseSchema).max(100, 'Tối đa 100 test mỗi bài.'),
+const quizOptionSchema = z.object({
+  id: z.string(),
+  text: z.string().trim().min(1, 'Nội dung lựa chọn không được để trống.'),
+  isCorrect: z.boolean().optional(),
 });
+
+const quizQuestionSchema = z.object({
+  id: z.string(),
+  type: z.enum(['SINGLE', 'MULTIPLE', 'FILL_BLANK']),
+  prompt: z.string().trim().min(1, 'Nội dung câu hỏi không được để trống.'),
+  options: z.array(quizOptionSchema).optional(),
+  acceptableAnswers: z.array(z.string().trim()).optional(),
+  explanation: z.string().optional(),
+});
+
+const exerciseSchema = z
+  .object({
+    title: z.string().trim().min(1, 'Nhập tên bài tập.').max(200),
+    type: z.enum(['CODE', 'QUIZ']).default('CODE'),
+    statement: z.string().max(200_000, 'Đề bài quá dài.').default(''),
+    passage: z.string().max(200_000).nullable().optional(),
+    audioUrl: z.string().max(1000).nullable().optional(),
+    imageUrl: z.string().max(1000).nullable().optional(),
+    videoUrl: z.string().max(1000).nullable().optional(),
+    isPublicPractice: z.boolean().default(false),
+    category: z.string().max(100).nullable().optional(),
+    difficulty: z.enum(['EASY', 'MEDIUM', 'HARD']).default('MEDIUM'),
+    questions: z.array(quizQuestionSchema).default([]),
+    languages: z.array(z.string().refine(isLanguageKey, 'Ngôn ngữ không hợp lệ.')).default([]),
+    starterCode: z.record(z.string().max(MAX_CODE_BYTES, 'Code mẫu quá dài.')).default({}),
+    timeLimitMs: z.coerce
+      .number()
+      .int()
+      .min(100, 'Giới hạn thời gian tối thiểu 100 ms.')
+      .max(MAX_TIME_LIMIT_MS, `Giới hạn thời gian tối đa ${MAX_TIME_LIMIT_MS} ms.`)
+      .default(2000),
+    memoryLimitMb: z.coerce
+      .number()
+      .int()
+      .min(16, 'Giới hạn bộ nhớ tối thiểu 16 MB.')
+      .max(MAX_MEMORY_LIMIT_MB, `Giới hạn bộ nhớ tối đa ${MAX_MEMORY_LIMIT_MB} MB.`)
+      .default(256),
+    testCases: z.array(testCaseSchema).max(100, 'Tối đa 100 test mỗi bài.').default([]),
+  })
+  .superRefine((data, ctx) => {
+    if (data.type === 'CODE') {
+      if (data.languages.length === 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Bài tập code cần chọn ít nhất một ngôn ngữ.',
+          path: ['languages'],
+        });
+      }
+    } else if (data.type === 'QUIZ') {
+      if (data.questions.length === 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: 'Bài tập trắc nghiệm cần có ít nhất một câu hỏi.',
+          path: ['questions'],
+        });
+      }
+    }
+  });
 
 export type ExerciseInput = z.input<typeof exerciseSchema>;
 
-/** Lưu toàn bộ bài tập, thay danh sách test bằng danh sách mới. */
+/** Lưu toàn bộ bài tập (Code hoặc Trắc nghiệm), thay danh sách test bằng danh sách mới. */
 export async function saveExercise(id: string, input: ExerciseInput): Promise<Result> {
   await requireAdmin();
   const parsed = exerciseSchema.safeParse(input);
   if (!parsed.success) return { ok: false, error: parsed.error.errors[0]!.message };
-  const { testCases, starterCode, ...data } = parsed.data;
+  const { testCases, starterCode, questions, ...data } = parsed.data;
   const exercise = await db.exercise.findUnique({ where: { id }, select: { lessonId: true } });
   if (!exercise) return { ok: false, error: 'Không tìm thấy bài tập.' };
-  // Chỉ giữ code mẫu của các ngôn ngữ đang cho phép.
+
+  // Chỉ giữ code mẫu của các ngôn ngữ đang cho phép (nếu là bài code)
   const allowed = new Set<string>(data.languages);
   const starter = Object.fromEntries(
     Object.entries(starterCode).filter(([lang, code]) => allowed.has(lang) && code.trim()),
   );
+
   await db.$transaction([
-    db.exercise.update({ where: { id }, data: { ...data, starterCode: starter } }),
+    db.exercise.update({
+      where: { id },
+      data: {
+        ...data,
+        starterCode: starter,
+        questions: questions ?? [],
+        passage: data.passage || null,
+        audioUrl: data.audioUrl || null,
+        imageUrl: data.imageUrl || null,
+        videoUrl: data.videoUrl || null,
+        isPublicPractice: data.isPublicPractice ?? false,
+        category: data.category?.trim() || null,
+        difficulty: data.difficulty ?? 'MEDIUM',
+      },
+    }),
     db.testCase.deleteMany({ where: { exerciseId: id } }),
     db.testCase.createMany({
       data: testCases.map((test, index) => ({ ...test, exerciseId: id, sortOrder: index })),
     }),
   ]);
-  await revalidateCourse(await lessonCourseId(exercise.lessonId));
+  if (exercise.lessonId) {
+    await revalidateCourse(await lessonCourseId(exercise.lessonId));
+  }
+  revalidatePath('/courses/practice');
+  revalidatePath('/admin/practice');
+  revalidatePath(`/courses/practice/${id}`);
   return { ok: true, data: null };
 }
 
 export async function deleteExercise(id: string): Promise<Result> {
   await requireAdmin();
   const exercise = await db.exercise.delete({ where: { id } });
-  await revalidateCourse(await lessonCourseId(exercise.lessonId));
+  if (exercise.lessonId) {
+    await revalidateCourse(await lessonCourseId(exercise.lessonId));
+  }
+  revalidatePath('/courses/practice');
+  revalidatePath('/admin/practice');
   return { ok: true, data: null };
 }
 

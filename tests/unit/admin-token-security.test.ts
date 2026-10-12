@@ -220,16 +220,15 @@ describe('Admin Dynamic URL Token & Security Hardening Tests', () => {
       tokenCandidate?: string;
       ip?: string;
     }): Promise<{ allowed: boolean; status: number; reason?: string }> {
-      const ip = params.ip || '127.0.0.1';
-      const scanLimit = checkAdminScanRateLimit(ip);
-      if (!scanLimit.success) {
-        return { allowed: false, status: 429, reason: 'RATE_LIMITED' };
-      }
-
       const isLoggedIn = Boolean(params.session?.user);
       const isAdmin = isLoggedIn && params.session?.user?.role === 'ADMIN';
 
       if (!isAdmin) {
+        const ip = params.ip || '127.0.0.1';
+        const scanLimit = checkAdminScanRateLimit(ip);
+        if (!scanLimit.success) {
+          return { allowed: false, status: 429, reason: 'RATE_LIMITED' };
+        }
         // Cloaking: 404 Not Found để không tiết lộ trang admin tồn tại
         return { allowed: false, status: 404, reason: 'CLOAKED_NOT_FOUND' };
       }

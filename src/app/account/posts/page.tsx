@@ -42,8 +42,8 @@ export default async function MyPostsPage() {
       </div>
 
       {warnings.length > 0 && (
-        <div className="space-y-2 rounded-xl border border-red-500/30 bg-red-500/5 p-4 text-sm">
-          <p className="font-semibold text-red-600">
+        <div className="border-destructive/30 bg-destructive/10 text-destructive space-y-2 rounded-xl border p-4 text-sm">
+          <p className="font-semibold">
             Bạn đã nhận {warnings.length}/{WARNING_LIMIT} cảnh báo. Đủ {WARNING_LIMIT} cảnh báo tài
             khoản sẽ bị khóa.
           </p>

@@ -191,7 +191,7 @@ export function LessonEditor({
         {videoMode === 'link' ? (
           <>
             {value.videoFile && (
-              <p className="rounded-lg bg-amber-500/10 p-3 text-sm text-amber-700">
+              <p className="bg-warning/10 text-warning rounded-lg p-3 text-sm">
                 Bài đang có video tải lên ({value.videoFile.name}) — video tải lên được ưu tiên hiển
                 thị. Gỡ video đó ở tab “Tải file video lên” nếu muốn dùng link.
               </p>
@@ -203,7 +203,9 @@ export function LessonEditor({
               onChange={(event) => patch({ videoUrl: event.target.value })}
             />
             {value.videoUrl && !video && (
-              <p className="text-sm text-red-600">Link chưa đúng — cần link YouTube hoặc Vimeo.</p>
+              <p className="text-destructive text-sm">
+                Link chưa đúng — cần link YouTube hoặc Vimeo.
+              </p>
             )}
             {video && (
               <div className="aspect-video max-w-xl overflow-hidden rounded-lg bg-black">
@@ -412,7 +414,7 @@ export function LessonEditor({
       <div className="border-border bg-background/95 sticky bottom-0 z-20 -mx-4 flex flex-wrap items-center gap-3 border-t px-4 py-3 backdrop-blur sm:mx-0 sm:rounded-t-xl sm:border-x">
         <span
           className={`min-w-0 flex-1 truncate text-sm ${
-            message?.tone === 'bad' ? 'text-red-600' : 'text-muted-foreground'
+            message?.tone === 'bad' ? 'text-destructive' : 'text-muted-foreground'
           }`}
         >
           {pending || uploads > 0 ? (
@@ -426,12 +428,7 @@ export function LessonEditor({
         <Button type="button" variant="outline" disabled={busy} onClick={() => save('DRAFT')}>
           {value.status === 'PUBLISHED' ? 'Chuyển về nháp' : 'Lưu nháp'}
         </Button>
-        <Button
-          type="button"
-          className="bg-emerald-600 text-white hover:bg-emerald-700"
-          disabled={busy}
-          onClick={() => save('PUBLISHED')}
-        >
+        <Button type="button" variant="success" disabled={busy} onClick={() => save('PUBLISHED')}>
           {value.status === 'PUBLISHED' ? 'Lưu' : 'Lưu & xuất bản'}
         </Button>
       </div>

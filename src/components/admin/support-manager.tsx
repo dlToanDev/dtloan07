@@ -39,17 +39,17 @@ const STATUS_LABELS: Record<
 > = {
   PENDING: {
     label: 'Chờ tiếp nhận',
-    badgeClass: 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30',
+    badgeClass: 'bg-warning/10 text-warning-foreground border-warning/30',
     icon: Clock,
   },
   IN_PROGRESS: {
     label: 'Đang xử lý',
-    badgeClass: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30',
+    badgeClass: 'bg-success/10 text-success border-success/30',
     icon: Headset,
   },
   RESOLVED: {
     label: 'Xử lý hoàn tất',
-    badgeClass: 'bg-slate-500/10 text-slate-600 dark:text-slate-400 border-slate-500/30',
+    badgeClass: 'bg-muted text-muted-foreground border-border',
     icon: CheckCircle2,
   },
 };
@@ -275,7 +275,7 @@ export function SupportManager({ initialTickets }: { initialTickets: TicketWithS
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-foreground flex items-center gap-2.5 text-2xl font-bold tracking-tight">
-            <div className="flex size-9 items-center justify-center rounded-xl border border-violet-500/20 bg-violet-500/10 text-violet-500">
+            <div className="border-primary/20 bg-primary/10 text-primary flex size-9 items-center justify-center rounded-xl border">
               <Headset className="size-5" />
             </div>
             <span>Trợ giúp & Hỗ trợ khách hàng</span>
@@ -304,23 +304,21 @@ export function SupportManager({ initialTickets }: { initialTickets: TicketWithS
           className={cn(
             'flex cursor-pointer items-center justify-between rounded-2xl border p-4 shadow-xs transition',
             filter === 'PENDING'
-              ? 'border-amber-500 bg-amber-500/10 ring-2 ring-amber-500/20'
+              ? 'border-warning bg-warning/10 ring-warning/20 ring-2'
               : 'border-border bg-card hover:bg-muted/40',
           )}
         >
           <div className="flex items-center gap-3">
-            <div className="flex size-10 items-center justify-center rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400">
+            <div className="bg-warning/15 text-warning-foreground flex size-10 items-center justify-center rounded-xl">
               <Clock className="size-5" />
             </div>
             <div>
               <p className="text-muted-foreground text-xs font-medium">Chờ tiếp nhận</p>
-              <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">
-                {counts.pending}
-              </p>
+              <p className="text-warning-foreground text-2xl font-bold">{counts.pending}</p>
             </div>
           </div>
           {counts.pending > 0 && (
-            <span className="flex size-2 animate-ping rounded-full bg-amber-500" />
+            <span className="bg-warning flex size-2 animate-ping rounded-full" />
           )}
         </div>
 
@@ -329,22 +327,20 @@ export function SupportManager({ initialTickets }: { initialTickets: TicketWithS
           className={cn(
             'flex cursor-pointer items-center justify-between rounded-2xl border p-4 shadow-xs transition',
             filter === 'IN_PROGRESS'
-              ? 'border-emerald-500 bg-emerald-500/10 ring-2 ring-emerald-500/20'
+              ? 'border-success bg-success/10 ring-success/20 ring-2'
               : 'border-border bg-card hover:bg-muted/40',
           )}
         >
           <div className="flex items-center gap-3">
-            <div className="flex size-10 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">
+            <div className="bg-success/15 text-success flex size-10 items-center justify-center rounded-xl">
               <Headset className="size-5" />
             </div>
             <div>
               <p className="text-muted-foreground text-xs font-medium">Đang xử lý (Đã kết nối)</p>
-              <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
-                {counts.inProgress}
-              </p>
+              <p className="text-success text-2xl font-bold">{counts.inProgress}</p>
             </div>
           </div>
-          {counts.inProgress > 0 && <span className="size-2 rounded-full bg-emerald-500" />}
+          {counts.inProgress > 0 && <span className="bg-success size-2 rounded-full" />}
         </div>
 
         <div
@@ -352,19 +348,17 @@ export function SupportManager({ initialTickets }: { initialTickets: TicketWithS
           className={cn(
             'flex cursor-pointer items-center justify-between rounded-2xl border p-4 shadow-xs transition',
             filter === 'RESOLVED'
-              ? 'border-slate-500 bg-slate-500/10 ring-2 ring-slate-500/20'
+              ? 'border-border bg-muted ring-border ring-2'
               : 'border-border bg-card hover:bg-muted/40',
           )}
         >
           <div className="flex items-center gap-3">
-            <div className="flex size-10 items-center justify-center rounded-xl bg-slate-500/15 text-slate-600 dark:text-slate-400">
+            <div className="bg-muted text-muted-foreground flex size-10 items-center justify-center rounded-xl">
               <CheckCircle2 className="size-5" />
             </div>
             <div>
               <p className="text-muted-foreground text-xs font-medium">Xử lý hoàn tất (Đã đóng)</p>
-              <p className="text-2xl font-bold text-slate-700 dark:text-slate-300">
-                {counts.resolved}
-              </p>
+              <p className="text-foreground text-2xl font-bold">{counts.resolved}</p>
             </div>
           </div>
         </div>
@@ -426,13 +420,13 @@ export function SupportManager({ initialTickets }: { initialTickets: TicketWithS
                 className={cn(
                   'flex items-center gap-1 rounded-lg px-2.5 py-1 font-medium whitespace-nowrap transition',
                   filter === 'PENDING'
-                    ? 'bg-amber-600 font-semibold text-white shadow-2xs'
-                    : 'text-amber-600 hover:bg-amber-500/10 dark:text-amber-400',
+                    ? 'bg-warning text-warning-foreground font-semibold shadow-2xs'
+                    : 'text-warning hover:bg-warning/10',
                 )}
               >
                 <span>Chờ duyệt</span>
                 {counts.pending > 0 && (
-                  <span className="rounded-full bg-amber-100 px-1.5 text-[10px] font-bold text-amber-900">
+                  <span className="bg-warning/20 text-warning rounded-full px-1.5 text-[10px] font-bold">
                     {counts.pending}
                   </span>
                 )}
@@ -443,8 +437,8 @@ export function SupportManager({ initialTickets }: { initialTickets: TicketWithS
                 className={cn(
                   'rounded-lg px-2.5 py-1 font-medium whitespace-nowrap transition',
                   filter === 'IN_PROGRESS'
-                    ? 'bg-emerald-600 font-semibold text-white shadow-2xs'
-                    : 'text-emerald-600 hover:bg-emerald-500/10 dark:text-emerald-400',
+                    ? 'bg-info text-info-foreground font-semibold shadow-2xs'
+                    : 'text-info hover:bg-info/10',
                 )}
               >
                 Đang xử lý ({counts.inProgress})
@@ -524,7 +518,7 @@ export function SupportManager({ initialTickets }: { initialTickets: TicketWithS
                           {latestMsg.content}
                         </span>
                         {latestMsg.imageUrl && (
-                          <span className="ml-1 shrink-0 text-[10px] font-semibold text-emerald-600">
+                          <span className="text-success ml-1 shrink-0 text-[10px] font-semibold">
                             [Ảnh]
                           </span>
                         )}
@@ -600,7 +594,7 @@ export function SupportManager({ initialTickets }: { initialTickets: TicketWithS
                         type="button"
                         onClick={() => handleUpdateStatus('IN_PROGRESS')}
                         disabled={isUpdatingStatus}
-                        className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 px-3.5 py-2 text-xs font-bold text-white shadow-md transition hover:from-emerald-700 hover:to-teal-700 hover:shadow-emerald-500/20 active:scale-95 disabled:opacity-50"
+                        className="bg-primary text-primary-foreground inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-semibold shadow-xs transition hover:opacity-90 active:scale-95 disabled:opacity-50"
                       >
                         {isUpdatingStatus ? (
                           <Loader2 className="size-3.5 animate-spin" />
@@ -617,7 +611,7 @@ export function SupportManager({ initialTickets }: { initialTickets: TicketWithS
                         type="button"
                         onClick={() => handleUpdateStatus('RESOLVED')}
                         disabled={isUpdatingStatus}
-                        className="inline-flex items-center gap-1.5 rounded-xl bg-slate-700 px-3.5 py-2 text-xs font-bold text-white shadow-xs transition hover:bg-slate-800 active:scale-95 disabled:opacity-50"
+                        className="border-border bg-muted text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 rounded-xl border px-3.5 py-2 text-xs font-semibold shadow-xs transition active:scale-95 disabled:opacity-50"
                         title="Đánh dấu hoàn tất và đóng cuộc chat"
                       >
                         {isUpdatingStatus ? (
@@ -635,7 +629,7 @@ export function SupportManager({ initialTickets }: { initialTickets: TicketWithS
                         type="button"
                         onClick={() => handleUpdateStatus('IN_PROGRESS')}
                         disabled={isUpdatingStatus}
-                        className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3.5 py-2 text-xs font-bold text-white shadow-xs transition hover:bg-emerald-700 active:scale-95 disabled:opacity-50"
+                        className="border-primary/30 bg-primary/10 text-primary hover:bg-primary/20 inline-flex items-center gap-1.5 rounded-xl border px-3.5 py-2 text-xs font-semibold shadow-xs transition active:scale-95 disabled:opacity-50"
                       >
                         {isUpdatingStatus ? (
                           <Loader2 className="size-3.5 animate-spin" />
@@ -680,9 +674,9 @@ export function SupportManager({ initialTickets }: { initialTickets: TicketWithS
 
               {/* Thông báo trạng thái theo thời gian thực */}
               {activeTicket.status === 'PENDING' && (
-                <div className="flex items-center justify-between gap-2 border-b border-amber-500/20 bg-amber-500/10 p-3 text-xs text-amber-800 dark:text-amber-300">
+                <div className="border-warning/20 bg-warning/10 text-warning-foreground flex items-center justify-between gap-2 border-b p-3 text-xs">
                   <div className="flex items-center gap-2">
-                    <Clock className="size-4 shrink-0 animate-pulse text-amber-600" />
+                    <Clock className="text-warning size-4 shrink-0 animate-pulse" />
                     <span>
                       Đơn đang ở trạng thái <strong>Chờ tiếp nhận</strong>. Khách hàng chưa thể nhắn
                       tin tiếp cho đến khi bạn xác nhận!
@@ -692,7 +686,7 @@ export function SupportManager({ initialTickets }: { initialTickets: TicketWithS
                     type="button"
                     onClick={() => handleUpdateStatus('IN_PROGRESS')}
                     disabled={isUpdatingStatus}
-                    className="shrink-0 rounded-lg bg-amber-600 px-2.5 py-1 text-[11px] font-bold text-white transition hover:bg-amber-700"
+                    className="bg-primary text-primary-foreground shrink-0 rounded-lg px-2.5 py-1 text-[11px] font-bold transition hover:opacity-90"
                   >
                     Tiếp nhận ngay
                   </button>
@@ -700,9 +694,9 @@ export function SupportManager({ initialTickets }: { initialTickets: TicketWithS
               )}
 
               {activeTicket.status === 'RESOLVED' && (
-                <div className="border-border flex items-center justify-between gap-2 border-b bg-slate-500/10 p-3 text-xs text-slate-700 dark:text-slate-300">
+                <div className="border-border bg-muted/40 text-muted-foreground flex items-center justify-between gap-2 border-b p-3 text-xs">
                   <div className="flex items-center gap-2">
-                    <CheckCircle2 className="size-4 shrink-0 text-slate-500" />
+                    <CheckCircle2 className="text-success size-4 shrink-0" />
                     <span>
                       Đơn này đã được <strong>Xử lý hoàn tất</strong> và khóa chat phía khách hàng.
                       Bạn có thể bấm &quot;Mở lại&quot; nếu cần hỗ trợ thêm.
@@ -712,7 +706,7 @@ export function SupportManager({ initialTickets }: { initialTickets: TicketWithS
                     type="button"
                     onClick={() => handleUpdateStatus('IN_PROGRESS')}
                     disabled={isUpdatingStatus}
-                    className="bg-primary text-primary-foreground hover:bg-primary/90 shrink-0 rounded-lg px-2.5 py-1 text-[11px] font-bold transition"
+                    className="bg-primary text-primary-foreground shrink-0 rounded-lg px-2.5 py-1 text-[11px] font-bold transition hover:opacity-90"
                   >
                     Mở lại đơn chat
                   </button>
@@ -815,7 +809,7 @@ export function SupportManager({ initialTickets }: { initialTickets: TicketWithS
                     <button
                       type="button"
                       onClick={() => setAdminImage(null)}
-                      className="absolute -top-1.5 -right-1.5 rounded-full bg-rose-600 p-0.5 text-white shadow-md transition hover:bg-rose-700"
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90 absolute -top-1.5 -right-1.5 rounded-full p-0.5 shadow-md transition"
                     >
                       <X className="size-3" />
                     </button>

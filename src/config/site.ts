@@ -23,10 +23,12 @@ export const siteConfig = {
   },
   links: {
     github: 'https://github.com/dltoan07',
-    facebook: 'https://facebook.com/dltoan07',
+    facebook: 'https://www.facebook.com/profile.php?id=61595457981196',
     youtube: 'https://youtube.com/@dltoan07',
-    telegram: 'https://t.me/dltoan07Blog',
-    tiktok: 'https://tiktok.com/@dltoan07',
+    telegram: 'https://t.me/dltoan07_bot',
+    tiktok: 'https://www.tiktok.com/@dltoan07?lang=en',
+    x: 'https://x.com/dltoan07',
+    twitter: 'https://x.com/dltoan07',
   },
   nav: [
     { label: 'Trang chủ', href: '/' },

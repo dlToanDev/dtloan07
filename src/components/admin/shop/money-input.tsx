@@ -41,7 +41,7 @@ export function MoneyInput({
       <input
         ref={inputRef}
         className={`bg-background w-full min-w-0 rounded-lg border py-2 pr-7 pl-3 text-sm ${
-          invalid ? 'border-red-500' : 'border-border'
+          invalid ? 'border-destructive' : 'border-border'
         }`}
         aria-invalid={invalid || undefined}
         title={invalid ? 'Giá không hợp lệ. Ví dụ: 150k, 1.5tr' : undefined}

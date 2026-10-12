@@ -40,143 +40,88 @@ function saveView(newView: ViewMode) {
   window.dispatchEvent(new Event(VIEW_CHANGE_EVENT));
 }
 
-export interface AffiliateSubgroup {
-  id: string;
-  name: string;
-  match: (item: AffiliateItem) => boolean;
+function resolvePlatform(deal: AffiliateItem): string {
+  if (deal.platform && deal.platform.trim()) return deal.platform.trim();
+  if (deal.category === 'SHOPEE') return 'Shopee';
+  if (deal.category === 'TIKTOK') return 'TikTok Shop';
+  return 'Khác';
 }
-
-export interface AffiliateMainGroup {
-  id: string;
-  name: string;
-  match: (item: AffiliateItem) => boolean;
-  subgroups: AffiliateSubgroup[];
-}
-
-// CẤU TRÚC 2 TẦNG BẬC CHO AFFILIATE: TẦNG 1 (NHÓM NGÀNH) -> TẦNG 2 (SÀN / DỊCH VỤ CHI TIẾT)
-export const AFFILIATE_TIERS: AffiliateMainGroup[] = [
-  {
-    id: 'MARKETPLACE',
-    name: '🛍️ Sàn thương mại & Đồ vật lý',
-    match: (deal) => {
-      const cat = deal.category;
-      const s = deal.slug.toLowerCase();
-      const p = (deal.platform || '').toLowerCase();
-      return (
-        cat === 'SHOPEE' ||
-        cat === 'TIKTOK' ||
-        cat === 'SHOPPING' ||
-        p.includes('shopee') ||
-        p.includes('tiktok') ||
-        s.includes('shopee') ||
-        s.includes('tiktok') ||
-        s.includes('ban-phim') ||
-        s.includes('mic')
-      );
-    },
-    subgroups: [
-      {
-        id: 'SHOPEE',
-        name: '🧡 Sàn Shopee (Freeship & Voucher)',
-        match: (deal) =>
-          deal.category === 'SHOPEE' ||
-          (deal.platform || '').toLowerCase().includes('shopee') ||
-          deal.slug.includes('shopee'),
-      },
-      {
-        id: 'TIKTOK',
-        name: '⚫ TikTok Shop (Flash Sale & Review)',
-        match: (deal) =>
-          deal.category === 'TIKTOK' ||
-          (deal.platform || '').toLowerCase().includes('tiktok') ||
-          deal.slug.includes('tiktok'),
-      },
-      {
-        id: 'GEAR',
-        name: '⌨️ Bàn phím & Phụ kiện PC',
-        match: (deal) =>
-          deal.name.toLowerCase().includes('bàn phím') || deal.slug.includes('ban-phim'),
-      },
-    ],
-  },
-  {
-    id: 'CLOUD',
-    name: '☁️ Hạ tầng Cloud VPS & Máy chủ',
-    match: (deal) =>
-      deal.category === 'CLOUD' ||
-      (deal.platform || '').toLowerCase().includes('cloud') ||
-      deal.slug.includes('hetzner') ||
-      deal.slug.includes('digitalocean'),
-    subgroups: [
-      {
-        id: 'HETZNER',
-        name: '🔴 Hetzner Cloud (VPS Hiệu năng cao)',
-        match: (deal) =>
-          deal.slug.includes('hetzner') || (deal.platform || '').toLowerCase().includes('hetzner'),
-      },
-      {
-        id: 'DIGITALOCEAN',
-        name: '🔵 DigitalOcean (Managed Cloud & K8s)',
-        match: (deal) =>
-          deal.slug.includes('digitalocean') ||
-          (deal.platform || '').toLowerCase().includes('digitalocean'),
-      },
-    ],
-  },
-  {
-    id: 'DEVTOOLS',
-    name: '🛠️ Công cụ Lập trình & AI Editor',
-    match: (deal) =>
-      deal.category === 'DEVTOOLS' || deal.category === 'TOOLCODE' || deal.slug.includes('cursor'),
-    subgroups: [
-      {
-        id: 'CURSOR',
-        name: '🤖 Cursor AI Code Editor',
-        match: (deal) => deal.slug.includes('cursor') || deal.name.toLowerCase().includes('cursor'),
-      },
-    ],
-  },
-];
 
 export function AffiliateList({ initialDeals }: AffiliateListProps) {
   const view = useSyncExternalStore(subscribeToView, getSavedView, getServerView);
 
-  // States lọc 2 tầng
+  // States bộ lọc mua sắm: Sàn thương mại -> Danh mục hàng hóa
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedMainTier, setSelectedMainTier] = useState<string>('ALL');
-  const [selectedSubTier, setSelectedSubTier] = useState<string>('ALL');
+  const [selectedPlatform, setSelectedPlatform] = useState<string>('ALL');
+  const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
   const [sortBy, setSortBy] = useState<AffiliateSort>('featured');
   const [currentPage, setCurrentPage] = useState(1);
 
-  const activeMainGroup = useMemo(() => {
-    return AFFILIATE_TIERS.find((t) => t.id === selectedMainTier);
-  }, [selectedMainTier]);
+  // 1. Danh sách Sàn thực tế có sản phẩm trong hệ thống
+  const availablePlatforms = useMemo(() => {
+    const set = new Set<string>();
+    initialDeals.forEach((deal) => {
+      const p = resolvePlatform(deal);
+      if (p) set.add(p);
+    });
+    return Array.from(set).sort((a, b) => {
+      if (a.toLowerCase().includes('shopee')) return -1;
+      if (b.toLowerCase().includes('shopee')) return 1;
+      if (a.toLowerCase().includes('tiktok')) return -1;
+      if (b.toLowerCase().includes('tiktok')) return 1;
+      return a.localeCompare(b, 'vi');
+    });
+  }, [initialDeals]);
 
-  const availableSubgroups = useMemo(() => {
-    return activeMainGroup ? activeMainGroup.subgroups : [];
-  }, [activeMainGroup]);
+  // 2. Danh sách Danh mục hàng hóa thực tế theo sàn đang chọn
+  const availableCategories = useMemo(() => {
+    const set = new Set<string>();
+    const targetDeals =
+      selectedPlatform === 'ALL'
+        ? initialDeals
+        : initialDeals.filter(
+            (deal) => resolvePlatform(deal).toLowerCase() === selectedPlatform.toLowerCase(),
+          );
 
+    targetDeals.forEach((deal) => {
+      const c = deal.subCategory?.trim();
+      if (c) {
+        set.add(c);
+      }
+    });
+
+    return Array.from(set).sort((a, b) => a.localeCompare(b, 'vi'));
+  }, [initialDeals, selectedPlatform]);
+
+  // 3. Lọc danh sách deal
   const filteredDeals = useMemo(() => {
     const normalizedQuery = searchQuery.trim().toLocaleLowerCase('vi');
 
     const result = initialDeals.filter((deal) => {
-      // 1. Tìm kiếm từ khóa
-      const searchableText = [deal.name, deal.description, deal.platform]
+      // Tìm kiếm từ khóa
+      const searchableText = [
+        deal.name,
+        deal.description,
+        deal.platform,
+        deal.subCategory,
+        deal.perks,
+      ]
         .filter(Boolean)
         .join(' ')
         .toLocaleLowerCase('vi');
       const matchQuery = !normalizedQuery || searchableText.includes(normalizedQuery);
       if (!matchQuery) return false;
 
-      // 2. Lọc theo Tầng 1: Nhóm ngành
-      if (selectedMainTier !== 'ALL' && activeMainGroup) {
-        if (!activeMainGroup.match(deal)) return false;
+      // Lọc theo Sàn thương mại
+      if (selectedPlatform !== 'ALL') {
+        const p = resolvePlatform(deal);
+        if (p.toLowerCase() !== selectedPlatform.toLowerCase()) return false;
+      }
 
-        // 3. Lọc theo Tầng 2: Sàn / Dịch vụ con
-        if (selectedSubTier !== 'ALL') {
-          const sub = activeMainGroup.subgroups.find((s) => s.id === selectedSubTier);
-          if (sub && !sub.match(deal)) return false;
-        }
+      // Lọc theo Danh mục hàng hóa
+      if (selectedCategory !== 'ALL') {
+        const c = deal.subCategory?.trim() || '';
+        if (c.toLowerCase() !== selectedCategory.toLowerCase()) return false;
       }
 
       return true;
@@ -195,12 +140,12 @@ export function AffiliateList({ initialDeals }: AffiliateListProps) {
     });
 
     return result;
-  }, [initialDeals, searchQuery, selectedMainTier, activeMainGroup, selectedSubTier, sortBy]);
+  }, [initialDeals, searchQuery, selectedPlatform, selectedCategory, sortBy]);
 
   // Đặt lại trang khi thay đổi tìm kiếm hoặc bộ lọc
   useEffect(() => {
     setCurrentPage(1);
-  }, [selectedMainTier, selectedSubTier, searchQuery, sortBy]);
+  }, [selectedPlatform, selectedCategory, searchQuery, sortBy]);
 
   const totalPages = Math.max(1, Math.ceil(filteredDeals.length / PAGE_SIZE));
   const safeCurrentPage = Math.min(currentPage, totalPages);
@@ -211,30 +156,30 @@ export function AffiliateList({ initialDeals }: AffiliateListProps) {
   }, [filteredDeals, safeCurrentPage]);
 
   const hasActiveFilters =
-    selectedMainTier !== 'ALL' ||
-    selectedSubTier !== 'ALL' ||
+    selectedPlatform !== 'ALL' ||
+    selectedCategory !== 'ALL' ||
     searchQuery.trim() !== '' ||
     sortBy !== 'featured';
 
   const resetFilters = () => {
     setSearchQuery('');
-    setSelectedMainTier('ALL');
-    setSelectedSubTier('ALL');
+    setSelectedPlatform('ALL');
+    setSelectedCategory('ALL');
     setSortBy('featured');
     setCurrentPage(1);
   };
 
   return (
     <div className="space-y-6">
-      {/* KHUNG BỘ LỌC 2 TẦNG BẬC CHO AFFILIATE */}
+      {/* BỘ LỌC DEAL MUA SẮM */}
       <section
-        aria-label="Bộ lọc sản phẩm"
+        aria-label="Bộ lọc sản phẩm mua sắm"
         className="border-border bg-card/70 space-y-4 rounded-2xl border p-4 shadow-xs sm:p-5"
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <SlidersHorizontal className="text-primary size-4" />
-            <h2 className="text-sm font-bold">Tìm kiếm & Bộ lọc Deal 2 tầng bậc</h2>
+            <h2 className="text-sm font-bold">Bộ lọc deal mua sắm</h2>
           </div>
 
           {hasActiveFilters && (
@@ -248,7 +193,7 @@ export function AffiliateList({ initialDeals }: AffiliateListProps) {
           )}
         </div>
 
-        {/* Lưới Listbox 2 Tầng */}
+        {/* Lưới Bộ Lọc: Từ khóa | Sàn thương mại | Ngành hàng | Sắp xếp */}
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {/* Ô tìm kiếm */}
           <div className="relative">
@@ -257,71 +202,73 @@ export function AffiliateList({ initialDeals }: AffiliateListProps) {
             <Input
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
-              placeholder="Tìm tên hoặc mô tả deal..."
+              placeholder="Tìm theo tên sản phẩm, từ khóa..."
               className="h-10 pl-9 text-xs sm:text-sm"
             />
           </div>
 
-          {/* TẦNG 1: NHÓM NGÀNH HÀNG (Listbox) */}
+          {/* SÀN THƯƠNG MẠI */}
           <div>
-            <label className="sr-only">Tầng 1: Chọn nhóm ngành</label>
+            <label className="sr-only">Chọn sàn thương mại</label>
             <select
-              value={selectedMainTier}
+              value={selectedPlatform}
               onChange={(e) => {
-                setSelectedMainTier(e.target.value);
-                setSelectedSubTier('ALL'); // Reset tầng 2
+                setSelectedPlatform(e.target.value);
+                setSelectedCategory('ALL');
               }}
-              aria-label="Tầng 1: Chọn nhóm ngành"
+              aria-label="Chọn sàn thương mại"
               className="border-input bg-background text-foreground focus:ring-primary/40 h-10 w-full cursor-pointer rounded-md border px-3 text-xs font-medium outline-none focus:ring-2"
             >
-              <option value="ALL">🏪 Tất cả nhóm ngành / dịch vụ</option>
-              {AFFILIATE_TIERS.map((tier) => (
-                <option key={tier.id} value={tier.id}>
-                  {tier.name}
+              <option value="ALL">Tất cả sàn mua sắm</option>
+              {availablePlatforms.map((plat) => (
+                <option key={plat} value={plat}>
+                  {plat}
                 </option>
               ))}
             </select>
           </div>
 
-          {/* TẦNG 2: SÀN / DỊCH VỤ CHI TIẾT (Tự động đổi theo Tầng 1) */}
+          {/* NGÀNH HÀNG / DANH MỤC */}
           <div>
-            <label className="sr-only">Tầng 2: Chọn sàn hoặc dịch vụ</label>
+            <label className="sr-only">Chọn danh mục ngành hàng</label>
             <select
-              value={selectedSubTier}
-              onChange={(e) => setSelectedSubTier(e.target.value)}
-              disabled={selectedMainTier === 'ALL'}
-              aria-label="Tầng 2: Chọn dịch vụ con"
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+              disabled={availableCategories.length === 0}
+              aria-label="Chọn danh mục sản phẩm"
               className={`h-10 w-full cursor-pointer rounded-md border px-3 text-xs font-semibold transition outline-none ${
-                selectedMainTier === 'ALL'
+                availableCategories.length === 0
                   ? 'border-input/50 bg-muted/30 text-muted-foreground cursor-not-allowed'
                   : 'border-primary/50 bg-primary/5 text-primary focus:ring-primary/40 focus:ring-2'
               }`}
             >
               <option value="ALL">
-                {selectedMainTier === 'ALL'
-                  ? '📁 Chọn nhóm ngành trước'
-                  : `📂 Tất cả ${activeMainGroup?.name.split(' ')[1] || 'dịch vụ'}`}
+                {availableCategories.length === 0
+                  ? 'Chưa có ngành hàng'
+                  : selectedPlatform === 'ALL'
+                    ? 'Tất cả ngành hàng'
+                    : `Tất cả ngành hàng (${selectedPlatform})`}
               </option>
-              {availableSubgroups.map((sub) => (
-                <option key={sub.id} value={sub.id}>
-                  {sub.name}
+              {availableCategories.map((cat) => (
+                <option key={cat} value={cat}>
+                  {cat}
                 </option>
               ))}
             </select>
           </div>
 
-          {/* Sắp xếp */}
+          {/* SẮP XẾP */}
           <div>
-            <label className="sr-only">Sắp xếp</label>
+            <label className="sr-only">Sắp xếp ưu đãi</label>
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as AffiliateSort)}
-              aria-label="Sắp xếp deal"
+              aria-label="Sắp xếp sản phẩm"
               className="border-input bg-background text-foreground focus:ring-primary/40 h-10 w-full cursor-pointer rounded-md border px-3 text-xs font-medium outline-none focus:ring-2"
             >
-              <option value="featured">🔥 Ưu đãi nổi bật nhất</option>
-              <option value="newest">🕒 Mới cập nhật</option>
-              <option value="name_asc">🔤 Tên deal: A - Z</option>
+              <option value="featured">Ưu đãi nổi bật</option>
+              <option value="newest">Mới cập nhật</option>
+              <option value="name_asc">Tên sản phẩm (A - Z)</option>
             </select>
           </div>
         </div>
@@ -333,13 +280,13 @@ export function AffiliateList({ initialDeals }: AffiliateListProps) {
               Hiển thị <strong>{paginatedDeals.length}</strong> /{' '}
               <strong>{filteredDeals.length}</strong> sản phẩm
             </span>
-            {selectedMainTier !== 'ALL' && (
+            {selectedPlatform !== 'ALL' && (
               <span className="bg-primary/10 text-primary inline-flex items-center gap-1 rounded px-2 py-0.5 font-semibold">
-                {activeMainGroup?.name}
-                {selectedSubTier !== 'ALL' && (
+                Sàn: {selectedPlatform}
+                {selectedCategory !== 'ALL' && (
                   <>
                     <ChevronRight className="size-3" />
-                    {availableSubgroups.find((s) => s.id === selectedSubTier)?.name}
+                    {selectedCategory}
                   </>
                 )}
               </span>
@@ -350,7 +297,17 @@ export function AffiliateList({ initialDeals }: AffiliateListProps) {
         </div>
       </section>
 
-      {filteredDeals.length === 0 ? (
+      {/* DANH SÁCH SẢN PHẨM HOẶC EMPTY STATE */}
+      {initialDeals.length === 0 ? (
+        <div className="border-border rounded-2xl border border-dashed p-12 text-center">
+          <PackageSearch className="text-muted-foreground mx-auto size-10 stroke-1" />
+          <h3 className="mt-3 text-sm font-semibold">Chưa có sản phẩm nào được cập nhật</h3>
+          <p className="text-muted-foreground mt-1 text-xs">
+            Các sản phẩm ưu đãi từ Shopee, TikTok Shop sẽ sớm được cập nhật tại đây. Hãy quay lại
+            sau nhé!
+          </p>
+        </div>
+      ) : filteredDeals.length === 0 ? (
         <div className="border-border rounded-2xl border border-dashed p-12 text-center">
           <PackageSearch className="text-muted-foreground mx-auto size-10 stroke-1" />
           <h3 className="mt-3 text-sm font-semibold">Không tìm thấy sản phẩm phù hợp</h3>

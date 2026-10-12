@@ -197,11 +197,11 @@ export function BuyProButton({
               >
                 <div className="flex w-full items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <Wallet className="size-4 text-emerald-500" />
+                    <Wallet className="text-success size-4" />
                     <span className="text-sm font-semibold">Ví tài khoản</span>
                   </div>
                   {hasEnoughBalance && (
-                    <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
+                    <span className="bg-success/10 text-success rounded-full px-2 py-0.5 text-[10px] font-semibold">
                       Khả dụng
                     </span>
                   )}
@@ -282,7 +282,7 @@ export function BuyProButton({
                       onClick={() => setPreferredCurrency('VND')}
                       className={`flex-1 rounded-lg border px-2 py-1.5 text-center transition ${
                         preferredCurrency === 'VND'
-                          ? 'border-emerald-500 bg-emerald-500/10 font-bold text-emerald-600 dark:text-emerald-400'
+                          ? 'border-success bg-success/10 text-success font-bold'
                           : 'border-border text-muted-foreground hover:bg-muted/50'
                       }`}
                     >
@@ -293,7 +293,7 @@ export function BuyProButton({
                       onClick={() => setPreferredCurrency('USD')}
                       className={`flex-1 rounded-lg border px-2 py-1.5 text-center transition ${
                         preferredCurrency === 'USD'
-                          ? 'border-emerald-500 bg-emerald-500/10 font-bold text-emerald-600 dark:text-emerald-400'
+                          ? 'border-success bg-success/10 text-success font-bold'
                           : 'border-border text-muted-foreground hover:bg-muted/50'
                       }`}
                     >
@@ -307,13 +307,13 @@ export function BuyProButton({
               {wallet && (
                 <div>
                   {hasEnoughBalance ? (
-                    <div className="flex items-center gap-2 rounded-lg bg-emerald-500/10 p-2.5 text-xs text-emerald-700 dark:text-emerald-400">
+                    <div className="border-success/30 bg-success/10 text-success flex items-center gap-2 rounded-lg border p-2.5 text-xs">
                       <CheckCircle2 className="size-4 shrink-0" />
                       <span>Số dư ví đủ điều kiện. Tiền sẽ được trừ và kích hoạt PRO ngay.</span>
                     </div>
                   ) : (
                     <div className="space-y-2">
-                      <div className="flex items-center gap-2 rounded-lg bg-amber-500/10 p-2.5 text-xs text-amber-700 dark:text-amber-400">
+                      <div className="border-warning/30 bg-warning/10 text-warning flex items-center gap-2 rounded-lg border p-2.5 text-xs">
                         <AlertCircle className="size-4 shrink-0" />
                         <span>
                           Số dư ví không đủ (Tổng khả dụng:{' '}
@@ -390,7 +390,7 @@ export function BuyProButton({
           {error && (
             <div
               role="alert"
-              className="flex items-center gap-2 rounded-lg bg-rose-500/10 p-3 text-xs text-rose-600 dark:text-rose-400"
+              className="border-destructive/30 bg-destructive/10 text-destructive flex items-center gap-2 rounded-lg border p-3 text-xs"
             >
               <AlertCircle className="size-4 shrink-0" />
               <span>{error}</span>
@@ -400,7 +400,7 @@ export function BuyProButton({
           {successMessage && (
             <div
               role="status"
-              className="flex items-center gap-2 rounded-lg bg-emerald-500/10 p-3 text-xs font-semibold text-emerald-700 dark:text-emerald-400"
+              className="border-success/30 bg-success/10 text-success flex items-center gap-2 rounded-lg border p-3 text-xs font-semibold"
             >
               <CheckCircle2 className="size-4 shrink-0" />
               <span>{successMessage}</span>

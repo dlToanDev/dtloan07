@@ -178,7 +178,7 @@ export function CartDrawer() {
               {cartData?.errors && cartData.errors.length > 0 && (
                 <p
                   role="alert"
-                  className="rounded-md bg-amber-500/10 p-2 text-xs text-amber-700 dark:text-amber-400"
+                  className="border-warning/30 bg-warning/10 text-warning rounded-md border p-2 text-xs"
                 >
                   {cartData.errors.join(' ')}
                 </p>
@@ -265,10 +265,10 @@ export function CartDrawer() {
                 </Button>
               </div>
 
-              {couponError && <p className="text-xs text-rose-500">{couponError}</p>}
+              {couponError && <p className="text-destructive text-xs">{couponError}</p>}
 
               {cartData?.couponApplied && (
-                <div className="flex items-center justify-between rounded-md bg-emerald-500/10 px-2 py-1 text-xs text-emerald-600 dark:text-emerald-400">
+                <div className="border-success/30 bg-success/10 text-success flex items-center justify-between rounded-md border px-2 py-1 text-xs">
                   <div className="flex items-center gap-1.5 font-medium">
                     <Tag className="h-3.5 w-3.5" />
                     <span>
@@ -295,7 +295,7 @@ export function CartDrawer() {
                 <span>{(cartData?.subtotalVnd ?? 0).toLocaleString('vi-VN')} đ</span>
               </div>
               {(cartData?.discountVnd ?? 0) > 0 && (
-                <div className="flex justify-between text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                <div className="text-success flex justify-between text-xs font-medium">
                   <span>Giảm giá:</span>
                   <span>-{(cartData?.discountVnd ?? 0).toLocaleString('vi-VN')} đ</span>
                 </div>

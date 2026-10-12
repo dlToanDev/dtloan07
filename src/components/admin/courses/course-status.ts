@@ -8,16 +8,16 @@ export const COURSE_STATUS = {
   ACTIVE: {
     label: 'Đang mở',
     hint: 'Hiện trên web, học viên đăng ký và học được.',
-    className: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400',
+    className: 'bg-success/10 text-success',
   },
   UPCOMING: {
     label: 'Sắp mở',
     hint: 'Hiện trên web để giới thiệu, chưa cho học.',
-    className: 'bg-sky-500/10 text-sky-700 dark:text-sky-400',
+    className: 'bg-info/10 text-info',
   },
   ARCHIVED: {
     label: 'Lưu trữ',
     hint: 'Ẩn khỏi web; dữ liệu và tiến độ học viên được giữ.',
-    className: 'bg-amber-500/10 text-amber-700 dark:text-amber-400',
+    className: 'bg-warning/10 text-warning',
   },
 } as const;

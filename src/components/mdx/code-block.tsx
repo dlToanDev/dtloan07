@@ -47,7 +47,7 @@ export function CodeBlock({ className, children, ...props }: ComponentProps<'pre
         )}
       >
         {copied ? (
-          <Check className="size-4 text-emerald-500" aria-hidden="true" />
+          <Check className="text-success size-4" aria-hidden="true" />
         ) : (
           <Copy className="size-4" aria-hidden="true" />
         )}

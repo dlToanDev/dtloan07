@@ -290,7 +290,7 @@ export function CheckoutForm({
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <label htmlFor="email" className={fieldLabel}>
-                    Địa chỉ Email <span className="text-rose-500">*</span>
+                    Địa chỉ Email <span className="text-destructive">*</span>
                   </label>
                   <Input
                     id="email"
@@ -306,7 +306,7 @@ export function CheckoutForm({
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
                     <label htmlFor="name" className={fieldLabel}>
-                      Họ và tên <span className="text-rose-500">*</span>
+                      Họ và tên <span className="text-destructive">*</span>
                     </label>
                     <Input
                       id="name"
@@ -320,7 +320,7 @@ export function CheckoutForm({
                   </div>
                   <div className="space-y-2">
                     <label htmlFor="phone" className={fieldLabel}>
-                      Số điện thoại <span className="text-rose-500">*</span>
+                      Số điện thoại <span className="text-destructive">*</span>
                     </label>
                     <Input
                       id="phone"
@@ -352,7 +352,7 @@ export function CheckoutForm({
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
                     <label htmlFor="province" className={fieldLabel}>
-                      Tỉnh / Thành phố <span className="text-rose-500">*</span>
+                      Tỉnh / Thành phố <span className="text-destructive">*</span>
                     </label>
                     <select
                       id="province"
@@ -379,7 +379,7 @@ export function CheckoutForm({
 
                   <div className="space-y-2">
                     <label htmlFor="address" className={fieldLabel}>
-                      Địa chỉ chi tiết <span className="text-rose-500">*</span>
+                      Địa chỉ chi tiết <span className="text-destructive">*</span>
                     </label>
                     <Input
                       id="address"
@@ -436,11 +436,11 @@ export function CheckoutForm({
                   <div className="flex-1 text-sm">
                     <div className="flex items-center justify-between">
                       <span className="text-foreground flex items-center gap-2 font-semibold">
-                        <Wallet className="h-4 w-4 text-emerald-500" />
+                        <Wallet className="text-success h-4 w-4" />
                         Thanh toán bằng số dư Ví tài khoản
                       </span>
                       {wallet && wallet.totalInVnd >= grandTotalVnd && (
-                        <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
+                        <span className="bg-success/10 text-success rounded-full px-2 py-0.5 text-[10px] font-semibold">
                           Khả dụng
                         </span>
                       )}
@@ -478,7 +478,7 @@ export function CheckoutForm({
                           </div>
 
                           {wallet.totalInVnd >= grandTotalVnd ? (
-                            <div className="mt-1.5 flex items-center gap-1.5 text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
+                            <div className="text-success mt-1.5 flex items-center gap-1.5 text-[11px] font-medium">
                               <CheckCircle2 className="size-3.5 shrink-0" />
                               <span>
                                 Đủ số dư. Tiền sẽ được trừ trực tiếp và đơn hàng hoàn tất ngay lập
@@ -487,7 +487,7 @@ export function CheckoutForm({
                             </div>
                           ) : (
                             <div className="mt-1.5 space-y-1">
-                              <div className="flex items-center gap-1.5 text-[11px] font-medium text-amber-600 dark:text-amber-400">
+                              <div className="text-warning-foreground mt-1.5 flex items-center gap-1.5 text-[11px] font-medium">
                                 <AlertCircle className="size-3.5 shrink-0" />
                                 <span>
                                   Số dư ví không đủ ({wallet.totalInVnd.toLocaleString('vi-VN')} đ
@@ -529,7 +529,7 @@ export function CheckoutForm({
                   />
                   <span className="text-sm">
                     <span className="text-foreground flex items-center gap-2 font-semibold">
-                      <ShieldCheck className="h-4 w-4 text-emerald-500" />
+                      <ShieldCheck className="text-success h-4 w-4" />
                       Chuyển khoản / QR (PayOS)
                     </span>
                     <span className="text-muted-foreground mt-1 block text-xs leading-relaxed">
@@ -556,7 +556,7 @@ export function CheckoutForm({
                     />
                     <span className="text-sm">
                       <span className="text-foreground flex items-center gap-2 font-semibold">
-                        <Banknote className="h-4 w-4 text-emerald-500" />
+                        <Banknote className="text-success h-4 w-4" />
                         Thanh toán khi nhận hàng (COD)
                       </span>
                       <span className="text-muted-foreground mt-1 block text-xs leading-relaxed">
@@ -607,14 +607,14 @@ export function CheckoutForm({
                   </div>
 
                   {cartData.discountVnd > 0 && (
-                    <div className="flex justify-between text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                    <div className="text-success flex justify-between text-xs font-medium">
                       <span>Mã giảm giá ({cartData.couponApplied?.code}):</span>
                       <span>-{cartData.discountVnd.toLocaleString('vi-VN')} đ</span>
                     </div>
                   )}
 
                   {hasPhysical && !quoting && (shippingQuote?.shippingDiscountVnd ?? 0) > 0 && (
-                    <div className="flex justify-between text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                    <div className="text-success flex justify-between text-xs font-medium">
                       <span>
                         {shippingQuote?.proFreeShip
                           ? 'Free ship tài khoản Pro:'
@@ -650,14 +650,14 @@ export function CheckoutForm({
                 {cartData.errors && cartData.errors.length > 0 && (
                   <div
                     role="alert"
-                    className="rounded-lg bg-amber-500/10 p-3 text-xs text-amber-700 dark:text-amber-400"
+                    className="border-warning/20 bg-warning/10 text-warning-foreground rounded-lg border p-3 text-xs"
                   >
                     {cartData.errors.join(' ')}
                   </div>
                 )}
 
                 {error && (
-                  <div className="rounded-lg bg-rose-500/10 p-3 text-xs text-rose-600 dark:text-rose-400">
+                  <div className="border-destructive/20 bg-destructive/10 text-destructive rounded-lg border p-3 text-xs">
                     {error}
                   </div>
                 )}

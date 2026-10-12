@@ -9,9 +9,9 @@ export function Terminal({ title = 'bash', children }: { title?: string; childre
     <div className="border-border my-6 overflow-hidden rounded-lg border">
       <div className="border-border bg-muted flex items-center gap-2 border-b px-4 py-2">
         <span className="flex gap-1.5" aria-hidden="true">
-          <span className="size-2.5 rounded-full bg-red-400" />
-          <span className="size-2.5 rounded-full bg-amber-400" />
-          <span className="size-2.5 rounded-full bg-emerald-400" />
+          <span className="bg-destructive/80 size-2.5 rounded-full" />
+          <span className="bg-warning/80 size-2.5 rounded-full" />
+          <span className="bg-success/80 size-2.5 rounded-full" />
         </span>
         <span className="text-muted-foreground font-mono text-xs">{title}</span>
       </div>

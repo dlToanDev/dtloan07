@@ -49,7 +49,7 @@ export default function AboutPage() {
             <a href={`mailto:${siteConfig.author.email}`}>{siteConfig.author.email}</a>
           </li>
           <li>
-            <strong>Facebook Fanpage:</strong>{' '}
+            <strong>Facebook:</strong>{' '}
             <a href={siteConfig.links.facebook} target="_blank" rel="noopener noreferrer">
               dltoan07
             </a>
@@ -57,7 +57,7 @@ export default function AboutPage() {
           <li>
             <strong>Kênh YouTube:</strong>{' '}
             <a href={siteConfig.links.youtube} target="_blank" rel="noopener noreferrer">
-              dltoan07
+              @dltoan07
             </a>
           </li>
           <li>
@@ -67,9 +67,15 @@ export default function AboutPage() {
             </a>
           </li>
           <li>
-            <strong>Telegram:</strong>{' '}
+            <strong>X (Twitter):</strong>{' '}
+            <a href={siteConfig.links.x} target="_blank" rel="noopener noreferrer">
+              @dltoan07
+            </a>
+          </li>
+          <li>
+            <strong>Telegram Bot:</strong>{' '}
             <a href={siteConfig.links.telegram} target="_blank" rel="noopener noreferrer">
-              @dltoan07Blog
+              @dltoan07_bot
             </a>
           </li>
           <li>

@@ -49,7 +49,7 @@ export function AnnouncementBar({ announcement }: AnnouncementBarProps) {
     if (proOnly) {
       return {
         icon: Crown,
-        bg: 'bg-gradient-to-r from-amber-500/25 via-amber-500/15 to-amber-500/25 text-amber-700 dark:text-amber-300 border-amber-500/40 font-bold',
+        bg: 'bg-gradient-to-r from-warning/25 via-warning/15 to-warning/25 text-warning border-warning/40 font-bold',
         defaultBadge: '👑 Đặc quyền PRO',
       };
     }
@@ -57,25 +57,25 @@ export function AnnouncementBar({ announcement }: AnnouncementBarProps) {
       case 'NEW_PRODUCT':
         return {
           icon: Package,
-          bg: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30',
+          bg: 'bg-success/15 text-success border-success/30',
           defaultBadge: 'Sản phẩm mới',
         };
       case 'VOUCHER':
         return {
           icon: Tag,
-          bg: 'bg-rose-500/15 text-rose-600 dark:text-rose-400 border-rose-500/30',
+          bg: 'bg-destructive/15 text-destructive border-destructive/30',
           defaultBadge: 'Ưu đãi Voucher',
         };
       case 'FEATURE':
         return {
           icon: Rocket,
-          bg: 'bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30',
+          bg: 'bg-info/15 text-info border-info/30',
           defaultBadge: 'Tính năng mới',
         };
       case 'MAINTENANCE':
         return {
           icon: Info,
-          bg: 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30',
+          bg: 'bg-warning/15 text-warning border-warning/30',
           defaultBadge: 'Thông báo hệ thống',
         };
       default:
@@ -99,7 +99,7 @@ export function AnnouncementBar({ announcement }: AnnouncementBarProps) {
         className={cn(
           'bg-muted/60 dark:bg-muted/40 border-border/80 relative isolate z-40 flex items-center gap-x-3 overflow-hidden border-b px-4 py-2 text-xs sm:px-6 sm:text-sm',
           announcement.proOnly &&
-            'via-background/60 border-amber-500/40 bg-gradient-to-r from-amber-500/15 to-amber-500/15 shadow-xs',
+            'via-background/60 border-warning/40 from-warning/15 to-warning/15 bg-gradient-to-r shadow-xs',
         )}
       >
         <div className="mx-auto flex flex-wrap items-center justify-center gap-x-2.5 gap-y-1 text-center sm:text-left">
@@ -119,7 +119,7 @@ export function AnnouncementBar({ announcement }: AnnouncementBarProps) {
           </span>
 
           {hasGame && (
-            <span className="inline-flex items-center gap-1 rounded border border-amber-500/20 bg-amber-500/10 px-1.5 py-0.5 text-[11px] font-bold text-amber-600 dark:text-amber-400">
+            <span className="border-warning/30 bg-warning/10 text-warning inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[11px] font-bold">
               <Gamepad2 className="size-3" />
               {announcement.gameType === 'LUCKY_WHEEL' ? 'Vòng quay quà tặng' : 'Trắc nghiệm'}
             </span>

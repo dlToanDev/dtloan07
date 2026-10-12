@@ -33,7 +33,7 @@ export function VoucherRowActions({ id, active }: { id: string; active: boolean 
         type="button"
         size="sm"
         variant="ghost"
-        className="text-xs text-red-600"
+        className="text-destructive hover:bg-destructive/10 text-xs"
         disabled={pending}
         onClick={() => {
           if (window.confirm('Xóa voucher này?')) run(() => deleteVoucher(id));

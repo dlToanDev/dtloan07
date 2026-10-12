@@ -34,11 +34,12 @@ export function PostPublishButton({ slug, initialDraft }: PostPublishButtonProps
   if (isDraft) {
     return (
       <Button
+        variant="success"
         size="sm"
         onClick={handleToggle}
         loading={loading}
         loadingText="Đang xử lý..."
-        className="h-7 gap-1.5 bg-emerald-600 px-3 text-xs font-semibold text-white shadow-xs hover:bg-emerald-500"
+        className="h-7 gap-1.5 px-3 text-xs font-semibold"
         title="Bấm để xuất bản bài viết này lên website"
       >
         <Send className="size-3" />
@@ -52,10 +53,10 @@ export function PostPublishButton({ slug, initialDraft }: PostPublishButtonProps
       type="button"
       onClick={handleToggle}
       disabled={loading}
-      className="hover:bg-muted/80 inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-sky-500/20 bg-sky-500/10 px-2.5 py-1 text-xs font-semibold text-sky-600 transition dark:text-sky-400"
+      className="hover:bg-muted/80 border-info/20 bg-info/10 text-info inline-flex cursor-pointer items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold transition"
       title="Bài viết đã công khai. Bấm để thu hồi về Bản nháp"
     >
-      <CheckCircle2 className="size-3 text-sky-500" />
+      <CheckCircle2 className="text-info size-3" />
       <span>Đã xuất bản</span>
       {loading && <span className="text-muted-foreground animate-pulse text-[10px]">...</span>}
     </button>

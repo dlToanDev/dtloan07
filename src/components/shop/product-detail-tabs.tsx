@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useState } from 'react';
 import {
@@ -101,7 +101,7 @@ export function ProductDetailTabs({ product, children }: ProductDetailTabsProps)
               : 'text-muted-foreground hover:text-foreground hover:border-border border-transparent',
           )}
         >
-          <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
+          <Star className="fill-warning text-warning h-4 w-4" />
           Đánh giá (48)
         </button>
       </div>
@@ -114,28 +114,28 @@ export function ProductDetailTabs({ product, children }: ProductDetailTabsProps)
             {/* Banner tóm tắt ưu điểm */}
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               <div className="border-border/80 bg-card space-y-1 rounded-xl border p-3 text-center sm:p-4">
-                <CheckCircle2 className="mx-auto h-5 w-5 text-emerald-500" />
+                <CheckCircle2 className="text-success mx-auto h-5 w-5" />
                 <div className="text-foreground text-xs font-semibold sm:text-sm">Cam kết 100%</div>
                 <div className="text-muted-foreground text-[11px]">
                   Chính hãng & Chuẩn chất lượng
                 </div>
               </div>
               <div className="border-border/80 bg-card space-y-1 rounded-xl border p-3 text-center sm:p-4">
-                <Truck className="mx-auto h-5 w-5 text-sky-500" />
+                <Truck className="text-info mx-auto h-5 w-5" />
                 <div className="text-foreground text-xs font-semibold sm:text-sm">
                   Giao hàng nhanh
                 </div>
                 <div className="text-muted-foreground text-[11px]">Kiểm tra trước khi nhận</div>
               </div>
               <div className="border-border/80 bg-card space-y-1 rounded-xl border p-3 text-center sm:p-4">
-                <RotateCcw className="mx-auto h-5 w-5 text-indigo-500" />
+                <RotateCcw className="text-primary mx-auto h-5 w-5" />
                 <div className="text-foreground text-xs font-semibold sm:text-sm">
                   Đổi trả 7 ngày
                 </div>
                 <div className="text-muted-foreground text-[11px]">Hỗ trợ đổi size tận nơi</div>
               </div>
               <div className="border-border/80 bg-card space-y-1 rounded-xl border p-3 text-center sm:p-4">
-                <HelpCircle className="mx-auto h-5 w-5 text-emerald-500" />
+                <HelpCircle className="text-success mx-auto h-5 w-5" />
                 <div className="text-foreground text-xs font-semibold sm:text-sm">Tư vấn 24/7</div>
                 <div className="text-muted-foreground text-[11px]">Hỗ trợ kỹ thuật 1-1</div>
               </div>
@@ -152,8 +152,8 @@ export function ProductDetailTabs({ product, children }: ProductDetailTabsProps)
             {(product.conditionNote || product.warrantyNote) && (
               <div className="grid gap-4 sm:grid-cols-2">
                 {product.conditionNote && (
-                  <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4 sm:p-5">
-                    <h4 className="flex items-center gap-1.5 text-sm font-semibold text-amber-700 dark:text-amber-400">
+                  <div className="border-warning/30 bg-warning/5 rounded-xl border p-4 sm:p-5">
+                    <h4 className="text-warning flex items-center gap-1.5 text-sm font-semibold">
                       <Sparkles className="h-4 w-4" />
                       Tình trạng hàng hóa:{' '}
                       {product.condition ? conditionLabel(product.condition) : 'Chuẩn'}
@@ -164,8 +164,8 @@ export function ProductDetailTabs({ product, children }: ProductDetailTabsProps)
                   </div>
                 )}
                 {product.warrantyNote && (
-                  <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4 sm:p-5">
-                    <h4 className="flex items-center gap-1.5 text-sm font-semibold text-emerald-700 dark:text-emerald-400">
+                  <div className="border-success/30 bg-success/5 rounded-xl border p-4 sm:p-5">
+                    <h4 className="text-success flex items-center gap-1.5 text-sm font-semibold">
                       <ShieldCheck className="h-4 w-4" />
                       Chính sách bảo hành riêng
                     </h4>
@@ -344,7 +344,7 @@ export function ProductDetailTabs({ product, children }: ProductDetailTabsProps)
                 </div>
 
                 <div className="border-border space-y-3 rounded-xl border p-5">
-                  <div className="flex items-center gap-2 text-base font-semibold text-indigo-500">
+                  <div className="text-primary flex items-center gap-2 text-base font-semibold">
                     <RotateCcw className="h-5 w-5" />
                     Chính sách đổi trả trong 7 ngày
                   </div>
@@ -365,7 +365,7 @@ export function ProductDetailTabs({ product, children }: ProductDetailTabsProps)
                 </div>
 
                 <div className="border-border space-y-3 rounded-xl border p-5">
-                  <div className="flex items-center gap-2 text-base font-semibold text-emerald-500">
+                  <div className="text-success flex items-center gap-2 text-base font-semibold">
                     <ShieldCheck className="h-5 w-5" />
                     Bảo hành & Cam kết sản phẩm số
                   </div>
@@ -386,7 +386,7 @@ export function ProductDetailTabs({ product, children }: ProductDetailTabsProps)
                 </div>
 
                 <div className="border-border space-y-3 rounded-xl border p-5">
-                  <div className="flex items-center gap-2 text-base font-semibold text-amber-500">
+                  <div className="text-warning flex items-center gap-2 text-base font-semibold">
                     <HelpCircle className="h-5 w-5" />
                     Kênh hỗ trợ trực tiếp 24/7
                   </div>
@@ -413,7 +413,7 @@ export function ProductDetailTabs({ product, children }: ProductDetailTabsProps)
                   </div>
                   <div className="flex items-center justify-center gap-1 sm:justify-start">
                     {[1, 2, 3, 4, 5].map((s) => (
-                      <Star key={s} className="h-5 w-5 fill-amber-400 text-amber-400" />
+                      <Star key={s} className="fill-warning text-warning h-5 w-5" />
                     ))}
                   </div>
                   <p className="text-muted-foreground text-xs">Dựa trên 48 lượt đánh giá thực tế</p>
@@ -424,7 +424,7 @@ export function ProductDetailTabs({ product, children }: ProductDetailTabsProps)
                     <span className="text-muted-foreground w-10">5 sao</span>
                     <div className="bg-muted h-2 flex-1 overflow-hidden rounded-full">
                       <div
-                        className="h-full rounded-full bg-amber-400"
+                        className="bg-warning h-full rounded-full"
                         style={{ width: '92%' }}
                       ></div>
                     </div>
@@ -433,20 +433,14 @@ export function ProductDetailTabs({ product, children }: ProductDetailTabsProps)
                   <div className="flex items-center gap-2 text-xs">
                     <span className="text-muted-foreground w-10">4 sao</span>
                     <div className="bg-muted h-2 flex-1 overflow-hidden rounded-full">
-                      <div
-                        className="h-full rounded-full bg-amber-400"
-                        style={{ width: '8%' }}
-                      ></div>
+                      <div className="bg-warning h-full rounded-full" style={{ width: '8%' }}></div>
                     </div>
                     <span className="w-8 text-right font-medium">8%</span>
                   </div>
                   <div className="flex items-center gap-2 text-xs opacity-40">
                     <span className="text-muted-foreground w-10">3 sao</span>
                     <div className="bg-muted h-2 flex-1 overflow-hidden rounded-full">
-                      <div
-                        className="h-full rounded-full bg-amber-400"
-                        style={{ width: '0%' }}
-                      ></div>
+                      <div className="bg-warning h-full rounded-full" style={{ width: '0%' }}></div>
                     </div>
                     <span className="w-8 text-right font-medium">0%</span>
                   </div>
@@ -466,7 +460,7 @@ export function ProductDetailTabs({ product, children }: ProductDetailTabsProps)
                           Trần Nam
                           <Badge
                             variant="outline"
-                            className="border-emerald-500/30 text-[10px] text-emerald-600"
+                            className="border-success/30 text-success text-[10px]"
                           >
                             Đã mua hàng
                           </Badge>
@@ -474,9 +468,9 @@ export function ProductDetailTabs({ product, children }: ProductDetailTabsProps)
                         <div className="text-muted-foreground text-xs">2 ngày trước</div>
                       </div>
                     </div>
-                    <div className="flex text-amber-400">
+                    <div className="text-warning flex">
                       {[1, 2, 3, 4, 5].map((s) => (
-                        <Star key={s} className="h-4 w-4 fill-amber-400" />
+                        <Star key={s} className="fill-warning h-4 w-4" />
                       ))}
                     </div>
                   </div>
@@ -495,7 +489,7 @@ export function ProductDetailTabs({ product, children }: ProductDetailTabsProps)
                 <div className="space-y-2.5 pt-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2.5">
-                      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-sky-500/20 text-sm font-bold text-sky-600">
+                      <div className="bg-info/20 text-info flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold">
                         LH
                       </div>
                       <div>
@@ -503,7 +497,7 @@ export function ProductDetailTabs({ product, children }: ProductDetailTabsProps)
                           Lê Hoàng
                           <Badge
                             variant="outline"
-                            className="border-emerald-500/30 text-[10px] text-emerald-600"
+                            className="border-success/30 text-success text-[10px]"
                           >
                             Đã mua hàng
                           </Badge>
@@ -511,9 +505,9 @@ export function ProductDetailTabs({ product, children }: ProductDetailTabsProps)
                         <div className="text-muted-foreground text-xs">5 ngày trước</div>
                       </div>
                     </div>
-                    <div className="flex text-amber-400">
+                    <div className="text-warning flex">
                       {[1, 2, 3, 4, 5].map((s) => (
-                        <Star key={s} className="h-4 w-4 fill-amber-400" />
+                        <Star key={s} className="fill-warning h-4 w-4" />
                       ))}
                     </div>
                   </div>
@@ -532,7 +526,7 @@ export function ProductDetailTabs({ product, children }: ProductDetailTabsProps)
                 <div className="space-y-2.5 pt-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2.5">
-                      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-indigo-500/20 text-sm font-bold text-indigo-600">
+                      <div className="bg-primary/20 text-primary flex h-9 w-9 items-center justify-center rounded-full text-sm font-bold">
                         MD
                       </div>
                       <div>
@@ -540,7 +534,7 @@ export function ProductDetailTabs({ product, children }: ProductDetailTabsProps)
                           Minh Đức
                           <Badge
                             variant="outline"
-                            className="border-emerald-500/30 text-[10px] text-emerald-600"
+                            className="border-success/30 text-success text-[10px]"
                           >
                             Đã mua hàng
                           </Badge>
@@ -548,9 +542,9 @@ export function ProductDetailTabs({ product, children }: ProductDetailTabsProps)
                         <div className="text-muted-foreground text-xs">1 tuần trước</div>
                       </div>
                     </div>
-                    <div className="flex text-amber-400">
+                    <div className="text-warning flex">
                       {[1, 2, 3, 4, 5].map((s) => (
-                        <Star key={s} className="h-4 w-4 fill-amber-400" />
+                        <Star key={s} className="fill-warning h-4 w-4" />
                       ))}
                     </div>
                   </div>

@@ -10,8 +10,6 @@ import { siteConfig } from '@/config/site';
 import Link from 'next/link';
 import Image from 'next/image';
 import { User } from 'lucide-react';
-import { auth } from '@/lib/auth';
-import { db } from '@/lib/db';
 import { HeaderWalletBadge } from '@/components/layout/header-wallet-badge';
 import { getAffiliatePath } from '@/lib/affiliate-token';
 import { getCurrentUserData } from '@/lib/current-user';

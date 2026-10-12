@@ -36,23 +36,45 @@ export async function shortenUrlWithMonetization(targetUrl: string): Promise<Sho
   }
 
   try {
-    const url = new URL(apiUrl);
-    url.searchParams.set('api', apiKey);
-    url.searchParams.set('url', targetUrl);
+    let requestUrl: string;
+    if (apiUrl.includes('ouo.io') || apiUrl.includes('ouo.press')) {
+      // Chuẩn API của Ouo.io: https://ouo.io/api/{API_KEY}?s={TARGET_URL}
+      requestUrl = `https://ouo.io/api/${apiKey}?s=${encodeURIComponent(targetUrl)}`;
+    } else if (apiUrl.includes('link4m')) {
+      // Chuẩn Link4M Quick Link: https://link4m.co/st?api={API_KEY}&url={TARGET_URL}
+      // link4m.co/st là endpoint chính thức hoạt động (link4m.com/api redirect 404)
+      requestUrl = `https://link4m.co/st?api=${apiKey}&url=${encodeURIComponent(targetUrl)}`;
+    } else {
+      // Chuẩn chung AdLinkFly (MegaURL, Shrinkearn, Clicksfly, Exe.io...)
+      const url = new URL(apiUrl);
+      url.searchParams.set('api', apiKey);
+      url.searchParams.set('url', targetUrl);
+      requestUrl = url.toString();
+    }
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
 
-    const response = await fetch(url.toString(), {
+    const response = await fetch(requestUrl, {
       method: 'GET',
+      redirect: 'manual', // Bắt 301/302 Redirect Location header từ các dịch vụ như Link4M
       signal: controller.signal,
       headers: {
         Accept: 'application/json, text/plain, */*',
-        'User-Agent': 'Mozilla/5.0 (compatible; BlogShortener/1.0)',
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
       },
     });
 
     clearTimeout(timeoutId);
+
+    // 1. Trường hợp dịch vụ trả về 301/302 Redirect trực tiếp (chuẩn Quick Link của Link4M)
+    if (response.status >= 300 && response.status < 400) {
+      const location = response.headers.get('location');
+      if (location && (location.startsWith('http://') || location.startsWith('https://'))) {
+        return { success: true, shortenedUrl: location };
+      }
+    }
 
     if (!response.ok) {
       return {

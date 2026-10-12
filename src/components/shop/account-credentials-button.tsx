@@ -78,7 +78,7 @@ export function AccountCredentialsButton({
         Xem thông tin tài khoản
       </Button>
       {error && (
-        <p role="alert" className="text-xs text-red-600">
+        <p role="alert" className="text-destructive text-xs">
           {error}
         </p>
       )}

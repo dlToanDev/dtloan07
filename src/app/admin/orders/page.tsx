@@ -11,6 +11,8 @@ import {
   paymentStatusBadgeVariant,
   ORDER_FULFILLMENT_STATUS_LABELS,
 } from '@/lib/shop/labels';
+import { CreditCard, Truck, Globe, RotateCcw, Filter, ShoppingBag } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface AdminOrdersPageProps {
   searchParams: Promise<{
@@ -85,104 +87,171 @@ export default async function AdminOrdersPage({ searchParams }: AdminOrdersPageP
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      {/* Header */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="flex items-center gap-2 text-xl font-bold">
-            Danh sách đơn hàng ({orders.length})
+          <h2 className="flex items-center gap-2.5 text-2xl font-bold tracking-tight">
+            <ShoppingBag className="text-primary size-6" />
+            Danh sách đơn hàng
+            <span className="text-muted-foreground text-lg font-normal">({orders.length})</span>
             {todoCount > 0 && (
               <Link href={filterHref({ status: '', fulfillment: 'PENDING' })}>
-                <Badge variant="destructive">Cần xử lý: {todoCount}</Badge>
+                <Badge
+                  variant="destructive"
+                  className="ml-1 cursor-pointer transition-opacity hover:opacity-90"
+                >
+                  Cần xử lý: {todoCount}
+                </Badge>
               </Link>
             )}
           </h2>
-          <p className="text-muted-foreground text-sm">
+          <p className="text-muted-foreground mt-1 text-sm">
             Quản lý toàn bộ lịch sử đơn hàng, thanh toán và giao hàng trên hệ thống.
           </p>
         </div>
 
-        <div className="space-y-2">
-          {/* Lọc theo thanh toán */}
-          <div className="flex flex-wrap justify-end gap-1">
+        {(validStatus || validFulfillment || validSource) && (
+          <Link
+            href="/admin/orders"
+            className={buttonStyles({
+              variant: 'outline',
+              size: 'sm',
+              className: 'text-muted-foreground hover:text-foreground h-8 shrink-0 gap-1.5 text-xs',
+            })}
+          >
+            <RotateCcw className="size-3.5" />
+            Xóa bộ lọc
+          </Link>
+        )}
+      </div>
+
+      {/* Thanh bộ lọc đơn hàng cân đối & trực quan */}
+      <div className="border-border bg-card/60 space-y-3 rounded-xl border p-4 shadow-2xs">
+        <div className="border-border/40 flex items-center justify-between border-b pb-2">
+          <div className="text-muted-foreground flex items-center gap-2 text-xs font-semibold tracking-wider uppercase">
+            <Filter className="text-primary size-3.5" />
+            <span>Bộ lọc trạng thái</span>
+          </div>
+          {validStatus || validFulfillment || validSource ? (
+            <span className="text-muted-foreground text-[11px]">
+              Đang áp dụng{' '}
+              <strong className="text-primary font-semibold">
+                {[validStatus, validFulfillment, validSource].filter(Boolean).length}
+              </strong>{' '}
+              tiêu chí
+            </span>
+          ) : (
+            <span className="text-muted-foreground text-[11px]">Hiển thị toàn bộ</span>
+          )}
+        </div>
+
+        {/* 1. Lọc theo thanh toán */}
+        <div className="flex flex-col gap-2 text-xs sm:flex-row sm:items-center sm:gap-3">
+          <div className="text-muted-foreground flex shrink-0 items-center gap-1.5 font-medium sm:w-24">
+            <CreditCard className="size-3.5" />
+            <span>Thanh toán</span>
+          </div>
+          <div className="flex flex-wrap items-center gap-1.5">
             <Link
               href={filterHref({ status: '' })}
-              className={buttonStyles({
-                variant: !validStatus ? 'primary' : 'outline',
-                size: 'sm',
-                className: 'text-xs',
-              })}
+              className={cn(
+                'inline-flex cursor-pointer items-center justify-center rounded-lg px-2.5 py-1 text-xs font-medium transition-all',
+                !validStatus
+                  ? 'bg-primary text-primary-foreground font-semibold shadow-xs'
+                  : 'bg-muted/40 hover:bg-muted text-muted-foreground hover:text-foreground border-border/40 border',
+              )}
             >
-              Mọi thanh toán
+              Tất cả
             </Link>
             {PAYMENT_STATUSES.map((value) => (
               <Link
                 key={value}
                 href={filterHref({ status: value })}
-                className={buttonStyles({
-                  variant: validStatus === value ? 'primary' : 'outline',
-                  size: 'sm',
-                  className: 'text-xs',
-                })}
+                className={cn(
+                  'inline-flex cursor-pointer items-center justify-center rounded-lg px-2.5 py-1 text-xs font-medium transition-all',
+                  validStatus === value
+                    ? 'bg-primary text-primary-foreground font-semibold shadow-xs'
+                    : 'bg-muted/40 hover:bg-muted text-muted-foreground hover:text-foreground border-border/40 border',
+                )}
               >
                 {ORDER_PAYMENT_STATUS_LABELS[value] || value}
               </Link>
             ))}
           </div>
+        </div>
 
-          {/* Lọc theo giao hàng */}
-          <div className="flex flex-wrap justify-end gap-1">
+        {/* 2. Lọc theo giao hàng */}
+        <div className="flex flex-col gap-2 text-xs sm:flex-row sm:items-center sm:gap-3">
+          <div className="text-muted-foreground flex shrink-0 items-center gap-1.5 font-medium sm:w-24">
+            <Truck className="size-3.5" />
+            <span>Giao hàng</span>
+          </div>
+          <div className="flex flex-wrap items-center gap-1.5">
             <Link
               href={filterHref({ fulfillment: '' })}
-              className={buttonStyles({
-                variant: !validFulfillment ? 'primary' : 'outline',
-                size: 'sm',
-                className: 'text-xs',
-              })}
+              className={cn(
+                'inline-flex cursor-pointer items-center justify-center rounded-lg px-2.5 py-1 text-xs font-medium transition-all',
+                !validFulfillment
+                  ? 'bg-primary text-primary-foreground font-semibold shadow-xs'
+                  : 'bg-muted/40 hover:bg-muted text-muted-foreground hover:text-foreground border-border/40 border',
+              )}
             >
-              Mọi trạng thái giao
+              Tất cả
             </Link>
             {FULFILLMENT_STATUSES.map((value) => (
               <Link
                 key={value}
                 href={filterHref({ fulfillment: value })}
-                className={buttonStyles({
-                  variant: validFulfillment === value ? 'primary' : 'outline',
-                  size: 'sm',
-                  className: 'text-xs',
-                })}
+                className={cn(
+                  'inline-flex cursor-pointer items-center justify-center rounded-lg px-2.5 py-1 text-xs font-medium transition-all',
+                  validFulfillment === value
+                    ? 'bg-primary text-primary-foreground font-semibold shadow-xs'
+                    : 'bg-muted/40 hover:bg-muted text-muted-foreground hover:text-foreground border-border/40 border',
+                )}
               >
                 {FULFILLMENT_LABEL[value]}
               </Link>
             ))}
           </div>
-          {/* Lọc theo nguồn đơn */}
-          <div className="flex flex-wrap justify-end gap-1">
+        </div>
+
+        {/* 3. Lọc theo nguồn đơn */}
+        <div className="flex flex-col gap-2 text-xs sm:flex-row sm:items-center sm:gap-3">
+          <div className="text-muted-foreground flex shrink-0 items-center gap-1.5 font-medium sm:w-24">
+            <Globe className="size-3.5" />
+            <span>Kênh bán</span>
+          </div>
+          <div className="flex flex-wrap items-center gap-1.5">
             <Link
               href={filterHref({ source: '' })}
-              className={buttonStyles({
-                variant: !validSource ? 'primary' : 'outline',
-                size: 'sm',
-                className: 'text-xs',
-              })}
+              className={cn(
+                'inline-flex cursor-pointer items-center justify-center rounded-lg px-2.5 py-1 text-xs font-medium transition-all',
+                !validSource
+                  ? 'bg-primary text-primary-foreground font-semibold shadow-xs'
+                  : 'bg-muted/40 hover:bg-muted text-muted-foreground hover:text-foreground border-border/40 border',
+              )}
             >
-              Mọi nguồn
+              Tất cả
             </Link>
             <Link
               href={filterHref({ source: 'WEB' })}
-              className={buttonStyles({
-                variant: validSource === 'WEB' ? 'primary' : 'outline',
-                size: 'sm',
-                className: 'text-xs',
-              })}
+              className={cn(
+                'inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-medium transition-all',
+                validSource === 'WEB'
+                  ? 'bg-primary text-primary-foreground font-semibold shadow-xs'
+                  : 'bg-muted/40 hover:bg-muted text-muted-foreground hover:text-foreground border-border/40 border',
+              )}
             >
               🌐 Web
             </Link>
             <Link
               href={filterHref({ source: 'TELEGRAM' })}
-              className={buttonStyles({
-                variant: validSource === 'TELEGRAM' ? 'primary' : 'outline',
-                size: 'sm',
-                className: 'text-xs',
-              })}
+              className={cn(
+                'inline-flex cursor-pointer items-center justify-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-medium transition-all',
+                validSource === 'TELEGRAM'
+                  ? 'bg-primary text-primary-foreground font-semibold shadow-xs'
+                  : 'bg-muted/40 hover:bg-muted text-muted-foreground hover:text-foreground border-border/40 border',
+              )}
             >
               📱 Telegram
             </Link>
@@ -236,7 +305,7 @@ export default async function AdminOrdersPage({ searchParams }: AdminOrdersPageP
                         <div>{o.orderCode}</div>
                         <div className="mt-1">
                           {o.source === 'TELEGRAM' ? (
-                            <span className="inline-flex items-center gap-1 rounded bg-sky-500/10 px-1.5 py-0.5 text-[10px] font-medium text-sky-700 dark:text-sky-300">
+                            <span className="bg-info/10 text-info inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium">
                               📱 Telegram{o.telegramUsername ? ` @${o.telegramUsername}` : ''}
                             </span>
                           ) : (
@@ -257,7 +326,7 @@ export default async function AdminOrdersPage({ searchParams }: AdminOrdersPageP
                       </td>
                       <td className="px-2 py-3">
                         {o.membershipPlan && (
-                          <div className="text-xs font-medium text-amber-600">
+                          <div className="text-warning text-xs font-medium">
                             👑 {PRO_PLANS[o.membershipPlan].label}
                           </div>
                         )}

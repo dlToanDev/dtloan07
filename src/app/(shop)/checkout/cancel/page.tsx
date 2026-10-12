@@ -10,7 +10,7 @@ export default function CheckoutCancelPage() {
     <Container className="flex min-h-[60vh] items-center justify-center py-12">
       <Card className="w-full max-w-md text-center shadow-lg">
         <CardHeader className="flex flex-col items-center">
-          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-amber-500/10 text-amber-500">
+          <div className="bg-warning/10 text-warning mb-4 flex h-16 w-16 items-center justify-center rounded-full">
             <XCircle className="h-10 w-10" />
           </div>
           <CardTitle as="h1" className="text-2xl font-bold">

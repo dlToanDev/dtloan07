@@ -53,25 +53,25 @@ function getIconAndBadge(type: AnnouncementItem['type']) {
     case 'NEW_PRODUCT':
       return {
         icon: Package,
-        color: 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20',
+        color: 'text-success bg-success/10 border-success/20',
         defaultBadge: 'Sản phẩm mới',
       };
     case 'VOUCHER':
       return {
         icon: Tag,
-        color: 'text-rose-500 bg-rose-500/10 border-rose-500/20',
+        color: 'text-destructive bg-destructive/10 border-destructive/20',
         defaultBadge: 'Mã giảm giá',
       };
     case 'FEATURE':
       return {
         icon: Rocket,
-        color: 'text-blue-500 bg-blue-500/10 border-blue-500/20',
+        color: 'text-info bg-info/10 border-info/20',
         defaultBadge: 'Tính năng mới',
       };
     case 'MAINTENANCE':
       return {
         icon: Info,
-        color: 'text-amber-500 bg-amber-500/10 border-amber-500/20',
+        color: 'text-warning-foreground bg-warning/10 border-warning/20',
         defaultBadge: 'Bảo trì / Chú ý',
       };
     default:
@@ -246,7 +246,7 @@ export function NotificationBell({ initialAnnouncements }: NotificationBellProps
 
         {/* Badge số thông báo chưa đọc */}
         {unreadCount > 0 && (
-          <span className="ring-background animate-in zoom-in-50 absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white shadow-sm ring-2">
+          <span className="ring-background animate-in zoom-in-50 bg-destructive text-destructive-foreground absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-bold shadow-sm ring-2">
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
@@ -264,7 +264,7 @@ export function NotificationBell({ initialAnnouncements }: NotificationBellProps
             <div className="flex items-center gap-2">
               <h2 className="text-foreground text-sm font-semibold">Thông báo hệ thống</h2>
               {unreadCount > 0 && (
-                <span className="rounded-full bg-rose-500/15 px-2 py-0.5 text-[11px] font-semibold text-rose-600 dark:text-rose-400">
+                <span className="bg-destructive/15 text-destructive rounded-full px-2 py-0.5 text-[11px] font-semibold">
                   {unreadCount} mới
                 </span>
               )}
@@ -305,8 +305,8 @@ export function NotificationBell({ initialAnnouncements }: NotificationBellProps
                     className={`group flex cursor-pointer items-start gap-3 p-4 text-left transition-colors ${
                       item.proOnly
                         ? isUnread
-                          ? 'border-l-2 border-l-amber-500 bg-amber-500/10 hover:bg-amber-500/15'
-                          : 'opacity-90 hover:bg-amber-500/5'
+                          ? 'border-l-warning bg-warning/10 hover:bg-warning/15 border-l-2'
+                          : 'hover:bg-warning/5 opacity-90'
                         : isUnread
                           ? 'bg-primary/5 hover:bg-primary/10'
                           : 'hover:bg-muted/40 opacity-85'
@@ -315,9 +315,7 @@ export function NotificationBell({ initialAnnouncements }: NotificationBellProps
                     {/* Icon loại */}
                     <div
                       className={`flex size-8 shrink-0 items-center justify-center rounded-xl border ${
-                        item.proOnly
-                          ? 'border-amber-500/40 bg-amber-500/15 text-amber-600 dark:text-amber-400'
-                          : info.color
+                        item.proOnly ? 'border-warning/40 bg-warning/15 text-warning' : info.color
                       }`}
                     >
                       {item.proOnly ? (
@@ -332,8 +330,8 @@ export function NotificationBell({ initialAnnouncements }: NotificationBellProps
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex flex-wrap items-center gap-1.5">
                           {item.proOnly && (
-                            <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/40 bg-gradient-to-r from-amber-500/20 via-amber-500/10 to-amber-500/20 px-2 py-0.5 text-[10px] font-bold text-amber-600 shadow-xs dark:text-amber-400">
-                              <Crown className="size-2.5 text-amber-500" />
+                            <span className="border-warning/40 from-warning/20 via-warning/10 to-warning/20 text-warning inline-flex items-center gap-1 rounded-full border bg-gradient-to-r px-2 py-0.5 text-[10px] font-bold shadow-xs">
+                              <Crown className="text-warning size-2.5" />
                               <span>PRO VIP</span>
                             </span>
                           )}
@@ -343,13 +341,13 @@ export function NotificationBell({ initialAnnouncements }: NotificationBellProps
                             {item.badge || info.defaultBadge}
                           </span>
                           {item.gameType && (
-                            <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-amber-600 dark:text-amber-400">
+                            <span className="border-warning/30 bg-warning/10 text-warning inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] font-semibold">
                               <Gamepad2 className="size-2.5" />
                               <span>Mini Game</span>
                             </span>
                           )}
                           {item.voucherCode && (
-                            <span className="inline-flex items-center gap-1 rounded-full border border-rose-500/30 bg-rose-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-rose-600 dark:text-rose-400">
+                            <span className="border-destructive/30 bg-destructive/10 text-destructive inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] font-semibold">
                               <Gift className="size-2.5" />
                               <span>Voucher</span>
                             </span>
@@ -385,7 +383,9 @@ export function NotificationBell({ initialAnnouncements }: NotificationBellProps
                     </div>
 
                     {/* Chấm tròn chưa đọc */}
-                    {isUnread && <span className="mt-1 size-2 shrink-0 rounded-full bg-rose-500" />}
+                    {isUnread && (
+                      <span className="bg-destructive mt-1 size-2 shrink-0 rounded-full" />
+                    )}
                   </div>
                 );
               })
@@ -417,7 +417,7 @@ export function NotificationBell({ initialAnnouncements }: NotificationBellProps
           <div className="flex items-start gap-3">
             <div className="bg-primary/10 text-primary relative shrink-0 rounded-xl p-2.5">
               <Bell className="size-5 animate-bounce" />
-              <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white">
+              <span className="bg-destructive text-destructive-foreground absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-bold">
                 {unreadCount}
               </span>
             </div>

@@ -4,6 +4,7 @@ import { getServerTranslator } from '@/lib/i18n/server';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Mail, Phone, MapPin, Truck, ShieldCheck, BookOpen, ShoppingBag } from 'lucide-react';
+import { FooterTrustBadges } from './footer-trust-badges';
 
 function FacebookIcon({ className }: { className?: string }) {
   return (
@@ -49,6 +50,14 @@ function TelegramIcon({ className }: { className?: string }) {
   );
 }
 
+function XIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+    </svg>
+  );
+}
+
 export async function Footer() {
   const { t } = await getServerTranslator();
 
@@ -89,29 +98,31 @@ export async function Footer() {
 
   return (
     <footer id="footer" className="border-border bg-muted/20 mt-16 border-t">
-      {/* 1. THANH CAM KẾT & TIÊU CHÍ UY TÍN */}
-      <div className="border-border/60 bg-card/50 border-b">
-        <div className="container-page py-8">
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {trustFeatures.map((feat) => {
-              const Icon = feat.icon;
-              return (
-                <div key={feat.title} className="flex items-start gap-3.5">
-                  <div className="bg-primary/10 text-primary flex size-10 shrink-0 items-center justify-center rounded-xl shadow-xs">
-                    <Icon className="size-5" />
+      {/* 1. THANH CAM KẾT & TIÊU CHÍ UY TÍN — chỉ hiển thị trên trang Shop */}
+      <FooterTrustBadges>
+        <div className="border-border/60 bg-card/50 border-b">
+          <div className="container-page py-8">
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+              {trustFeatures.map((feat) => {
+                const Icon = feat.icon;
+                return (
+                  <div key={feat.title} className="flex items-start gap-3.5">
+                    <div className="bg-primary/10 text-primary flex size-10 shrink-0 items-center justify-center rounded-xl shadow-xs">
+                      <Icon className="size-5" />
+                    </div>
+                    <div>
+                      <h4 className="text-foreground text-xs font-bold sm:text-sm">{feat.title}</h4>
+                      <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
+                        {feat.desc}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h4 className="text-foreground text-xs font-bold sm:text-sm">{feat.title}</h4>
-                    <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
-                      {feat.desc}
-                    </p>
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         </div>
-      </div>
+      </FooterTrustBadges>
 
       {/* 2. KHU VỰC NỘI DUNG CHÍNH CỦA FOOTER */}
       <div className="container-page py-12">
@@ -166,7 +177,7 @@ export async function Footer() {
                   target="_blank"
                   rel="noopener noreferrer"
                   className="bg-card hover:border-primary/50 hover:text-primary text-muted-foreground flex size-8 items-center justify-center rounded-lg border shadow-xs transition"
-                  title="Facebook Fanpage: dltoan07"
+                  title="Facebook: dltoan07"
                 >
                   <FacebookIcon className="size-4" />
                 </a>
@@ -174,8 +185,8 @@ export async function Footer() {
                   href={siteConfig.links.youtube}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="bg-card text-muted-foreground flex size-8 items-center justify-center rounded-lg border shadow-xs transition hover:border-red-500/50 hover:text-red-500"
-                  title="YouTube: dltoan07"
+                  className="bg-card text-muted-foreground hover:border-destructive/50 hover:text-destructive flex size-8 items-center justify-center rounded-lg border shadow-xs transition"
+                  title="YouTube: @dltoan07"
                 >
                   <YoutubeIcon className="size-4" />
                 </a>
@@ -184,16 +195,25 @@ export async function Footer() {
                   target="_blank"
                   rel="noopener noreferrer"
                   className="bg-card hover:border-foreground hover:text-foreground text-muted-foreground flex size-8 items-center justify-center rounded-lg border shadow-xs transition"
-                  title="TikTok: dltoan07"
+                  title="TikTok: @dltoan07"
                 >
                   <TikTokIcon className="size-4" />
+                </a>
+                <a
+                  href={siteConfig.links.x}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="bg-card hover:border-foreground hover:text-foreground text-muted-foreground flex size-8 items-center justify-center rounded-lg border shadow-xs transition"
+                  title="X (Twitter): @dltoan07"
+                >
+                  <XIcon className="size-4" />
                 </a>
                 <a
                   href={siteConfig.links.telegram}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="bg-card text-muted-foreground flex size-8 items-center justify-center rounded-lg border shadow-xs transition hover:border-sky-500/50 hover:text-sky-500"
-                  title="Telegram: dltoan07Blog"
+                  className="bg-card text-muted-foreground hover:border-primary/50 hover:text-primary flex size-8 items-center justify-center rounded-lg border shadow-xs transition"
+                  title="Telegram: @dltoan07_bot"
                 >
                   <TelegramIcon className="size-4" />
                 </a>
@@ -265,7 +285,7 @@ export async function Footer() {
                     rel="noopener noreferrer"
                     className="text-foreground hover:text-primary font-medium transition"
                   >
-                    @dltoan07Blog
+                    @dltoan07_bot
                   </a>
                 </span>
               </li>

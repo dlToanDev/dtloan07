@@ -46,8 +46,19 @@ export async function GET(request: NextRequest, context: RouteContext) {
   }
 
   // Xác định link đích
+  const searchParams = request.nextUrl.searchParams;
+  const forceDirect =
+    searchParams.get('direct') === '1' ||
+    searchParams.get('direct') === 'true' ||
+    searchParams.get('bypass') === '1';
+
   let targetUrl = deal.directUrl;
-  if (deal.activeUrlType === 'SHORTENED' && deal.shortenedUrl && deal.shortenedUrl.trim() !== '') {
+  if (
+    !forceDirect &&
+    deal.activeUrlType === 'SHORTENED' &&
+    deal.shortenedUrl &&
+    deal.shortenedUrl.trim() !== ''
+  ) {
     targetUrl = deal.shortenedUrl;
   }
 

@@ -132,7 +132,7 @@ export function ImagePicker({
               <button
                 type="button"
                 onClick={() => setUrls((prev) => prev.filter((item) => item !== url))}
-                className="rounded bg-black/40 p-1 text-red-300 hover:bg-black/60"
+                className="text-destructive/80 hover:text-destructive rounded bg-black/40 p-1 hover:bg-black/60"
                 title="Xóa ảnh"
               >
                 <Trash2 className="size-3.5" />
@@ -199,7 +199,7 @@ export function ImagePicker({
           : 'Ảnh đầu tiên là ảnh bìa. Chọn hoặc kéo thả nhiều ảnh cùng lúc, kéo ảnh để đổi thứ tự. Tối đa 8 MB/ảnh.'}
       </p>
       {error && (
-        <p role="alert" className="text-xs text-red-600">
+        <p role="alert" className="text-destructive text-xs">
           {error}
         </p>
       )}

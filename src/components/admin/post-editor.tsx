@@ -550,8 +550,7 @@ export function PostEditor() {
           </Button>
           <Button
             type="button"
-            variant="primary"
-            className="bg-emerald-600 font-medium text-white hover:bg-emerald-700"
+            variant="success"
             disabled={isSaving}
             onClick={() => savePost(false)}
           >
@@ -609,7 +608,7 @@ export function PostEditor() {
       ) : null}
 
       {notice ? (
-        <div className="flex items-start gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-300">
+        <div className="border-success/30 bg-success/10 text-success flex items-start gap-2 rounded-lg border px-4 py-3 text-sm">
           <CheckCircle2 className="mt-0.5 size-4 shrink-0" /> {notice}
         </div>
       ) : null}
@@ -1208,7 +1207,7 @@ export function PostEditor() {
                       </span>
                     ))}
                     {post.featured && (
-                      <span className="rounded-md border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-[11px] font-semibold text-amber-600 dark:text-amber-400">
+                      <span className="border-warning/30 bg-warning/10 text-warning rounded-md border px-2.5 py-1 text-[11px] font-semibold">
                         Bài viết nổi bật
                       </span>
                     )}
@@ -1310,8 +1309,7 @@ export function PostEditor() {
             </Button>
             <Button
               type="button"
-              variant="primary"
-              className="bg-emerald-600 font-medium text-white hover:bg-emerald-700"
+              variant="success"
               disabled={isSaving}
               onClick={() => savePost(false)}
             >

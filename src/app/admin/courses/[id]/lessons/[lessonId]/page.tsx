@@ -4,6 +4,7 @@ import { db } from '@/lib/db';
 import { LessonEditor } from '@/components/admin/courses/lesson-editor';
 import { ExerciseList } from '@/components/admin/courses/exercise-editor';
 import { isLanguageKey, type LanguageKey } from '@/lib/judge/languages';
+import type { QuizQuestion } from '@/lib/courses/quiz';
 
 export const dynamic = 'force-dynamic';
 
@@ -75,7 +76,13 @@ export default async function AdminLessonPage({
         initial={lesson.exercises.map((exercise) => ({
           id: exercise.id,
           title: exercise.title,
+          type: exercise.type,
           statement: exercise.statement,
+          passage: exercise.passage,
+          audioUrl: exercise.audioUrl,
+          imageUrl: exercise.imageUrl,
+          videoUrl: exercise.videoUrl,
+          questions: (exercise.questions as unknown as QuizQuestion[]) ?? [],
           languages: exercise.languages.filter(isLanguageKey),
           starterCode: (exercise.starterCode ?? {}) as Partial<Record<LanguageKey, string>>,
           timeLimitMs: exercise.timeLimitMs,

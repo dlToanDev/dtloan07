@@ -41,7 +41,7 @@ export function LessonList({
             <Icon
               className={`size-4 shrink-0 ${
                 lesson.state === 'completed'
-                  ? 'text-emerald-500'
+                  ? 'text-success'
                   : lesson.state === 'locked'
                     ? 'text-muted-foreground'
                     : 'text-primary'
@@ -51,7 +51,7 @@ export function LessonList({
               <span className={`block truncate ${compact ? 'text-sm' : 'font-medium'}`}>
                 Bài {index + 1}: {lesson.title}
                 {lesson.status === 'DRAFT' && (
-                  <span className="ml-2 rounded bg-amber-500/15 px-1.5 text-xs text-amber-700">
+                  <span className="bg-warning/15 text-warning ml-2 rounded px-1.5 text-xs">
                     Nháp
                   </span>
                 )}

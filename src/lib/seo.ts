@@ -64,6 +64,7 @@ export function buildMetadata({
       title,
       description,
       images: [image],
+      creator: '@dltoan07',
     },
   };
 }
@@ -76,6 +77,14 @@ export function personJsonLd() {
     name: siteConfig.author.name,
     email: siteConfig.author.email,
     url: siteConfig.url,
+    sameAs: [
+      siteConfig.links.facebook,
+      siteConfig.links.youtube,
+      siteConfig.links.tiktok,
+      siteConfig.links.x,
+      siteConfig.links.telegram,
+      siteConfig.links.github,
+    ],
   };
 }
 

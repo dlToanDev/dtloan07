@@ -12,7 +12,7 @@ export const VERDICT_LABEL: Record<Verdict, { label: string; tone: 'ok' | 'bad' 
 };
 
 export const TONE_CLASS = {
-  ok: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400',
-  bad: 'bg-red-500/10 text-red-700 dark:text-red-400',
-  warn: 'bg-amber-500/10 text-amber-700 dark:text-amber-400',
+  ok: 'bg-success/10 text-success',
+  bad: 'bg-destructive/10 text-destructive',
+  warn: 'bg-warning/10 text-warning',
 } as const;

@@ -116,12 +116,12 @@ export function LuckyWheel({
       <div className="relative mx-auto flex size-64 items-center justify-center sm:size-72">
         {/* Kim chỉ định vị ở đỉnh */}
         <div className="absolute -top-3 left-1/2 z-20 -translate-x-1/2">
-          <div className="h-0 w-0 border-t-[22px] border-r-[12px] border-l-[12px] border-t-rose-500 border-r-transparent border-l-transparent drop-shadow-md" />
+          <div className="border-t-destructive h-0 w-0 border-t-[22px] border-r-[12px] border-l-[12px] border-r-transparent border-l-transparent drop-shadow-md" />
         </div>
 
         {/* Bánh xe quay SVG */}
         <div
-          className="cubic-bezier(0.15, 0.9, 0.2, 1) relative size-full overflow-hidden rounded-full border-4 border-amber-400 shadow-xl transition-transform duration-[4500ms]"
+          className="cubic-bezier(0.15, 0.9, 0.2, 1) border-warning relative size-full overflow-hidden rounded-full border-4 shadow-xl transition-transform duration-[4500ms]"
           style={{ transform: `rotate(${rotation}deg)` }}
         >
           <svg viewBox="0 0 100 100" className="size-full">
@@ -172,7 +172,7 @@ export function LuckyWheel({
           type="button"
           onClick={handleSpin}
           disabled={spinning}
-          className="absolute z-10 flex size-16 cursor-pointer flex-col items-center justify-center rounded-full border-2 border-white bg-gradient-to-tr from-amber-500 to-amber-300 text-xs font-black tracking-wider text-amber-950 uppercase shadow-lg transition-all hover:scale-105 active:scale-95 disabled:opacity-80 sm:size-18 sm:text-sm"
+          className="bg-primary text-primary-foreground hover:bg-primary/90 absolute z-10 flex size-16 cursor-pointer flex-col items-center justify-center rounded-full border-2 border-white text-xs font-black tracking-wider uppercase shadow-lg transition-all hover:scale-105 active:scale-95 disabled:opacity-80 sm:size-18 sm:text-sm"
         >
           {spinning ? 'ĐANG QUAY' : 'QUAY'}
         </button>
@@ -182,15 +182,15 @@ export function LuckyWheel({
       {wonPrize && (
         <div className="animate-in zoom-in-95 duration-200">
           {wonPrize.isWin !== false ? (
-            <div className="space-y-3 rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-4">
-              <div className="flex items-center justify-center gap-1.5 text-base font-bold text-emerald-600 dark:text-emerald-400">
+            <div className="border-success/30 bg-success/10 space-y-3 rounded-xl border p-4">
+              <div className="text-success flex items-center justify-center gap-1.5 text-base font-bold">
                 <Gift className="size-5" />
                 <span>Chúc mừng! Bạn đã quay trúng: {wonPrize.label}</span>
               </div>
 
               {wonPrize.code ? (
                 <div className="flex items-center justify-center gap-2">
-                  <div className="bg-background rounded-lg border border-dashed border-emerald-500 px-4 py-2 font-mono text-base font-black tracking-wider text-emerald-600 dark:text-emerald-400">
+                  <div className="bg-background border-success text-success rounded-lg border border-dashed px-4 py-2 font-mono text-base font-black tracking-wider">
                     {wonPrize.code}
                   </div>
                   <Button
@@ -198,11 +198,11 @@ export function LuckyWheel({
                     size="sm"
                     variant="outline"
                     onClick={() => handleCopy(wonPrize.code)}
-                    className="border-emerald-500/40 text-emerald-600 hover:bg-emerald-500/10"
+                    className="border-success/30 text-success hover:bg-success/10"
                   >
                     {copied ? (
                       <>
-                        <Check className="mr-1 size-4 text-emerald-500" />
+                        <Check className="text-success mr-1 size-4" />
                         Đã chép
                       </>
                     ) : (

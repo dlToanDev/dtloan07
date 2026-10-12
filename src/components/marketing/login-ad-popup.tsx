@@ -99,7 +99,7 @@ export function LoginAdPopup({ initialConfig }: LoginAdPopupProps) {
       <div className="absolute top-3 right-3 z-30">
         {!canClose ? (
           <div className="flex animate-pulse items-center gap-1.5 rounded-full border border-white/20 bg-black/75 px-3 py-1 text-xs font-medium text-white shadow-lg backdrop-blur-md select-none">
-            <span className="inline-block size-2 rounded-full bg-amber-400" />
+            <span className="bg-warning inline-block size-2 rounded-full" />
             <span>Đóng sau {countdown}s</span>
           </div>
         ) : (

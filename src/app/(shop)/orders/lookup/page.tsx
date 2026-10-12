@@ -155,7 +155,7 @@ export default function OrderLookupPage() {
               </div>
               <Badge variant={paymentStatusBadgeVariant(order.status)} className="px-3 py-1">
                 {order.status === 'PAID' ? (
-                  <CheckCircle2 className="mr-1 h-3.5 w-3.5 text-green-500" />
+                  <CheckCircle2 className="text-success mr-1 h-3.5 w-3.5" />
                 ) : (
                   <Clock className="mr-1 h-3.5 w-3.5" />
                 )}

@@ -118,7 +118,7 @@ export default async function PostPage({ params }: PageProps) {
             ))}
             {post.featured || (post.featuredScore ?? 0) >= 1500 ? (
               <Badge
-                className="gap-1 border-amber-500/30 bg-amber-500/15 px-3 py-1 text-xs font-semibold text-amber-600 dark:text-amber-400"
+                className="border-warning/30 bg-warning/15 text-warning gap-1 px-3 py-1 text-xs font-semibold"
                 title={`Bài viết nổi bật (${post.featuredScore ?? 0} điểm: Lượt xem ×1 + Like ×2 + Bình luận ×3 + Chia sẻ ×2)`}
               >
                 <Sparkles className="size-3" /> Nổi bật ({post.featuredScore ?? 0} điểm)
@@ -145,7 +145,7 @@ export default async function PostPage({ params }: PageProps) {
                   <span className="text-muted-foreground font-normal">Tác giả:</span>
                   <span className="text-foreground font-semibold">{post.author.name}</span>
                   {post.author.pro && (
-                    <Badge className="bg-amber-500 px-1.5 py-0 text-[10px] font-bold text-white hover:bg-amber-500">
+                    <Badge className="bg-warning text-warning-foreground hover:bg-warning px-1.5 py-0 text-[10px] font-bold">
                       PRO
                     </Badge>
                   )}
@@ -204,21 +204,21 @@ export default async function PostPage({ params }: PageProps) {
                 className="inline-flex items-center gap-1.5"
                 title={`${post.likes ?? 0} lượt thích (2 điểm)`}
               >
-                <Heart className="size-4 fill-rose-500/20 text-rose-500" />
+                <Heart className="fill-destructive/20 text-destructive size-4" />
                 <span>{post.likes ?? 0}</span>
               </span>
               <span
                 className="inline-flex items-center gap-1.5"
                 title={`${post.comments ?? 0} bình luận (3 điểm)`}
               >
-                <MessageSquare className="size-4 text-sky-500" />
+                <MessageSquare className="text-info size-4" />
                 <span>{post.comments ?? 0}</span>
               </span>
               <span
                 className="inline-flex items-center gap-1.5"
                 title={`${post.shares ?? 0} lượt chia sẻ (2 điểm)`}
               >
-                <Share2 className="size-4 text-emerald-500" />
+                <Share2 className="text-success size-4" />
                 <span>{post.shares ?? 0}</span>
               </span>
             </div>

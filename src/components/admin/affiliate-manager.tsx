@@ -106,6 +106,12 @@ export function AffiliateManager({ initialItems }: AffiliateManagerProps) {
     setShortenMessage(null);
   };
 
+  const handleClearShortenedUrl = () => {
+    setShortenedUrl('');
+    setActiveUrlType('DIRECT');
+    setShortenMessage(null);
+  };
+
   // Tự động gọi API rút gọn link kiếm tiền
   const handleGenerateShortUrl = async () => {
     if (!directUrl || !directUrl.startsWith('http')) {
@@ -142,6 +148,10 @@ export function AffiliateManager({ initialItems }: AffiliateManagerProps) {
     e.preventDefault();
     setIsSubmitting(true);
 
+    const trimmedShortUrl = shortenedUrl.trim();
+    const finalActiveType: AffiliateLinkType =
+      activeUrlType === 'SHORTENED' && !trimmedShortUrl ? 'DIRECT' : activeUrlType;
+
     const formData = new FormData();
     formData.append('name', name);
     formData.append('slug', slug);
@@ -150,8 +160,8 @@ export function AffiliateManager({ initialItems }: AffiliateManagerProps) {
     formData.append('perks', perks);
     formData.append('couponCode', couponCode);
     formData.append('directUrl', directUrl);
-    formData.append('shortenedUrl', shortenedUrl);
-    formData.append('activeUrlType', activeUrlType);
+    formData.append('shortenedUrl', trimmedShortUrl);
+    formData.append('activeUrlType', finalActiveType);
     formData.append('logoUrl', logoUrl);
     formData.append('featured', featured ? 'true' : 'false');
 
@@ -226,7 +236,7 @@ export function AffiliateManager({ initialItems }: AffiliateManagerProps) {
             <span className="text-muted-foreground text-xs font-medium uppercase">
               Tổng lượt click
             </span>
-            <MousePointerClick className="size-4 text-sky-500" />
+            <MousePointerClick className="text-info size-4" />
           </div>
           <div className="mt-2 text-2xl font-bold">{totalClicks}</div>
           <p className="text-muted-foreground mt-1 text-xs">Đo lường qua /go/[slug]</p>
@@ -237,7 +247,7 @@ export function AffiliateManager({ initialItems }: AffiliateManagerProps) {
             <span className="text-muted-foreground text-xs font-medium uppercase">
               Đang kiếm tiền Shortlink
             </span>
-            <DollarSign className="size-4 text-emerald-500" />
+            <DollarSign className="text-success size-4" />
           </div>
           <div className="mt-2 text-2xl font-bold">
             {totalMonetized} / {items.length}
@@ -306,7 +316,7 @@ export function AffiliateManager({ initialItems }: AffiliateManagerProps) {
                           <div className="text-muted-foreground flex items-center gap-1 text-xs">
                             <span>/go/{item.slug}</span>
                             {item.perks && (
-                              <span className="font-medium text-emerald-500">• {item.perks}</span>
+                              <span className="text-success font-medium">• {item.perks}</span>
                             )}
                           </div>
                         </div>
@@ -327,7 +337,7 @@ export function AffiliateManager({ initialItems }: AffiliateManagerProps) {
                             href={item.directUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-0.5 truncate text-blue-500 hover:underline"
+                            className="text-primary inline-flex items-center gap-0.5 truncate hover:underline"
                           >
                             {item.directUrl} <ExternalLink className="size-3" />
                           </a>
@@ -339,7 +349,7 @@ export function AffiliateManager({ initialItems }: AffiliateManagerProps) {
                               href={item.shortenedUrl}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="inline-flex items-center gap-0.5 truncate font-medium text-emerald-500 hover:underline"
+                              className="text-success inline-flex items-center gap-0.5 truncate font-medium hover:underline"
                             >
                               {item.shortenedUrl} <ExternalLink className="size-3" />
                             </a>
@@ -356,8 +366,8 @@ export function AffiliateManager({ initialItems }: AffiliateManagerProps) {
                         onClick={() => handleSwitchLinkType(item)}
                         className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold transition ${
                           item.activeUrlType === 'SHORTENED'
-                            ? 'border border-emerald-500/30 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
-                            : 'border border-blue-500/30 bg-blue-500/15 text-blue-600 dark:text-blue-400'
+                            ? 'border-success/30 bg-success/15 text-success border'
+                            : 'border-primary/30 bg-primary/15 text-primary border'
                         }`}
                         title="Bấm để chuyển đổi nhanh giữa Link trực tiếp và Link rút gọn kiếm tiền"
                       >
@@ -383,7 +393,7 @@ export function AffiliateManager({ initialItems }: AffiliateManagerProps) {
                         onClick={() => handleToggleFeatured(item)}
                         className={`rounded border px-2 py-0.5 text-xs transition ${
                           item.featured
-                            ? 'border-amber-500/30 bg-amber-500/10 font-semibold text-amber-600 dark:text-amber-400'
+                            ? 'border-warning/30 bg-warning/10 text-warning font-semibold'
                             : 'text-muted-foreground border-border hover:bg-muted'
                         }`}
                       >
@@ -397,8 +407,8 @@ export function AffiliateManager({ initialItems }: AffiliateManagerProps) {
                         onClick={() => handleToggleStatus(item)}
                         className={`rounded border px-2 py-0.5 text-xs transition ${
                           item.active
-                            ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
-                            : 'border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-400'
+                            ? 'border-success/30 bg-success/10 text-success'
+                            : 'border-destructive/30 bg-destructive/10 text-destructive'
                         }`}
                       >
                         {item.active ? 'Bật' : 'Tắt'}
@@ -420,7 +430,7 @@ export function AffiliateManager({ initialItems }: AffiliateManagerProps) {
                           variant="ghost"
                           size="sm"
                           onClick={() => handleDelete(item.id, item.name)}
-                          className="size-8 p-0 text-rose-500 hover:bg-rose-500/10 hover:text-rose-600"
+                          className="text-destructive hover:bg-destructive/10 hover:text-destructive size-8 p-0"
                           title="Xóa"
                         >
                           <Trash2 className="size-4" />
@@ -530,7 +540,7 @@ export function AffiliateManager({ initialItems }: AffiliateManagerProps) {
           {/* KHU VỰC 2 ĐƯỜNG LINK QUAN TRỌNG */}
           <div className="border-border bg-muted/40 space-y-3 rounded-xl border p-4">
             <h4 className="text-foreground flex items-center gap-1.5 text-xs font-bold tracking-wider uppercase">
-              <Zap className="size-4 text-amber-500" /> Cấu hình 2 Nguồn Link Kiếm Tiền
+              <Zap className="text-warning size-4" /> Cấu hình 2 Nguồn Link Kiếm Tiền
             </h4>
 
             {/* Đường 1 */}
@@ -563,7 +573,7 @@ export function AffiliateManager({ initialItems }: AffiliateManagerProps) {
                     </>
                   ) : (
                     <>
-                      <Sparkles className="size-3.5 text-amber-500" /> Rút gọn kiếm tiền
+                      <Sparkles className="text-warning size-3.5" /> Rút gọn kiếm tiền
                     </>
                   )}
                 </Button>
@@ -575,8 +585,8 @@ export function AffiliateManager({ initialItems }: AffiliateManagerProps) {
               <div
                 className={`flex items-center gap-2 rounded-lg p-2.5 text-xs ${
                   shortenMessage.type === 'success'
-                    ? 'border border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
-                    : 'border border-amber-500/20 bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                    ? 'border-success/20 bg-success/10 text-success border'
+                    : 'border-warning/20 bg-warning/10 text-warning border'
                 }`}
               >
                 {shortenMessage.type === 'success' ? (
@@ -590,43 +600,90 @@ export function AffiliateManager({ initialItems }: AffiliateManagerProps) {
 
             {/* Đường 2 */}
             <div>
-              <label className="text-foreground flex items-center justify-between text-xs font-medium">
-                <span>2. Link Rút Gọn Kiếm Tiền (Tự sinh từ nút trên hoặc dán tay)</span>
-                <span className="text-muted-foreground text-[11px]">
-                  (MegaURL, Ouo.io, Shorte.st...)
-                </span>
-              </label>
+              <div className="flex items-center justify-between text-xs font-medium">
+                <label className="text-foreground">2. Link Rút Gọn Kiếm Tiền (Tùy chọn)</label>
+                {shortenedUrl && (
+                  <button
+                    type="button"
+                    onClick={handleClearShortenedUrl}
+                    className="text-destructive hover:text-destructive flex items-center gap-1 text-[11px] font-medium hover:underline"
+                  >
+                    <Trash2 className="size-3" /> Xóa link rút gọn
+                  </button>
+                )}
+              </div>
               <Input
                 value={shortenedUrl}
                 onChange={(e) => setShortenedUrl(e.target.value)}
-                placeholder="https://megaurl.in/..."
-                className="mt-1 font-mono text-sm text-emerald-600 dark:text-emerald-400"
+                placeholder="https://megaurl.in/... (Để trống nếu chỉ muốn dùng link gốc)"
+                className="text-success mt-1 font-mono text-sm"
               />
+              <p className="text-muted-foreground mt-1 text-[11px]">
+                {shortenedUrl
+                  ? 'Đã có link rút gọn. Bạn có thể chọn Chế độ link bên dưới hoặc bấm Xóa nếu không muốn dùng.'
+                  : 'Không bắt buộc. Nếu bạn không muốn rút gọn thì để trống mục này và chọn Link trực tiếp.'}
+              </p>
             </div>
 
             {/* Chọn loại link kích hoạt */}
-            <div className="border-border/70 flex flex-wrap items-center justify-between gap-2 border-t pt-2">
-              <span className="text-xs font-semibold">Loại link phát hành cho độc giả:</span>
-              <div className="flex items-center gap-4 text-xs font-medium">
-                <label className="flex cursor-pointer items-center gap-1.5">
+            <div className="border-border/70 space-y-2 border-t pt-2">
+              <span className="text-xs font-semibold">Chế độ link áp dụng khi khách bấm xem:</span>
+              <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+                <label
+                  className={`flex cursor-pointer items-start gap-2.5 rounded-xl border p-2.5 transition ${
+                    activeUrlType === 'DIRECT'
+                      ? 'border-primary bg-primary/10 text-foreground ring-primary shadow-xs ring-1'
+                      : 'border-border/70 bg-card/60 hover:bg-muted/50 text-muted-foreground'
+                  }`}
+                >
                   <input
                     type="radio"
                     name="activeUrlType"
                     value="DIRECT"
                     checked={activeUrlType === 'DIRECT'}
                     onChange={() => setActiveUrlType('DIRECT')}
+                    className="mt-1"
                   />
-                  <span>Link trực tiếp</span>
+                  <div className="space-y-0.5">
+                    <div className="text-foreground flex items-center gap-1 text-xs font-semibold">
+                      <Zap className="text-primary size-3" />
+                      <span>Link trực tiếp (Không qua rút gọn)</span>
+                    </div>
+                    <p className="text-muted-foreground text-[10px] leading-tight">
+                      Khách mở thẳng website gốc. Không quảng cáo, trải nghiệm tốt nhất.
+                    </p>
+                  </div>
                 </label>
-                <label className="flex cursor-pointer items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
+
+                <label
+                  className={`flex items-start gap-2.5 rounded-xl border transition ${
+                    !shortenedUrl
+                      ? 'border-border cursor-not-allowed border-dashed opacity-50'
+                      : activeUrlType === 'SHORTENED'
+                        ? 'border-success bg-success/10 text-foreground ring-success cursor-pointer shadow-xs ring-1'
+                        : 'border-border/70 bg-card/60 hover:bg-muted/50 text-muted-foreground cursor-pointer'
+                  }`}
+                >
                   <input
                     type="radio"
                     name="activeUrlType"
                     value="SHORTENED"
+                    disabled={!shortenedUrl}
                     checked={activeUrlType === 'SHORTENED'}
                     onChange={() => setActiveUrlType('SHORTENED')}
+                    className="mt-1"
                   />
-                  <span>Link rút gọn kiếm tiền ($$$)</span>
+                  <div className="space-y-0.5">
+                    <div className="text-foreground flex items-center gap-1 text-xs font-semibold">
+                      <DollarSign className="text-success size-3" />
+                      <span>Link rút gọn kiếm tiền ($$$)</span>
+                    </div>
+                    <p className="text-muted-foreground text-[10px] leading-tight">
+                      {shortenedUrl
+                        ? 'Khách đi qua link rút gọn quảng cáo để bạn kiếm thêm tiền từ click.'
+                        : 'Chưa có link rút gọn. Bấm nút "Rút gọn kiếm tiền" ở trên nếu muốn dùng.'}
+                    </p>
+                  </div>
                 </label>
               </div>
             </div>

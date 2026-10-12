@@ -1,4 +1,4 @@
-import { PrismaClient, Role, WalletTxType, WalletTxStatus } from '@prisma/client';
+import { PrismaClient, Role } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
@@ -22,7 +22,7 @@ async function reset() {
   // Tạo tài khoản Admin duy nhất
   const adminEmail = 'hatoan13@gmail.com';
   const hashedPassword = bcrypt.hashSync('Toantoan1310@', 10);
-  const initialBalance = 1_000_000;
+  const proUntil = new Date('2099-12-31T23:59:59.999Z');
 
   const admin = await prisma.user.create({
     data: {
@@ -31,22 +31,9 @@ async function reset() {
       role: Role.ADMIN,
       password: hashedPassword,
       emailVerified: new Date(),
-      balanceVnd: initialBalance,
+      proUntil,
+      balanceVnd: 0,
       balanceUsd: 0,
-    },
-  });
-
-  // Tạo lịch sử giao dịch nạp tiền vào ví
-  await prisma.walletTransaction.create({
-    data: {
-      userId: admin.id,
-      type: WalletTxType.DEPOSIT,
-      status: WalletTxStatus.COMPLETED,
-      amount: initialBalance,
-      currency: 'VND',
-      balanceBefore: 0,
-      balanceAfter: initialBalance,
-      description: 'Số dư khởi tạo tài khoản Admin',
     },
   });
 
@@ -55,7 +42,10 @@ async function reset() {
   console.log(`👉 Email Admin: ${admin.email}`);
   console.log('👉 Mật khẩu: Toantoan1310@');
   console.log(`👉 Quyền hạn: ${admin.role}`);
-  console.log(`👉 Số dư ví: ${admin.balanceVnd.toLocaleString('vi-VN')} VND`);
+  console.log(
+    `👉 Số dư ví: ${admin.balanceVnd.toLocaleString('vi-VN')} VND / ${admin.balanceUsd} USD`,
+  );
+  console.log(`👉 Tài khoản Pro đến: ${admin.proUntil?.toISOString()}`);
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 }
 

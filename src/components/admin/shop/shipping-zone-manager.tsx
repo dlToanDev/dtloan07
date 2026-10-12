@@ -136,12 +136,12 @@ function ZoneForm({ zone, zones }: { zone?: ZoneView; zones: ZoneView[] }) {
       )}
 
       {state.error && (
-        <p role="alert" className="text-sm text-red-600">
+        <p role="alert" className="text-destructive text-sm">
           {state.error}
         </p>
       )}
       {state.success && (
-        <p role="status" className="text-sm text-emerald-600">
+        <p role="status" className="text-success text-sm">
           {state.success}
         </p>
       )}
@@ -169,7 +169,7 @@ function DeleteZoneButton({ id }: { id: string }) {
       >
         <Trash2 className="size-4" />
       </Button>
-      {state.error && <span className="text-xs text-red-600">{state.error}</span>}
+      {state.error && <span className="text-destructive text-xs">{state.error}</span>}
     </form>
   );
 }

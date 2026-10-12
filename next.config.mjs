@@ -59,17 +59,17 @@ const nextConfig = {
         destination: '/admin/shop/:id/edit',
         permanent: true,
       },
-      { source: '/shop', destination: '/afiuafhu283an', permanent: false },
-      { source: '/shop/:slug', destination: '/afiuafhu283an/:slug', permanent: false },
+      { source: '/afiuafhu283an', destination: '/shop', permanent: true },
+      { source: '/afiuafhu283an/:slug', destination: '/shop/:slug', permanent: true },
     ];
   },
   async rewrites() {
     const customShopPath = process.env.NEXT_PUBLIC_SHOP_PATH?.trim();
-    if (customShopPath && customShopPath !== '/afiuafhu283an') {
+    if (customShopPath && customShopPath !== '/shop') {
       const cleanPath = customShopPath.startsWith('/') ? customShopPath : `/${customShopPath}`;
       return [
-        { source: cleanPath, destination: '/afiuafhu283an' },
-        { source: `${cleanPath}/:slug`, destination: '/afiuafhu283an/:slug' },
+        { source: cleanPath, destination: '/shop' },
+        { source: `${cleanPath}/:slug`, destination: '/shop/:slug' },
       ];
     }
     return [];

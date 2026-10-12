@@ -1,6 +1,7 @@
 import { PostCard } from '@/components/blog/post-card';
 import { ProductCard } from '@/components/shop/product-card';
 import { AffiliateCard } from '@/components/affiliate/affiliate-card';
+import { CourseCard } from '@/components/courses/course-card';
 import { JsonLd } from '@/components/json-ld';
 import { Container } from '@/components/layout/container';
 import { NewsletterForm } from '@/components/marketing/newsletter-form';
@@ -14,9 +15,10 @@ import { getAffiliatePath } from '@/lib/affiliate-token';
 import { getPublicHeroBannerConfig } from '@/server/actions/settings';
 import { HeroBannerCarousel } from '@/components/marketing/hero-banner-carousel';
 import { getServerTranslator } from '@/lib/i18n/server';
+import { summarizeVariants } from '@/lib/shop/variants';
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { ArrowRight, Sparkles, Server, ShieldCheck, Zap, Tag, BookOpen } from 'lucide-react';
+import { ArrowRight, Sparkles, Tag, BookOpen, GraduationCap } from 'lucide-react';
 
 export const metadata: Metadata = buildMetadata({
   title: `${siteConfig.name} - DevOps, Quản trị Server & Sản phẩm số`,
@@ -28,29 +30,73 @@ export const revalidate = 60; // 60s ISR
 
 import { unstable_cache } from 'next/cache';
 
+async function fetchHomeProducts() {
+  return db.product.findMany({
+    where: { status: 'ACTIVE' },
+    include: {
+      variants: {
+        include: { _count: { select: { accountStock: { where: { status: 'AVAILABLE' } } } } },
+      },
+    },
+    take: 3,
+    orderBy: { createdAt: 'desc' },
+  });
+}
+
 const getHomeFeaturedProductsCached = unstable_cache(
-  async () => {
-    return db.product.findMany({
-      where: { status: 'ACTIVE', type: 'DOWNLOAD' },
-      take: 3,
-      orderBy: { createdAt: 'desc' },
-    });
-  },
-  ['home-featured-products'],
+  fetchHomeProducts,
+  ['home-featured-products-v3'],
   { revalidate: 60, tags: ['products', 'shop'] },
 );
 
+async function getHomeFeaturedProducts() {
+  if (process.env.NODE_ENV === 'development') {
+    return fetchHomeProducts();
+  }
+  return getHomeFeaturedProductsCached();
+}
+
+async function fetchHomeAffiliateDeals() {
+  return db.affiliateItem.findMany({
+    where: { active: true },
+    take: 3,
+    orderBy: { createdAt: 'desc' },
+  });
+}
+
 const getHomeFeaturedAffiliateDealsCached = unstable_cache(
-  async () => {
-    return db.affiliateItem.findMany({
-      where: { active: true, featured: true, category: { not: 'TOOLCODE' } },
-      take: 3,
-      orderBy: { createdAt: 'desc' },
-    });
-  },
-  ['home-featured-affiliate-deals'],
+  fetchHomeAffiliateDeals,
+  ['home-featured-affiliate-deals-v4'],
   { revalidate: 120, tags: ['affiliates'] },
 );
+
+async function getHomeFeaturedAffiliateDeals() {
+  if (process.env.NODE_ENV === 'development') {
+    return fetchHomeAffiliateDeals();
+  }
+  return getHomeFeaturedAffiliateDealsCached();
+}
+
+async function fetchHomeCourses() {
+  return db.course.findMany({
+    where: { status: { in: ['ACTIVE', 'UPCOMING'] } },
+    take: 3,
+    orderBy: { createdAt: 'desc' },
+  });
+}
+
+const getHomeFeaturedCoursesCached = unstable_cache(
+  fetchHomeCourses,
+  ['home-featured-courses-v4'],
+  { revalidate: 120, tags: ['courses'] },
+);
+
+async function getHomeFeaturedCourses() {
+  if (process.env.NODE_ENV === 'development') {
+    return fetchHomeCourses();
+  }
+  return getHomeFeaturedCoursesCached();
+}
 
 export default async function HomePage() {
   const affiliatePath = getAffiliatePath();
@@ -61,23 +107,28 @@ export default async function HomePage() {
     getServerTranslator(),
   ]);
 
-  let products: Awaited<ReturnType<typeof getHomeFeaturedProductsCached>> = [];
-  let affiliateDeals: Awaited<ReturnType<typeof getHomeFeaturedAffiliateDealsCached>> = [];
+  const [productsResult, affiliateDealsResult, coursesResult] = await Promise.allSettled([
+    getHomeFeaturedProducts(),
+    getHomeFeaturedAffiliateDeals(),
+    getHomeFeaturedCourses(),
+  ]);
 
-  try {
-    [products, affiliateDeals] = await Promise.all([
-      getHomeFeaturedProductsCached(),
-      getHomeFeaturedAffiliateDealsCached(),
-    ]);
-  } catch (err) {
-    console.warn('Cảnh báo: Không thể tải danh sách sản phẩm/affiliate từ DB:', err);
+  if (productsResult.status === 'rejected') {
+    console.error('LỖI FETCH PRODUCTS:', productsResult.reason);
+  }
+  if (affiliateDealsResult.status === 'rejected') {
+    console.error('LỖI FETCH AFFILIATE:', affiliateDealsResult.reason);
+  }
+  if (coursesResult.status === 'rejected') {
+    console.error('LỖI FETCH COURSES:', coursesResult.reason);
   }
 
-  // Bài viết nổi bật: Sắp xếp theo điểm tương tác thực tế
-  // Điểm = (lượt xem × 1) + (like × 2) + (comment × 3) + (share × 2)
-  const featuredPosts = [...posts]
-    .sort((a, b) => (b.featuredScore ?? 0) - (a.featuredScore ?? 0))
-    .slice(0, 2);
+  const products = productsResult.status === 'fulfilled' ? productsResult.value : [];
+  const affiliateDeals =
+    affiliateDealsResult.status === 'fulfilled' ? affiliateDealsResult.value : [];
+  const courses = coursesResult.status === 'fulfilled' ? coursesResult.value : [];
+
+  // 3 bài viết mới nhất
   const latestPosts = posts.slice(0, 3);
 
   return (
@@ -92,10 +143,7 @@ export default async function HomePage() {
           {/* 3 Nút CTA Phễu & Nhãn trạng thái */}
           <div className="flex flex-wrap items-center justify-between gap-4 pt-1">
             <div className="flex flex-wrap items-center gap-3">
-              <Link
-                href={`${siteConfig.shopPath}?c=source-code`}
-                className={buttonStyles({ size: 'md' })}
-              >
+              <Link href={siteConfig.shopPath} className={buttonStyles({ size: 'md' })}>
                 {t('home.cta_products', 'Xem sản phẩm số')} <ArrowRight className="ml-1.5 size-4" />
               </Link>
               <Link href="/blog" className={buttonStyles({ variant: 'outline', size: 'md' })}>
@@ -106,7 +154,7 @@ export default async function HomePage() {
                 className={buttonStyles({
                   variant: 'ghost',
                   size: 'md',
-                  className: 'text-amber-600 hover:bg-amber-500/10 dark:text-amber-400',
+                  className: 'text-warning hover:bg-warning/10',
                 })}
               >
                 <Tag className="mr-1.5 size-4" /> {t('home.cta_deals', 'Ưu đãi Hosting & Tools')}
@@ -114,7 +162,7 @@ export default async function HomePage() {
             </div>
 
             <div className="text-muted-foreground bg-muted/40 border-border/60 hidden items-center gap-2 rounded-full border px-3.5 py-1.5 text-xs sm:flex">
-              <span className="size-2 animate-pulse rounded-full bg-emerald-500" />
+              <span className="bg-success size-2 animate-pulse rounded-full" />
               <span>
                 {t('home.hero_partner', 'Đối tác hạ tầng & công nghệ chính thức của')}{' '}
                 {siteConfig.name}
@@ -145,10 +193,7 @@ export default async function HomePage() {
 
           {/* 3 Nút CTA Phễu */}
           <div className="flex flex-wrap items-center gap-3 pt-2">
-            <Link
-              href={`${siteConfig.shopPath}?c=source-code`}
-              className={buttonStyles({ size: 'lg' })}
-            >
+            <Link href={siteConfig.shopPath} className={buttonStyles({ size: 'lg' })}>
               {t('home.cta_products', 'Xem sản phẩm số')} <ArrowRight className="ml-1.5 size-4" />
             </Link>
             <Link href="/blog" className={buttonStyles({ variant: 'outline', size: 'lg' })}>
@@ -159,7 +204,7 @@ export default async function HomePage() {
               className={buttonStyles({
                 variant: 'ghost',
                 size: 'lg',
-                className: 'text-amber-600 hover:bg-amber-500/10 dark:text-amber-400',
+                className: 'text-warning hover:bg-warning/10',
               })}
             >
               <Tag className="mr-1.5 size-4" /> {t('home.cta_deals', 'Ưu đãi Hosting & Tools')}
@@ -168,138 +213,8 @@ export default async function HomePage() {
         </section>
       )}
 
-      {/* 2. GIÁ TRỊ CỐT LÕI (VALUE STRIP) */}
-      <section aria-label="Giá trị cốt lõi" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="border-border bg-card rounded-xl border p-4 shadow-xs">
-          <div className="flex items-center gap-3">
-            <div className="bg-primary/10 text-primary rounded-lg p-2">
-              <Server className="size-5" />
-            </div>
-            <div>
-              <h3 className="text-sm font-bold">
-                {t('home.val_realworld_title', '100% Thực chiến')}
-              </h3>
-              <p className="text-muted-foreground text-xs">
-                {t('home.val_realworld_desc', 'Kinh nghiệm vận hành VPS thực tế')}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="border-border bg-card rounded-xl border p-4 shadow-xs">
-          <div className="flex items-center gap-3">
-            <div className="rounded-lg bg-emerald-500/10 p-2 text-emerald-600 dark:text-emerald-400">
-              <Zap className="size-5" />
-            </div>
-            <div>
-              <h3 className="text-sm font-bold">{t('home.val_cost_title', 'Tối ưu chi phí')}</h3>
-              <p className="text-muted-foreground text-xs">
-                {t('home.val_cost_desc', 'Hạ tầng tự vận hành, chi phí $0')}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="border-border bg-card rounded-xl border p-4 shadow-xs">
-          <div className="flex items-center gap-3">
-            <div className="rounded-lg bg-blue-500/10 p-2 text-blue-600 dark:text-blue-400">
-              <ShieldCheck className="size-5" />
-            </div>
-            <div>
-              <h3 className="text-sm font-bold">
-                {t('home.val_security_title', 'Bảo mật chuẩn A+')}
-              </h3>
-              <p className="text-muted-foreground text-xs">
-                {t('home.val_security_desc', 'Hardening Nginx, SSL, Rate-limit')}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="border-border bg-card rounded-xl border p-4 shadow-xs">
-          <div className="flex items-center gap-3">
-            <div className="rounded-lg bg-amber-500/10 p-2 text-amber-600 dark:text-amber-400">
-              <Sparkles className="size-5" />
-            </div>
-            <div>
-              <h3 className="text-sm font-bold">
-                {t('home.val_deals_title', 'Mã giảm giá độc quyền')}
-              </h3>
-              <p className="text-muted-foreground text-xs">
-                {t('home.val_deals_desc', 'Credit dùng thử VPS & Tools')}
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* 3. KHỐI SẢN PHẨM SỐ NỔI BẬT */}
-      {products.length > 0 && (
-        <section aria-labelledby="products-heading" className="space-y-6">
-          <div className="flex items-baseline justify-between gap-4">
-            <div>
-              <h2 id="products-heading" className="text-2xl font-bold tracking-tight">
-                {t('home.products_title', 'Sản phẩm số & Template giải pháp')}
-              </h2>
-              <p className="text-muted-foreground mt-1 text-sm">
-                {t(
-                  'home.products_desc',
-                  'Các bộ cấu hình và template kiểm chứng thực tế, sẵn sàng cho môi trường production.',
-                )}
-              </p>
-            </div>
-            <Link
-              href={`${siteConfig.shopPath}?c=source-code`}
-              className="text-primary inline-flex items-center gap-1 text-sm font-semibold hover:underline"
-            >
-              {t('home.products_view_all', 'Xem tất cả')} <ArrowRight className="size-3.5" />
-            </Link>
-          </div>
-
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {products.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* 4. KHỐI HOT DEALS & TOOLS KHUYÊN DÙNG (AFFILIATE TEASER) */}
-      {affiliateDeals.length > 0 && (
-        <section aria-labelledby="affiliate-heading" className="space-y-6">
-          <div className="flex items-baseline justify-between gap-4">
-            <div>
-              <div className="mb-1 inline-flex items-center gap-1.5 text-xs font-semibold text-amber-600 dark:text-amber-400">
-                <Sparkles className="size-3.5" /> {t('home.deals_badge', 'Độc quyền & Tiết kiệm')}
-              </div>
-              <h2 id="affiliate-heading" className="text-2xl font-bold tracking-tight">
-                {t('home.deals_title', 'Ưu đãi Hosting & Công cụ khuyên dùng')}
-              </h2>
-              <p className="text-muted-foreground text-sm">
-                {t(
-                  'home.deals_desc',
-                  'Danh sách các nhà cung cấp VPS, tên miền và công cụ dev được blog đàm phán ưu đãi tốt nhất.',
-                )}
-              </p>
-            </div>
-            <Link
-              href={affiliatePath}
-              className="text-primary inline-flex items-center gap-1 text-sm font-semibold hover:underline"
-            >
-              {t('home.deals_view_all', 'Xem tất cả ưu đãi')} <ArrowRight className="size-3.5" />
-            </Link>
-          </div>
-
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {affiliateDeals.map((deal) => (
-              <AffiliateCard key={deal.id} deal={deal} />
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* 5. KHỐI BÀI VIẾT NỔI BẬT & MỚI NHẤT */}
-      <section aria-labelledby="blog-heading" className="space-y-8">
+      {/* 2. KHỐI BÀI VIẾT MỚI NHẤT */}
+      <section aria-labelledby="blog-heading" className="space-y-6">
         <div className="flex items-baseline justify-between gap-4">
           <div>
             <h2 id="blog-heading" className="text-2xl font-bold tracking-tight">
@@ -333,32 +248,129 @@ export default async function HomePage() {
           </div>
         )}
 
-        {/* Featured Posts */}
-        {featuredPosts.length > 0 && (
-          <div className="space-y-4">
-            <h3 className="text-muted-foreground text-sm font-bold tracking-wider uppercase">
-              {t('home.blog_featured', 'Bài viết tiêu biểu')}
-            </h3>
-            <div className="flex flex-col gap-6">
-              {featuredPosts.map((post) => (
-                <PostCard key={post.slug} post={post} headingLevel="h3" />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Latest Posts */}
-        <div className="border-border space-y-4 border-t pt-4">
-          <h3 className="text-muted-foreground text-sm font-bold tracking-wider uppercase">
-            {t('home.blog_latest', 'Mới cập nhật')}
-          </h3>
-          <div className="flex flex-col gap-6">
-            {latestPosts.map((post) => (
-              <PostCard key={post.slug} post={post} headingLevel="h3" />
-            ))}
-          </div>
+        {/* Danh sách bài viết mới nhất */}
+        <div className="flex flex-col gap-6">
+          {latestPosts.map((post) => (
+            <PostCard key={post.slug} post={post} headingLevel="h3" />
+          ))}
         </div>
       </section>
+
+      {/* 3. KHỐI KHÓA HỌC NỔI BẬT */}
+      {courses.length > 0 && (
+        <section aria-labelledby="courses-heading" className="space-y-6">
+          <div className="flex items-baseline justify-between gap-4">
+            <div>
+              <div className="text-primary mb-1 inline-flex items-center gap-1.5 text-xs font-semibold">
+                <GraduationCap className="size-3.5" /> {t('home.courses_badge', 'Học & Thực hành')}
+              </div>
+              <h2 id="courses-heading" className="text-2xl font-bold tracking-tight">
+                {t('home.courses_title', 'Khóa học lập trình')}
+              </h2>
+              <p className="text-muted-foreground text-sm">
+                {t(
+                  'home.courses_desc',
+                  'Các khóa học chuyên sâu về lập trình, DevOps và quản trị hệ thống.',
+                )}
+              </p>
+            </div>
+            <Link
+              href="/courses"
+              className="text-primary inline-flex items-center gap-1 text-sm font-semibold hover:underline"
+            >
+              {t('home.courses_view_all', 'Xem tất cả khóa học')}{' '}
+              <ArrowRight className="size-3.5" />
+            </Link>
+          </div>
+
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {courses.map((course) => (
+              <CourseCard key={course.id} course={course} />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* 4. KHỐI SẢN PHẨM SỐ NỔI BẬT (SHOP) */}
+      {products.length > 0 && (
+        <section aria-labelledby="products-heading" className="space-y-6">
+          <div className="flex items-baseline justify-between gap-4">
+            <div>
+              <h2 id="products-heading" className="text-2xl font-bold tracking-tight">
+                {t('home.products_title', 'Sản phẩm số & Template giải pháp')}
+              </h2>
+              <p className="text-muted-foreground mt-1 text-sm">
+                {t(
+                  'home.products_desc',
+                  'Các bộ cấu hình và template kiểm chứng thực tế, sẵn sàng cho môi trường production.',
+                )}
+              </p>
+            </div>
+            <Link
+              href={siteConfig.shopPath}
+              className="text-primary inline-flex items-center gap-1 text-sm font-semibold hover:underline"
+            >
+              {t('home.products_view_all', 'Xem tất cả')} <ArrowRight className="size-3.5" />
+            </Link>
+          </div>
+
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {products.map((product) => (
+              <ProductCard
+                key={product.id}
+                product={product}
+                shop={{
+                  type: product.type,
+                  condition: product.condition,
+                  summary: summarizeVariants(
+                    product.variants.map((variant) => ({
+                      ...variant,
+                      stock:
+                        product.type === 'ACCOUNT' && product.deliveryMode === 'AUTO'
+                          ? (variant._count?.accountStock ?? variant.stock)
+                          : variant.stock,
+                    })),
+                  ),
+                }}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* 5. KHỐI HOT DEALS & TOOLS KHUYÊN DÙNG (AFFILIATE) */}
+      {affiliateDeals.length > 0 && (
+        <section aria-labelledby="affiliate-heading" className="space-y-6">
+          <div className="flex items-baseline justify-between gap-4">
+            <div>
+              <div className="text-warning mb-1 inline-flex items-center gap-1.5 text-xs font-semibold">
+                <Sparkles className="size-3.5" /> {t('home.deals_badge', 'Độc quyền & Tiết kiệm')}
+              </div>
+              <h2 id="affiliate-heading" className="text-2xl font-bold tracking-tight">
+                {t('home.deals_title', 'Ưu đãi Hosting & Công cụ khuyên dùng')}
+              </h2>
+              <p className="text-muted-foreground text-sm">
+                {t(
+                  'home.deals_desc',
+                  'Danh sách các nhà cung cấp VPS, tên miền và công cụ dev được blog đàm phán ưu đãi tốt nhất.',
+                )}
+              </p>
+            </div>
+            <Link
+              href={affiliatePath}
+              className="text-primary inline-flex items-center gap-1 text-sm font-semibold hover:underline"
+            >
+              {t('home.deals_view_all', 'Xem tất cả ưu đãi')} <ArrowRight className="size-3.5" />
+            </Link>
+          </div>
+
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {affiliateDeals.map((deal) => (
+              <AffiliateCard key={deal.id} deal={deal} />
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* 6. LEAD MAGNET / NEWSLETTER */}
       <section

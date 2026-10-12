@@ -52,17 +52,17 @@ export function AffiliateSecurityBadge({
   const formattedTime = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 
   return (
-    <div className="text-foreground relative overflow-hidden rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-4 text-xs shadow-xs sm:text-sm">
+    <div className="text-foreground border-success/30 bg-success/5 relative overflow-hidden rounded-xl border p-4 text-xs shadow-xs sm:text-sm">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2.5">
-          <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+          <div className="bg-success/10 text-success flex size-8 shrink-0 items-center justify-center rounded-lg">
             <Lock className="size-4" />
           </div>
           <div>
-            <div className="flex items-center gap-1.5 font-semibold text-emerald-600 dark:text-emerald-400">
+            <div className="text-success flex items-center gap-1.5 font-semibold">
               <ShieldCheck className="size-4" />
               <span>Liên kết bảo mật định danh động</span>
-              <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 font-mono text-[10px] text-emerald-600 dark:text-emerald-400">
+              <span className="bg-success/10 text-success rounded-full px-2 py-0.5 font-mono text-[10px]">
                 {token.slice(0, 8)}...
               </span>
             </div>
@@ -75,13 +75,13 @@ export function AffiliateSecurityBadge({
 
         <div className="bg-background/80 border-border flex shrink-0 items-center gap-2 self-start rounded-lg border px-3 py-1.5 shadow-xs sm:self-center">
           {isRotating ? (
-            <div className="flex items-center gap-1.5 text-xs font-medium text-amber-500">
+            <div className="text-warning flex items-center gap-1.5 text-xs font-medium">
               <RefreshCw className="size-3.5 animate-spin" />
               <span>Đang đổi chuỗi...</span>
             </div>
           ) : (
             <div className="text-muted-foreground flex items-center gap-1.5 text-xs">
-              <Clock className="size-3.5 text-emerald-500" />
+              <Clock className="text-success size-3.5" />
               <span>Đổi chuỗi sau:</span>
               <span className="text-foreground font-mono font-bold">{formattedTime}</span>
             </div>

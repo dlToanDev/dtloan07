@@ -57,11 +57,11 @@ export function SidebarRelated({ posts }: { posts: PostMeta[] }) {
                   {post.readingMinutes}p
                 </span>
                 <span>·</span>
-                <span className="inline-flex items-center gap-0.5 text-rose-500/90">
-                  <Heart className="size-2.5 fill-rose-500/20" />
+                <span className="text-destructive/90 inline-flex items-center gap-0.5">
+                  <Heart className="fill-destructive/20 size-2.5" />
                   {post.likes ?? 0}
                 </span>
-                <span className="inline-flex items-center gap-0.5 text-sky-500/90">
+                <span className="text-info/90 inline-flex items-center gap-0.5">
                   <MessageSquare className="size-2.5" />
                   {post.comments ?? 0}
                 </span>

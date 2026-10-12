@@ -176,3 +176,26 @@ export async function deleteCourse(id: string): Promise<Result> {
   revalidateCourse(course.slug);
   return { ok: true, data: null };
 }
+
+/** Đổi nhanh trạng thái khóa học (Phát hành ACTIVE <-> Tạm dừng DRAFT/ARCHIVED hoặc trạng thái chỉ định). */
+export async function toggleCourseStatus(
+  id: string,
+  targetStatus?: 'DRAFT' | 'ACTIVE' | 'UPCOMING' | 'ARCHIVED',
+): Promise<Result<{ status: 'DRAFT' | 'ACTIVE' | 'UPCOMING' | 'ARCHIVED' }>> {
+  await requireAdmin();
+  const current = await db.course.findUnique({
+    where: { id },
+    select: { id: true, status: true, slug: true },
+  });
+  if (!current) return { ok: false, error: 'Không tìm thấy khóa học.' };
+
+  const nextStatus = targetStatus ?? (current.status === 'ACTIVE' ? 'DRAFT' : 'ACTIVE');
+
+  await db.course.update({
+    where: { id },
+    data: { status: nextStatus },
+  });
+
+  revalidateCourse(current.slug);
+  return { ok: true, data: { status: nextStatus } };
+}

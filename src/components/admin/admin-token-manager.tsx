@@ -117,7 +117,7 @@ export function AdminTokenManager({ initialData }: AdminTokenManagerProps) {
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <ShieldCheck className="size-5 text-emerald-500" />
+              <ShieldCheck className="text-success size-5" />
               <CardTitle className="text-base font-bold">
                 Bảo Mật URL Admin & Dynamic Token
               </CardTitle>
@@ -130,20 +130,20 @@ export function AdminTokenManager({ initialData }: AdminTokenManagerProps) {
 
           <div>
             {isOnline ? (
-              <Badge className="border-emerald-500/20 bg-emerald-500/10 font-semibold text-emerald-600 dark:text-emerald-400">
+              <Badge className="border-success/20 bg-success/10 text-success font-semibold">
                 ● Đang hoạt động (Active)
               </Badge>
             ) : tokenInfo.isRevoked ? (
               <Badge
                 variant="outline"
-                className="border-rose-500/20 bg-rose-500/10 font-semibold text-rose-600 dark:text-rose-400"
+                className="border-destructive/20 bg-destructive/10 text-destructive font-semibold"
               >
                 ● Đã thu hồi (Revoked)
               </Badge>
             ) : (
               <Badge
                 variant="outline"
-                className="border-amber-500/20 bg-amber-500/10 font-semibold text-amber-600 dark:text-amber-400"
+                className="border-warning/20 bg-warning/10 text-warning font-semibold"
               >
                 ● Đã hết hạn (Expired)
               </Badge>
@@ -157,8 +157,8 @@ export function AdminTokenManager({ initialData }: AdminTokenManagerProps) {
           <div
             className={`rounded-xl border p-3 text-xs font-medium ${
               feedback.type === 'success'
-                ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
-                : 'border-rose-500/20 bg-rose-500/10 text-rose-600 dark:text-rose-400'
+                ? 'border-success/20 bg-success/10 text-success'
+                : 'border-destructive/20 bg-destructive/10 text-destructive'
             }`}
           >
             {feedback.message}
@@ -179,7 +179,7 @@ export function AdminTokenManager({ initialData }: AdminTokenManagerProps) {
 
           <div className="border-border/70 bg-muted/30 space-y-1 rounded-xl border p-3.5">
             <span className="text-muted-foreground flex items-center gap-1.5 text-[11px] font-semibold tracking-wider uppercase">
-              <Clock className="size-3.5 text-amber-500" /> Thời gian hết hạn
+              <Clock className="text-warning size-3.5" /> Thời gian hết hạn
             </span>
             <p className="text-foreground text-xs font-bold">
               {tokenInfo.expiresAt
@@ -193,7 +193,7 @@ export function AdminTokenManager({ initialData }: AdminTokenManagerProps) {
 
           <div className="border-border/70 bg-muted/30 space-y-1 rounded-xl border p-3.5">
             <span className="text-muted-foreground flex items-center gap-1.5 text-[11px] font-semibold tracking-wider uppercase">
-              <ShieldAlert className="size-3.5 text-violet-500" /> Chính sách bảo vệ
+              <ShieldAlert className="text-primary size-3.5" /> Chính sách bảo vệ
             </span>
             <p className="text-foreground text-xs font-bold">Defense in Depth</p>
             <p className="text-muted-foreground text-[10px]">RBAC + Rate Limit + 404 Cloaking</p>
@@ -209,11 +209,7 @@ export function AdminTokenManager({ initialData }: AdminTokenManagerProps) {
             onClick={handleCopy}
             className="cursor-pointer gap-1.5 text-xs font-semibold"
           >
-            {copied ? (
-              <Check className="size-3.5 text-emerald-500" />
-            ) : (
-              <Copy className="size-3.5" />
-            )}
+            {copied ? <Check className="text-success size-3.5" /> : <Copy className="size-3.5" />}
             <span>{copied ? 'Đã sao chép link!' : 'Sao chép URL hiện tại'}</span>
           </Button>
 
@@ -246,7 +242,7 @@ export function AdminTokenManager({ initialData }: AdminTokenManagerProps) {
             size="sm"
             disabled={isPending}
             onClick={handleRotate}
-            className="cursor-pointer gap-1.5 bg-slate-900 text-xs font-bold text-white hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white"
+            className="cursor-pointer gap-1.5 text-xs font-bold"
           >
             {isPending ? (
               <Loader2 className="size-3.5 animate-spin" />
@@ -262,7 +258,7 @@ export function AdminTokenManager({ initialData }: AdminTokenManagerProps) {
             size="sm"
             disabled={isPending || !tokenInfo.hasActive}
             onClick={handleRevoke}
-            className="cursor-pointer gap-1.5 border-rose-500/30 text-xs font-semibold text-rose-600 hover:bg-rose-500/10 hover:text-rose-700"
+            className="border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive cursor-pointer gap-1.5 text-xs font-semibold"
           >
             <Ban className="size-3.5" />
             <span>Thu hồi Token (Revoke)</span>

@@ -6,6 +6,7 @@ import { COURSE_STATUS } from '@/components/admin/courses/course-status';
 import { LessonsManager } from '@/components/admin/courses/lessons-manager';
 import { EnrollmentManager } from '@/components/admin/courses/enrollment-manager';
 import { loadCourseStats } from '@/lib/courses/admin-stats';
+import { CourseStatusBadgeButton } from '@/components/admin/courses/course-status-badge-button';
 
 export const dynamic = 'force-dynamic';
 
@@ -73,15 +74,13 @@ export default async function AdminCoursePage({
         </Link>
         <div className="flex flex-wrap items-center gap-3">
           <h1 className="text-2xl font-bold">{course.title}</h1>
-          <span className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${status.className}`}>
-            ● {status.label}
-          </span>
+          <CourseStatusBadgeButton courseId={course.id} initialStatus={course.status} />
           <span className="text-muted-foreground text-sm">
             {published}/{course.plannedLessons ?? '?'} bài ·{' '}
             {course.contentCompletedAt ? (
-              <span className="text-emerald-600">✓ đã soạn xong</span>
+              <span className="text-success">✓ đã soạn xong</span>
             ) : (
-              <span className="text-amber-600">✎ đang soạn</span>
+              <span className="text-warning">✎ đang soạn</span>
             )}
           </span>
           <Link

@@ -329,7 +329,7 @@ export function AuthCard({
         {errorMsg && (
           <div
             role="alert"
-            className="flex items-center gap-2 rounded-lg border border-rose-500/20 bg-rose-500/10 p-3 text-xs font-medium text-rose-600 dark:text-rose-400"
+            className="border-destructive/30 bg-destructive/10 text-destructive flex items-center gap-2 rounded-lg border p-3 text-xs font-medium"
           >
             <AlertCircle className="size-4 shrink-0" />
             <span>{errorMsg}</span>
@@ -340,7 +340,7 @@ export function AuthCard({
         {successMsg && (
           <div
             role="status"
-            className="flex items-center gap-2 rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-3 text-xs font-medium text-emerald-600 dark:text-emerald-400"
+            className="border-success/30 bg-success/10 text-success flex items-center gap-2 rounded-lg border p-3 text-xs font-medium"
           >
             <CheckCircle2 className="size-4 shrink-0" />
             <span>{successMsg}</span>
@@ -497,7 +497,7 @@ export function AuthCard({
 
                 <div>
                   <label className="text-xs font-semibold">
-                    Địa chỉ Email <span className="text-rose-500">*</span>
+                    Địa chỉ Email <span className="text-destructive">*</span>
                   </label>
                   <div className="relative mt-1">
                     <Mail className="text-muted-foreground absolute top-1/2 left-3 size-4 -translate-y-1/2" />
@@ -516,15 +516,15 @@ export function AuthCard({
                 <div>
                   <div className="flex items-center justify-between">
                     <label className="text-xs font-semibold">
-                      Mật khẩu <span className="text-rose-500">*</span>
+                      Mật khẩu <span className="text-destructive">*</span>
                     </label>
                     <span
                       className={`text-[11px] ${
                         regPassword.length === 0
                           ? 'text-muted-foreground'
                           : isPasswordValid
-                            ? 'font-medium text-emerald-600 dark:text-emerald-400'
-                            : 'text-amber-600 dark:text-amber-400'
+                            ? 'text-success font-medium'
+                            : 'text-warning'
                       }`}
                     >
                       {regPassword.length === 0
@@ -559,14 +559,12 @@ export function AuthCard({
                 <div>
                   <div className="flex items-center justify-between">
                     <label className="text-xs font-semibold">
-                      Nhập lại mật khẩu <span className="text-rose-500">*</span>
+                      Nhập lại mật khẩu <span className="text-destructive">*</span>
                     </label>
                     {regConfirmPassword.length > 0 && (
                       <span
                         className={`text-[11px] font-medium ${
-                          isPasswordMatch
-                            ? 'text-emerald-600 dark:text-emerald-400'
-                            : 'text-rose-600 dark:text-rose-400'
+                          isPasswordMatch ? 'text-success' : 'text-destructive'
                         }`}
                       >
                         {isPasswordMatch ? '✓ Khớp mật khẩu' : '✕ Chưa khớp'}

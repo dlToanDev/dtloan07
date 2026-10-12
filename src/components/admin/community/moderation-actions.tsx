@@ -82,7 +82,7 @@ export function PostModerationActions({
         </Button>
       </div>
       {open && (
-        <div className="space-y-2 rounded-lg border border-red-500/30 bg-red-500/5 p-3 text-left text-sm">
+        <div className="border-destructive/30 bg-destructive/10 space-y-2 rounded-lg border p-3 text-left text-sm">
           <textarea
             className="border-border bg-background w-full rounded-lg border px-3 py-2 text-sm"
             rows={2}

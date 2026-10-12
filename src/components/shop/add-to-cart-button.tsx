@@ -61,7 +61,7 @@ export function AddToCartButton({
       >
         {added ? (
           <>
-            <Check className="h-4 w-4 shrink-0 text-emerald-500" />
+            <Check className="text-success h-4 w-4 shrink-0" />
             <span>Đã thêm vào giỏ hàng!</span>
           </>
         ) : (

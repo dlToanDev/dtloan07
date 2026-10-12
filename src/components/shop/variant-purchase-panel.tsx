@@ -84,7 +84,7 @@ export function VariantPurchasePanel({
           )}
         </div>
         {savingAmount && (
-          <p className="flex items-center gap-1 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+          <p className="text-success flex items-center gap-1 text-xs font-medium">
             <Sparkles className="h-3.5 w-3.5" />
             Tiết kiệm {formatVnd(savingAmount)} so với giá niêm yết
           </p>
@@ -142,10 +142,10 @@ export function VariantPurchasePanel({
               availableStock > 0 ? (
                 <>
                   <span className="relative flex h-2 w-2">
-                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
-                    <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500"></span>
+                    <span className="bg-success/80 absolute inline-flex h-full w-full animate-ping rounded-full opacity-75"></span>
+                    <span className="bg-success relative inline-flex h-2 w-2 rounded-full"></span>
                   </span>
-                  <span className="font-medium text-emerald-600 dark:text-emerald-400">
+                  <span className="text-success font-medium">
                     Còn hàng ({availableStock} {type === 'ACCOUNT' ? 'tài khoản' : 'sản phẩm'} sẵn
                     có)
                   </span>
@@ -158,10 +158,8 @@ export function VariantPurchasePanel({
               )
             ) : (
               <>
-                <span className="h-2 w-2 rounded-full bg-emerald-500"></span>
-                <span className="font-medium text-emerald-600 dark:text-emerald-400">
-                  Sẵn sàng cung cấp
-                </span>
+                <span className="bg-success h-2 w-2 rounded-full"></span>
+                <span className="text-success font-medium">Sẵn sàng cung cấp</span>
               </>
             )}
           </div>

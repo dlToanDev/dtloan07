@@ -119,12 +119,12 @@ export function VoucherForm({
       }}
     >
       {error && (
-        <p role="alert" className="rounded-lg bg-red-500/10 p-3 text-sm text-red-600">
+        <p role="alert" className="bg-destructive/10 text-destructive rounded-lg p-3 text-sm">
           {error}
         </p>
       )}
       {saved && !error && (
-        <p role="status" className="rounded-lg bg-green-500/10 p-3 text-sm text-green-600">
+        <p role="status" className="bg-success/10 text-success rounded-lg p-3 text-sm">
           Đã lưu voucher.
         </p>
       )}

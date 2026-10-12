@@ -5,6 +5,7 @@ import { CourseCard } from '@/components/courses/course-card';
 import { ViewSwitcher, type ViewMode } from '@/components/ui/view-switcher';
 import { PaginationControl } from '@/components/ui/pagination-control';
 import { Input } from '@/components/ui/input';
+import { Select } from '@/components/ui/select';
 import type { Course } from '@prisma/client';
 import { GraduationCap, RotateCcw, Search, SlidersHorizontal, ChevronRight } from 'lucide-react';
 
@@ -47,11 +48,11 @@ export interface CourseTrackGroup {
   subtopics: CourseSubtopic[];
 }
 
-// CẤU TRÚC 2 TẦNG BẬC CHO KHÓA HỌC: TẦNG 1 (LỘ TRÌNH ĐÀO TẠO) -> TẦNG 2 (CHUYÊN ĐỀ CON)
+// CẤU TRÚC LỘ TRÌNH ĐÀO TẠO & CHUYÊN ĐỀ
 export const COURSE_TRACKS: CourseTrackGroup[] = [
   {
     id: 'FULLSTACK',
-    name: '🌐 Lập trình Web Fullstack',
+    name: 'Lập trình Web Fullstack',
     match: (c) => {
       const s = (c.slug || '').toLowerCase();
       const t = (c.title || '').toLowerCase();
@@ -65,7 +66,7 @@ export const COURSE_TRACKS: CourseTrackGroup[] = [
     subtopics: [
       {
         id: 'NEXTJS_CORE',
-        name: '⚛️ Next.js 15 & Server Actions',
+        name: 'Next.js 15 & Server Actions',
         match: (c) => {
           const s = (c.slug || '').toLowerCase();
           const t = (c.title || '').toLowerCase();
@@ -74,7 +75,7 @@ export const COURSE_TRACKS: CourseTrackGroup[] = [
       },
       {
         id: 'PAYMENT_AUTH',
-        name: '💳 Thanh toán VietQR & Auth.js',
+        name: 'Tích hợp Thanh toán VietQR & Auth.js',
         match: (c) => {
           const d = (c.description || '').toLowerCase();
           return d.includes('thanh toán') || d.includes('auth');
@@ -84,7 +85,7 @@ export const COURSE_TRACKS: CourseTrackGroup[] = [
   },
   {
     id: 'DEVOPS',
-    name: '🐧 Quản trị Hệ thống, VPS & Docker',
+    name: 'Quản trị Hệ thống, VPS & Docker',
     match: (c) => {
       const s = (c.slug || '').toLowerCase();
       const t = (c.title || '').toLowerCase();
@@ -99,7 +100,7 @@ export const COURSE_TRACKS: CourseTrackGroup[] = [
     subtopics: [
       {
         id: 'VPS_LINUX',
-        name: '🖥️ Quản trị VPS Linux & SSH',
+        name: 'Quản trị Máy chủ Linux & SSH',
         match: (c) => {
           const s = (c.slug || '').toLowerCase();
           const t = (c.title || '').toLowerCase();
@@ -108,7 +109,7 @@ export const COURSE_TRACKS: CourseTrackGroup[] = [
       },
       {
         id: 'DOCKER_NGINX',
-        name: '🐳 Docker Compose & Nginx Reverse Proxy',
+        name: 'Docker Compose & Nginx Reverse Proxy',
         match: (c) => {
           const d = (c.description || '').toLowerCase();
           return d.includes('docker') || d.includes('nginx');
@@ -240,7 +241,7 @@ export function CourseList({ courses }: { courses: Course[] }) {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <SlidersHorizontal className="text-primary size-4" />
-            <h2 className="text-sm font-bold">Tìm kiếm & Bộ lọc khóa học 2 tầng bậc</h2>
+            <h2 className="text-sm font-bold">Bộ lọc khóa học</h2>
           </div>
           {hasActiveFilters && (
             <button
@@ -253,7 +254,7 @@ export function CourseList({ courses }: { courses: Course[] }) {
           )}
         </div>
 
-        {/* Lưới Listbox 2 Tầng: Tầng 1 (Lộ trình) -> Tầng 2 (Chuyên đề) */}
+        {/* Lưới Bộ Lọc: Khóa học | Lộ trình đào tạo | Chuyên đề | Học phí | Sắp xếp */}
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
           {/* Ô tìm kiếm từ khóa */}
           <div className="relative">
@@ -267,80 +268,74 @@ export function CourseList({ courses }: { courses: Course[] }) {
             />
           </div>
 
-          {/* TẦNG 1: LỘ TRÌNH ĐÀO TẠO (Listbox) */}
+          {/* LỘ TRÌNH ĐÀO TẠO */}
           <div>
-            <label className="sr-only">Tầng 1: Chọn lộ trình chính</label>
-            <select
+            <label className="sr-only">Chọn lộ trình đào tạo</label>
+            <Select
               value={selectedTrack}
-              onChange={(e) => {
-                setSelectedTrack(e.target.value);
-                setSelectedSubtopic('ALL'); // Reset chuyên đề con
+              fullWidth
+              onChange={(val) => {
+                setSelectedTrack(val);
+                setSelectedSubtopic('ALL');
               }}
-              aria-label="Tầng 1: Chọn lộ trình chính"
-              className="border-input bg-background text-foreground focus:ring-primary/40 h-10 w-full cursor-pointer rounded-md border px-3 text-xs font-medium outline-none focus:ring-2"
-            >
-              <option value="ALL">🎓 Tất cả lộ trình đào tạo</option>
-              {COURSE_TRACKS.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.name}
-                </option>
-              ))}
-            </select>
+              aria-label="Chọn lộ trình đào tạo"
+              options={[
+                { value: 'ALL', label: 'Tất cả lộ trình' },
+                ...COURSE_TRACKS.map((t) => ({ value: t.id, label: t.name })),
+              ]}
+            />
           </div>
 
-          {/* TẦNG 2: CHUYÊN ĐỀ CON (Tự động đổi theo Tầng 1) */}
+          {/* CHUYÊN ĐỀ CON */}
           <div>
-            <label className="sr-only">Tầng 2: Chọn chuyên đề</label>
-            <select
+            <label className="sr-only">Chọn chuyên đề</label>
+            <Select
               value={selectedSubtopic}
-              onChange={(e) => setSelectedSubtopic(e.target.value)}
+              fullWidth
               disabled={selectedTrack === 'ALL'}
-              aria-label="Tầng 2: Chọn chuyên đề con"
-              className={`h-10 w-full cursor-pointer rounded-md border px-3 text-xs font-semibold transition outline-none ${
-                selectedTrack === 'ALL'
-                  ? 'border-input/50 bg-muted/30 text-muted-foreground cursor-not-allowed'
-                  : 'border-primary/50 bg-primary/5 text-primary focus:ring-primary/40 focus:ring-2'
-              }`}
-            >
-              <option value="ALL">
-                {selectedTrack === 'ALL' ? '📁 Chọn lộ trình trước' : '📂 Tất cả chuyên đề'}
-              </option>
-              {availableSubtopics.map((sub) => (
-                <option key={sub.id} value={sub.id}>
-                  {sub.name}
-                </option>
-              ))}
-            </select>
+              onChange={(val) => setSelectedSubtopic(val)}
+              aria-label="Chọn chuyên đề học tập"
+              placeholder={selectedTrack === 'ALL' ? 'Chọn lộ trình trước' : 'Tất cả chuyên đề'}
+              options={[
+                {
+                  value: 'ALL',
+                  label: selectedTrack === 'ALL' ? 'Chọn lộ trình trước' : 'Tất cả chuyên đề',
+                },
+                ...availableSubtopics.map((sub) => ({ value: sub.id, label: sub.name })),
+              ]}
+            />
           </div>
 
-          {/* Học phí */}
+          {/* HỌC PHÍ */}
           <div>
-            <label className="sr-only">Học phí</label>
-            <select
+            <label className="sr-only">Hình thức học phí</label>
+            <Select
               value={selectedPrice}
-              onChange={(e) => setSelectedPrice(e.target.value as CoursePriceFilter)}
+              fullWidth
+              onChange={(val) => setSelectedPrice(val as CoursePriceFilter)}
               aria-label="Lọc theo học phí"
-              className="border-input bg-background text-foreground focus:ring-primary/40 h-10 w-full cursor-pointer rounded-md border px-3 text-xs font-medium outline-none focus:ring-2"
-            >
-              <option value="ALL">💰 Mọi mức học phí</option>
-              <option value="FREE">🎉 Miễn phí</option>
-              <option value="PAID">⭐ Chuyên sâu có phí</option>
-            </select>
+              options={[
+                { value: 'ALL', label: 'Tất cả học phí' },
+                { value: 'FREE', label: 'Miễn phí' },
+                { value: 'PAID', label: 'Chuyên sâu (Có phí)' },
+              ]}
+            />
           </div>
 
-          {/* Sắp xếp */}
+          {/* SẮP XẾP */}
           <div>
-            <label className="sr-only">Sắp xếp</label>
-            <select
+            <label className="sr-only">Sắp xếp khóa học</label>
+            <Select
               value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as CourseSort)}
-              aria-label="Sắp xếp khóa học"
-              className="border-input bg-background text-foreground focus:ring-primary/40 h-10 w-full cursor-pointer rounded-md border px-3 text-xs font-medium outline-none focus:ring-2"
-            >
-              <option value="newest">🕒 Mới nhất</option>
-              <option value="price_asc">⬆️ Học phí: Thấp đến cao</option>
-              <option value="price_desc">⬇️ Học phí: Cao đến thấp</option>
-            </select>
+              fullWidth
+              onChange={(val) => setSortBy(val as CourseSort)}
+              aria-label="Sắp xếp danh sách khóa học"
+              options={[
+                { value: 'newest', label: 'Mới cập nhật' },
+                { value: 'price_asc', label: 'Học phí: Thấp đến cao' },
+                { value: 'price_desc', label: 'Học phí: Cao đến thấp' },
+              ]}
+            />
           </div>
         </div>
 

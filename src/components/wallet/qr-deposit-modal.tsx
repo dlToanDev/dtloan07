@@ -175,12 +175,12 @@ export function QrDepositModal({ open, onClose, data, onSuccess }: QrDepositModa
         {/* Nội dung khi đã thanh toán thành công */}
         {isPaid ? (
           <div className="space-y-5 p-8 text-center">
-            <div className="mx-auto flex size-20 animate-bounce items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+            <div className="bg-success/10 text-success mx-auto flex size-20 animate-bounce items-center justify-center rounded-full">
               <CheckCircle2 className="size-12" />
             </div>
 
             <div className="space-y-2">
-              <Badge className="bg-emerald-600 px-3 py-1 font-bold text-white">
+              <Badge className="bg-success text-success-foreground px-3 py-1 font-bold">
                 Giao dịch thành công
               </Badge>
               <h3 className="text-foreground text-2xl font-black">+{amountFormatted} đã vào ví!</h3>
@@ -191,10 +191,7 @@ export function QrDepositModal({ open, onClose, data, onSuccess }: QrDepositModa
             </div>
 
             <div className="pt-3">
-              <Button
-                onClick={onClose}
-                className="bg-emerald-600 px-8 font-bold text-white shadow-md hover:bg-emerald-700"
-              >
+              <Button onClick={onClose} variant="success" className="px-8 font-bold shadow-md">
                 Hoàn tất & Xem số dư ví
               </Button>
             </div>
@@ -205,7 +202,7 @@ export function QrDepositModal({ open, onClose, data, onSuccess }: QrDepositModa
             <div className="grid items-center gap-6 sm:grid-cols-12">
               {/* Khung mã QR */}
               <div className="flex flex-col items-center justify-center space-y-3 sm:col-span-6">
-                <div className="relative rounded-2xl border-2 border-emerald-500/30 bg-white p-3 shadow-md">
+                <div className="border-success/30 relative rounded-2xl border-2 bg-white p-3 shadow-md">
                   {data.qrImageUrl ? (
                     /* eslint-disable-next-line @next/next/no-img-element */
                     <img
@@ -221,7 +218,7 @@ export function QrDepositModal({ open, onClose, data, onSuccess }: QrDepositModa
 
                   {/* Huy hiệu NAPAS 24/7 */}
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                    <span className="rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-bold text-white shadow-xs">
+                    <span className="bg-success text-success-foreground rounded-full px-2 py-0.5 text-[10px] font-bold shadow-xs">
                       VIETQR 24/7 TỰ ĐỘNG
                     </span>
                   </div>
@@ -289,7 +286,7 @@ export function QrDepositModal({ open, onClose, data, onSuccess }: QrDepositModa
                         title="Sao chép số tài khoản"
                       >
                         {copiedField === 'accountNumber' ? (
-                          <Check className="size-3.5 text-emerald-600" />
+                          <Check className="text-success size-3.5" />
                         ) : (
                           <Copy className="size-3.5" />
                         )}
@@ -301,7 +298,7 @@ export function QrDepositModal({ open, onClose, data, onSuccess }: QrDepositModa
                   <div className="border-border/60 flex items-center justify-between border-t pt-2">
                     <span className="text-muted-foreground">Số tiền thanh toán:</span>
                     <div className="flex items-center gap-1.5">
-                      <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400">
+                      <span className="text-success text-sm font-bold">
                         {(data.amountVnd || 0).toLocaleString('vi-VN')} đ
                       </span>
                       {isUsd && (
@@ -316,7 +313,7 @@ export function QrDepositModal({ open, onClose, data, onSuccess }: QrDepositModa
                         title="Sao chép số tiền"
                       >
                         {copiedField === 'amount' ? (
-                          <Check className="size-3.5 text-emerald-600" />
+                          <Check className="text-success size-3.5" />
                         ) : (
                           <Copy className="size-3.5" />
                         )}
@@ -337,7 +334,7 @@ export function QrDepositModal({ open, onClose, data, onSuccess }: QrDepositModa
                       >
                         {copiedField === 'description' ? (
                           <>
-                            <Check className="size-3 text-emerald-600" /> Đã sao chép
+                            <Check className="text-success size-3" /> Đã sao chép
                           </>
                         ) : (
                           <>
@@ -346,14 +343,14 @@ export function QrDepositModal({ open, onClose, data, onSuccess }: QrDepositModa
                         )}
                       </button>
                     </div>
-                    <div className="rounded-md border border-amber-500/20 bg-amber-500/10 px-2.5 py-1.5 font-mono text-xs font-bold break-all text-amber-700 select-all dark:text-amber-300">
+                    <div className="border-warning/30 bg-warning/10 text-warning rounded-md border px-2.5 py-1.5 font-mono text-xs font-bold break-all select-all">
                       {data.description}
                     </div>
                   </div>
                 </div>
 
-                <div className="flex items-start gap-2 rounded-lg bg-blue-500/10 p-2.5 text-[11px] text-blue-700 dark:text-blue-300">
-                  <ShieldCheck className="mt-0.5 size-4 shrink-0 text-blue-600 dark:text-blue-400" />
+                <div className="border-info/20 bg-info/10 text-info flex items-start gap-2 rounded-lg border p-2.5 text-[11px]">
+                  <ShieldCheck className="text-info mt-0.5 size-4 shrink-0" />
                   <span>
                     Mở ứng dụng ngân hàng bất kỳ (MB, Vietcombank, Techcombank, MoMo...) và quét mã
                     QR. Tiền sẽ vào ví tự động ngay sau khi chuyển khoản thành công.
@@ -366,8 +363,8 @@ export function QrDepositModal({ open, onClose, data, onSuccess }: QrDepositModa
             <div className="border-border/80 flex flex-col items-center justify-between gap-3 border-t pt-4 sm:flex-row">
               <div className="text-muted-foreground flex items-center gap-2 text-xs">
                 <span className="relative flex size-2.5">
-                  <span className="absolute inline-flex size-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
-                  <span className="relative inline-flex size-2.5 rounded-full bg-emerald-500"></span>
+                  <span className="bg-success/80 absolute inline-flex size-full animate-ping rounded-full opacity-75"></span>
+                  <span className="bg-success relative inline-flex size-2.5 rounded-full"></span>
                 </span>
                 <span>Đang chờ chuyển khoản... Tự động kiểm tra sau mỗi 2s</span>
                 <span className="text-muted-foreground/80 font-mono text-[11px]">
@@ -384,7 +381,7 @@ export function QrDepositModal({ open, onClose, data, onSuccess }: QrDepositModa
                     size="sm"
                     disabled={isSimulating}
                     onClick={handleMockSuccess}
-                    className="border-amber-500/50 text-xs font-semibold text-amber-600 hover:bg-amber-500/10 dark:text-amber-400"
+                    className="border-warning/50 text-warning hover:bg-warning/10 text-xs font-semibold"
                     title="Dùng cho kiểm thử khi chưa gắn PayOS API Keys thật"
                   >
                     {isSimulating ? (

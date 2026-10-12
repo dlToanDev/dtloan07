@@ -14,7 +14,7 @@ export function DeleteOwnPostButton({ id, title }: { id: string; title: string }
       type="button"
       size="sm"
       variant="ghost"
-      className="text-xs text-red-600"
+      className="text-destructive hover:bg-destructive/10 text-xs"
       disabled={pending}
       onClick={() => {
         if (!window.confirm(`Xóa bài "${title}"? Không khôi phục được.`)) return;

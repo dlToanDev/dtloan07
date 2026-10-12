@@ -83,4 +83,21 @@ describe('Shortener Service (src/lib/shortener.ts)', () => {
     expect(result.success).toBe(true);
     expect(result.shortenedUrl).toBe('https://ouo.io/short123');
   });
+
+  it('6. Rút gọn thành công khi dịch vụ trả về HTTP 302 Redirect Location (chuẩn Link4M)', async () => {
+    (serverEnv as any).SHORTENER_API_URL = 'https://link4m.co/st';
+    (serverEnv as any).SHORTENER_API_KEY = 'test-link4m';
+
+    global.fetch = vi.fn().mockResolvedValue({
+      status: 302,
+      ok: false,
+      headers: new Headers({
+        location: 'https://link4m.org/abcXYZ',
+      }),
+    } as any);
+
+    const result = await shortenUrlWithMonetization('https://shopee.vn/test-item');
+    expect(result.success).toBe(true);
+    expect(result.shortenedUrl).toBe('https://link4m.org/abcXYZ');
+  });
 });

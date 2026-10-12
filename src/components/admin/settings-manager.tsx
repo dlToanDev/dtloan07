@@ -41,6 +41,7 @@ import {
   Gift,
   Gamepad2,
   HelpCircle,
+  Ban,
   Table as TableIcon,
   Palette,
   Check,
@@ -743,12 +744,12 @@ export function SettingsManager({
           }`}
         >
           <LayoutTemplate
-            className={`size-4.5 ${activeTab === 'hero_banner' ? 'text-primary-foreground' : 'text-indigo-500'}`}
+            className={`size-4.5 ${activeTab === 'hero_banner' ? 'text-primary-foreground' : 'text-primary'}`}
           />
           <span>Banner Hero Trang Chủ ({heroBannerConfig.banners.length} ảnh)</span>
           {heroBannerConfig.enabled && (
             <span
-              className={`inline-block size-2 rounded-full ${activeTab === 'hero_banner' ? 'bg-primary-foreground' : 'bg-emerald-500'}`}
+              className={`inline-block size-2 rounded-full ${activeTab === 'hero_banner' ? 'bg-primary-foreground' : 'bg-success'}`}
             />
           )}
         </button>
@@ -763,12 +764,12 @@ export function SettingsManager({
           }`}
         >
           <Megaphone
-            className={`size-4.5 ${activeTab === 'ad' ? 'text-primary-foreground' : 'text-amber-500'}`}
+            className={`size-4.5 ${activeTab === 'ad' ? 'text-primary-foreground' : 'text-primary'}`}
           />
           <span>Popup Quảng Cáo (5s)</span>
           {adConfig.enabled && (
             <span
-              className={`inline-block size-2 rounded-full ${activeTab === 'ad' ? 'bg-primary-foreground' : 'bg-emerald-500'}`}
+              className={`inline-block size-2 rounded-full ${activeTab === 'ad' ? 'bg-primary-foreground' : 'bg-success'}`}
             />
           )}
         </button>
@@ -783,12 +784,12 @@ export function SettingsManager({
           }`}
         >
           <Sparkles
-            className={`size-4.5 ${activeTab === 'announcements' ? 'text-primary-foreground' : 'text-blue-500'}`}
+            className={`size-4.5 ${activeTab === 'announcements' ? 'text-primary-foreground' : 'text-primary'}`}
           />
           <span>Thông Báo Tính Năng / Voucher</span>
           {announcements.some((a) => a.isActive) && (
             <span
-              className={`inline-block size-2 rounded-full ${activeTab === 'announcements' ? 'bg-primary-foreground' : 'bg-emerald-500'}`}
+              className={`inline-block size-2 rounded-full ${activeTab === 'announcements' ? 'bg-primary-foreground' : 'bg-success'}`}
             />
           )}
         </button>
@@ -803,7 +804,7 @@ export function SettingsManager({
             <div
               className={`flex items-center gap-2.5 rounded-xl border p-4 text-sm ${
                 heroBannerMsg.type === 'success'
-                  ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                  ? 'border-success/30 bg-success/10 text-success'
                   : 'border-destructive/30 bg-destructive/10 text-destructive'
               }`}
             >
@@ -817,10 +818,10 @@ export function SettingsManager({
           )}
 
           {/* VÙNG XEM TRƯỚC TRỰC QUAN (LIVE PREVIEW) */}
-          <div className="bg-muted/15 space-y-3 rounded-2xl border border-indigo-500/20 p-4 sm:p-6">
+          <div className="bg-muted/15 border-border space-y-3 rounded-2xl border p-4 sm:p-6">
             <div className="flex flex-col justify-between gap-2 sm:flex-row sm:items-center">
-              <div className="flex items-center gap-2 text-sm font-bold text-indigo-600 dark:text-indigo-400">
-                <Eye className="size-4" />
+              <div className="text-foreground flex items-center gap-2 text-sm font-bold">
+                <Eye className="text-primary size-4" />
                 <span>Xem trước trực tiếp (Live Preview) trên trang chủ</span>
               </div>
               <span className="text-muted-foreground text-xs">
@@ -907,7 +908,7 @@ export function SettingsManager({
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-foreground flex items-center gap-2 text-base font-bold sm:text-lg">
-                  <LayoutTemplate className="size-5 text-indigo-500" />
+                  <LayoutTemplate className="text-primary size-5" />
                   <span>
                     Danh sách các Banner quảng cáo ({heroBannerConfig.banners.length} ảnh)
                   </span>
@@ -1046,7 +1047,7 @@ export function SettingsManager({
                       <div className="space-y-1 sm:col-span-2">
                         <label className="text-foreground flex items-center gap-1 text-xs font-semibold">
                           <span>Đường link website nhà quảng cáo:</span>
-                          <span className="font-bold text-rose-500">*</span>
+                          <span className="text-destructive font-bold">*</span>
                           <span className="text-muted-foreground ml-1 text-[11px] font-normal">
                             (Người dùng ấn vào banner sẽ chuyển sang trang này)
                           </span>
@@ -1164,7 +1165,7 @@ export function SettingsManager({
             <button
               type="submit"
               disabled={isSavingHeroBanner}
-              className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 px-6 py-2.5 text-sm font-bold text-white shadow-lg shadow-indigo-500/25 transition hover:from-blue-700 hover:via-indigo-700 hover:to-violet-700 active:scale-[0.99] disabled:opacity-50"
+              className="bg-primary text-primary-foreground hover:bg-primary/90 flex items-center gap-2 rounded-xl px-6 py-2.5 text-sm font-semibold shadow-xs transition active:scale-[0.98] disabled:opacity-50"
             >
               {isSavingHeroBanner ? (
                 <>
@@ -1191,7 +1192,7 @@ export function SettingsManager({
             <div
               className={`flex items-center gap-2.5 rounded-xl border p-4 text-sm ${
                 adMessage.type === 'success'
-                  ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                  ? 'border-success/30 bg-success/10 text-success'
                   : 'border-destructive/30 bg-destructive/10 text-destructive'
               }`}
             >
@@ -1319,7 +1320,7 @@ export function SettingsManager({
               {/* Card Quy tắc hiển thị & Đếm ngược 5s */}
               <div className="border-border bg-card space-y-5 rounded-2xl border p-6 shadow-sm">
                 <h2 className="text-foreground flex items-center gap-2 text-base font-semibold">
-                  <Clock className="size-4 text-amber-500" />
+                  <Clock className="text-warning size-4" />
                   Thời gian đếm ngược & Đối tượng
                 </h2>
 
@@ -1437,7 +1438,7 @@ export function SettingsManager({
                   <span
                     className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${
                       adConfig.enabled
-                        ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                        ? 'bg-success/10 text-success'
                         : 'bg-muted text-muted-foreground'
                     }`}
                   >
@@ -1501,7 +1502,7 @@ export function SettingsManager({
             <div
               className={`flex items-center gap-2.5 rounded-xl border p-4 text-sm ${
                 announceMsg.type === 'success'
-                  ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                  ? 'border-success/30 bg-success/10 text-success'
                   : 'border-destructive/30 bg-destructive/10 text-destructive'
               }`}
             >
@@ -1548,21 +1549,21 @@ export function SettingsManager({
                 <button
                   type="button"
                   onClick={() => setSampleData('PRO_VOUCHER')}
-                  className="flex items-center gap-1 rounded-lg border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-xs font-semibold text-amber-700 transition-colors hover:bg-amber-500/20 dark:text-amber-400"
+                  className="border-warning/30 bg-warning/10 text-warning hover:bg-warning/20 flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-semibold transition-colors"
                 >
-                  <Crown className="size-3 text-amber-500" />+ Voucher đặc quyền PRO
+                  <Crown className="text-warning size-3" />+ Voucher đặc quyền PRO
                 </button>
                 <button
                   type="button"
                   onClick={() => setSampleData('LUCKY_WHEEL')}
-                  className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-xs font-medium text-amber-700 transition-colors hover:bg-amber-500/20 dark:text-amber-400"
+                  className="border-warning/30 bg-warning/10 text-warning hover:bg-warning/20 rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors"
                 >
                   🎡 + Vòng quay may mắn
                 </button>
                 <button
                   type="button"
                   onClick={() => setSampleData('QUIZ')}
-                  className="rounded-lg border border-blue-500/30 bg-blue-500/10 px-2.5 py-1 text-xs font-medium text-blue-700 transition-colors hover:bg-blue-500/20 dark:text-blue-400"
+                  className="border-info/30 bg-info/10 text-info hover:bg-info/20 rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors"
                 >
                   🧠 + Đố vui nhận quà
                 </button>
@@ -1574,13 +1575,13 @@ export function SettingsManager({
               <div className="border-border/80 bg-muted/20 space-y-3 rounded-xl border p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <Crown className="size-4 text-amber-500" />
+                    <Crown className="text-warning size-4" />
                     <span className="text-foreground text-xs font-semibold tracking-wider uppercase">
                       Đối tượng nhận thông báo & Voucher *
                     </span>
                   </div>
                   {newProOnly && (
-                    <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/40 bg-amber-500/10 px-2.5 py-0.5 text-[11px] font-bold text-amber-600 dark:text-amber-400">
+                    <span className="border-warning/40 bg-warning/10 text-warning inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-bold">
                       <Crown className="size-3" />
                       Chỉ tài khoản PRO mới thấy
                     </span>
@@ -1622,7 +1623,7 @@ export function SettingsManager({
                     }}
                     className={`flex cursor-pointer items-start gap-3 rounded-xl border p-3 transition-all ${
                       newProOnly
-                        ? 'border-amber-500/80 bg-amber-500/10 ring-1 ring-amber-500/40'
+                        ? 'border-warning/80 bg-warning/10 ring-warning/40 ring-1'
                         : 'border-border bg-background hover:bg-muted/40'
                     }`}
                   >
@@ -1634,11 +1635,11 @@ export function SettingsManager({
                         setNewProOnly(true);
                         if (!newBadge) setNewBadge('👑 Dành riêng PRO');
                       }}
-                      className="mt-0.5 text-amber-600 focus:ring-amber-500"
+                      className="text-warning focus:ring-warning mt-0.5"
                     />
                     <div className="space-y-0.5">
-                      <div className="flex items-center gap-1.5 text-xs font-semibold text-amber-600 dark:text-amber-400">
-                        <Crown className="size-3.5 text-amber-500" />
+                      <div className="text-warning flex items-center gap-1.5 text-xs font-semibold">
+                        <Crown className="text-warning size-3.5" />
                         <span>Dành riêng cho tài khoản PRO (VIP)</span>
                       </div>
                       <p className="text-muted-foreground text-[11px] leading-relaxed">
@@ -1719,12 +1720,12 @@ export function SettingsManager({
               <div className="border-border/80 bg-muted/20 space-y-4 rounded-xl border p-4 sm:p-5">
                 <div className="flex items-center justify-between">
                   <div className="text-foreground flex items-center gap-2 text-sm font-semibold">
-                    <Gift className="size-4 text-rose-500" />
+                    <Gift className="text-destructive size-4" />
                     <span>Ưu đãi Voucher & Bài viết chi tiết (Tùy chọn)</span>
                   </div>
 
                   {newProOnly && (
-                    <span className="flex items-center gap-1 rounded border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[11px] font-bold text-amber-600 dark:text-amber-400">
+                    <span className="border-warning/30 bg-warning/10 text-warning flex items-center gap-1 rounded border px-2 py-0.5 text-[11px] font-bold">
                       <Crown className="size-3" />
                       Voucher chỉ PRO mới thấy & áp dụng được
                     </span>
@@ -1837,7 +1838,7 @@ export function SettingsManager({
                         className="bg-muted hover:bg-muted/80 border-border text-foreground flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors"
                         title="Chèn bảng 3 cột: Cấp độ, Mức giảm, Điều kiện"
                       >
-                        <TableIcon className="size-3.5 text-rose-500" />+ Bảng điều kiện Voucher
+                        <TableIcon className="text-destructive size-3.5" />+ Bảng điều kiện Voucher
                       </button>
                       <button
                         type="button"
@@ -1845,7 +1846,7 @@ export function SettingsManager({
                         className="bg-muted hover:bg-muted/80 border-border text-foreground flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors"
                         title="Chèn bảng 3 cột: Ô quay, Mã quà, Hạn dùng"
                       >
-                        <TableIcon className="size-3.5 text-amber-500" />+ Bảng giải thưởng
+                        <TableIcon className="text-warning size-3.5" />+ Bảng giải thưởng
                       </button>
                       <button
                         type="button"
@@ -1853,7 +1854,7 @@ export function SettingsManager({
                         className="bg-muted hover:bg-muted/80 border-border text-foreground flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors"
                         title="Chèn bảng 2 cột: Tiêu chí, Quy định"
                       >
-                        <TableIcon className="size-3.5 text-blue-500" />+ Bảng thể lệ
+                        <TableIcon className="text-info size-3.5" />+ Bảng thể lệ
                       </button>
                     </div>
                   </div>
@@ -1870,34 +1871,130 @@ export function SettingsManager({
               </div>
 
               {/* KHU VỰC: TÍCH HỢP MINI GAME */}
-              <div className="border-border/80 space-y-5 rounded-xl border bg-amber-500/5 p-4 sm:p-5 dark:bg-amber-500/10">
-                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-amber-500/20 pb-3">
+              <div className="border-border bg-muted/20 space-y-5 rounded-xl border p-4 sm:p-5">
+                <div className="border-border flex flex-wrap items-center justify-between gap-2 border-b pb-3">
                   <div className="text-foreground flex items-center gap-2 text-sm font-semibold">
-                    <Gamepad2 className="size-4 text-amber-500" />
+                    <Gamepad2 className="text-warning size-4" />
                     <span>Tích hợp Mini Game vào bài viết thông báo</span>
                   </div>
                   <span className="text-muted-foreground text-xs">Tăng tương tác người dùng</span>
                 </div>
 
-                <div className="space-y-1.5">
-                  <label className="text-foreground block text-xs font-semibold tracking-wider uppercase">
-                    Chọn loại Mini Game
-                  </label>
-                  <select
-                    value={newGameType}
-                    onChange={(e) =>
-                      setNewGameType(e.target.value as 'NONE' | 'LUCKY_WHEEL' | 'QUIZ')
-                    }
-                    className="border-input bg-background text-foreground focus:ring-primary/40 w-full rounded-xl border px-3.5 py-2.5 text-sm focus:ring-2 focus:outline-none sm:w-80"
-                  >
-                    <option value="NONE">❌ Không kèm Mini Game</option>
-                    <option value="LUCKY_WHEEL">
-                      🎡 Vòng quay may mắn (Tự điền 10%, 10k, 20%, 50k...)
-                    </option>
-                    <option value="QUIZ">
-                      🧠 Trả lời câu hỏi trúng thưởng (Tự điền câu hỏi & đáp án)
-                    </option>
-                  </select>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-foreground block text-xs font-semibold tracking-wider uppercase">
+                      Chọn loại Mini Game
+                    </label>
+                    {newGameType !== 'NONE' && (
+                      <span className="text-warning flex items-center gap-1 text-[11px] font-medium normal-case">
+                        <Sparkles className="size-3" /> Đang kích hoạt trò chơi
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
+                    {/* 1. Không kèm game */}
+                    <button
+                      type="button"
+                      onClick={() => setNewGameType('NONE')}
+                      className={`flex cursor-pointer flex-col items-start justify-between rounded-xl border p-3 text-left transition-all ${
+                        newGameType === 'NONE'
+                          ? 'border-primary bg-background ring-primary/30 shadow-xs ring-2'
+                          : 'border-border/70 bg-background/50 hover:border-border hover:bg-background text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      <div className="mb-2 flex w-full items-center justify-between gap-2">
+                        <div
+                          className={`flex size-8 shrink-0 items-center justify-center rounded-lg ${
+                            newGameType === 'NONE'
+                              ? 'bg-muted text-foreground'
+                              : 'bg-muted/60 text-muted-foreground'
+                          }`}
+                        >
+                          <Ban className="size-4" />
+                        </div>
+                        {newGameType === 'NONE' ? (
+                          <span className="text-primary flex items-center gap-1 text-[11px] font-bold">
+                            <CheckCircle2 className="size-3.5" /> Mặc định
+                          </span>
+                        ) : null}
+                      </div>
+                      <div>
+                        <div className="text-foreground text-xs font-bold">Không kèm Game</div>
+                        <div className="text-muted-foreground mt-0.5 text-[11px]">
+                          Thông báo văn bản tiêu chuẩn
+                        </div>
+                      </div>
+                    </button>
+
+                    {/* 2. Vòng quay may mắn */}
+                    <button
+                      type="button"
+                      onClick={() => setNewGameType('LUCKY_WHEEL')}
+                      className={`flex cursor-pointer flex-col items-start justify-between rounded-xl border p-3 text-left transition-all ${
+                        newGameType === 'LUCKY_WHEEL'
+                          ? 'border-primary bg-primary/10 ring-primary/30 shadow-xs ring-2'
+                          : 'border-border/70 bg-background/50 hover:border-border hover:bg-background text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      <div className="mb-2 flex w-full items-center justify-between gap-2">
+                        <div
+                          className={`flex size-8 shrink-0 items-center justify-center rounded-lg ${
+                            newGameType === 'LUCKY_WHEEL'
+                              ? 'bg-primary text-primary-foreground shadow-xs'
+                              : 'bg-muted/60 text-muted-foreground'
+                          }`}
+                        >
+                          <Sparkles className="size-4" />
+                        </div>
+                        {newGameType === 'LUCKY_WHEEL' ? (
+                          <span className="text-primary flex items-center gap-1 text-[11px] font-bold">
+                            <CheckCircle2 className="size-3.5" /> Đã chọn
+                          </span>
+                        ) : null}
+                      </div>
+                      <div>
+                        <div className="text-foreground text-xs font-bold">Vòng quay may mắn</div>
+                        <div className="text-muted-foreground mt-0.5 text-[11px]">
+                          Tặng Voucher, %, tiền thưởng theo ô
+                        </div>
+                      </div>
+                    </button>
+
+                    {/* 3. Đố vui trúng thưởng */}
+                    <button
+                      type="button"
+                      onClick={() => setNewGameType('QUIZ')}
+                      className={`flex cursor-pointer flex-col items-start justify-between rounded-xl border p-3 text-left transition-all ${
+                        newGameType === 'QUIZ'
+                          ? 'border-primary bg-primary/10 ring-primary/30 shadow-xs ring-2'
+                          : 'border-border/70 bg-background/50 hover:border-border hover:bg-background text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      <div className="mb-2 flex w-full items-center justify-between gap-2">
+                        <div
+                          className={`flex size-8 shrink-0 items-center justify-center rounded-lg ${
+                            newGameType === 'QUIZ'
+                              ? 'bg-primary text-primary-foreground shadow-xs'
+                              : 'bg-muted/60 text-muted-foreground'
+                          }`}
+                        >
+                          <HelpCircle className="size-4" />
+                        </div>
+                        {newGameType === 'QUIZ' ? (
+                          <span className="text-primary flex items-center gap-1 text-[11px] font-bold">
+                            <CheckCircle2 className="size-3.5" /> Đã chọn
+                          </span>
+                        ) : null}
+                      </div>
+                      <div>
+                        <div className="text-foreground text-xs font-bold">Đố vui trúng thưởng</div>
+                        <div className="text-muted-foreground mt-0.5 text-[11px]">
+                          Câu hỏi trắc nghiệm đố vui A, B, C, D
+                        </div>
+                      </div>
+                    </button>
+                  </div>
                 </div>
 
                 {/* CẤU HÌNH VÒNG QUAY MAY MẮN (ĐIỀN TỪNG Ô) */}
@@ -1906,7 +2003,7 @@ export function SettingsManager({
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div>
                         <h4 className="text-foreground flex items-center gap-1.5 text-xs font-bold sm:text-sm">
-                          <Sparkles className="size-4 text-amber-500" />
+                          <Sparkles className="text-warning size-4" />
                           Cấu hình các ô trên Vòng quay ({wheelSegments.length} ô)
                         </h4>
                         <p className="text-muted-foreground text-xs">
@@ -1921,7 +2018,7 @@ export function SettingsManager({
                         <button
                           type="button"
                           onClick={() => setWheelPreset('mixed')}
-                          className="rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[11px] font-medium text-amber-700 hover:bg-amber-500/20 dark:text-amber-300"
+                          className="border-warning/30 bg-warning/10 text-warning hover:bg-warning/20 rounded-md border px-2 py-0.5 text-[11px] font-medium"
                         >
                           Đa dạng (10%, 10k, 20%, 50k...)
                         </button>
@@ -2003,7 +2100,7 @@ export function SettingsManager({
                                     <span
                                       className={`text-[10px] font-medium ${
                                         seg.isWin !== false
-                                          ? 'text-emerald-600'
+                                          ? 'text-success'
                                           : 'text-muted-foreground'
                                       }`}
                                     >
@@ -2050,10 +2147,10 @@ export function SettingsManager({
                       {/* Mini Live Preview của Vòng quay */}
                       <div className="border-border bg-card space-y-2 rounded-xl border p-3.5 text-center lg:col-span-4">
                         <div className="text-muted-foreground flex items-center justify-center gap-1 text-[11px] font-bold tracking-wider uppercase">
-                          <Eye className="size-3 text-amber-500" />
+                          <Eye className="text-warning size-3" />
                           <span>Mô phỏng vòng quay ({wheelSegments.length} ô):</span>
                         </div>
-                        <div className="relative mx-auto size-44 overflow-hidden rounded-full border-4 border-amber-400 shadow-md">
+                        <div className="border-warning relative mx-auto size-44 overflow-hidden rounded-full border-4 shadow-md">
                           <svg viewBox="0 0 100 100" className="size-full">
                             {wheelSegments.map((seg, i) => {
                               const n = wheelSegments.length;
@@ -2095,7 +2192,7 @@ export function SettingsManager({
                             })}
                           </svg>
                           <div className="absolute inset-0 flex items-center justify-center">
-                            <div className="flex size-8 items-center justify-center rounded-full border border-white bg-amber-400 text-[8px] font-black text-amber-950">
+                            <div className="bg-warning text-warning-foreground flex size-8 items-center justify-center rounded-full border border-white text-[8px] font-black">
                               QUAY
                             </div>
                           </div>
@@ -2115,7 +2212,7 @@ export function SettingsManager({
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div>
                         <h4 className="text-foreground flex items-center gap-1.5 text-xs font-bold sm:text-sm">
-                          <HelpCircle className="size-4 text-blue-500" />
+                          <HelpCircle className="text-primary size-4" />
                           Cấu hình câu hỏi & các đáp án trắc nghiệm
                         </h4>
                         <p className="text-muted-foreground text-xs">
@@ -2136,7 +2233,7 @@ export function SettingsManager({
                             setQuizOptions(['Bootstrap', 'Tailwind CSS', 'Ant Design', 'Bulma']);
                             setQuizCorrectIndex(1);
                           }}
-                          className="rounded-md border border-blue-500/30 bg-blue-500/10 px-2 py-0.5 text-[11px] font-medium text-blue-700 hover:bg-blue-500/20 dark:text-blue-300"
+                          className="border-primary/30 bg-primary/10 text-primary hover:bg-primary/20 rounded-md border px-2 py-0.5 text-[11px] font-medium"
                         >
                           CSS / Tailwind
                         </button>
@@ -2191,7 +2288,7 @@ export function SettingsManager({
                               key={idx}
                               className={`flex items-center gap-2.5 rounded-xl border p-2 transition-colors sm:p-2.5 ${
                                 isCorrect
-                                  ? 'border-emerald-500/60 bg-emerald-500/10'
+                                  ? 'border-success/60 bg-success/10'
                                   : 'border-border bg-background'
                               }`}
                             >
@@ -2213,13 +2310,11 @@ export function SettingsManager({
                                   name="quizCorrect"
                                   checked={isCorrect}
                                   onChange={() => setQuizCorrectIndex(idx)}
-                                  className="text-emerald-600 focus:ring-emerald-500"
+                                  className="text-success focus:ring-success"
                                 />
                                 <span
                                   className={`text-xs font-bold ${
-                                    isCorrect
-                                      ? 'text-emerald-600 dark:text-emerald-400'
-                                      : 'text-muted-foreground'
+                                    isCorrect ? 'text-success' : 'text-muted-foreground'
                                   }`}
                                 >
                                   {isCorrect ? '✓ ĐÁP ÁN ĐÚNG' : 'Chọn đáp án đúng'}
@@ -2358,10 +2453,10 @@ export function SettingsManager({
                         <span
                           className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ${
                             item.type === 'NEW_PRODUCT'
-                              ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                              ? 'bg-success/15 text-success'
                               : item.type === 'VOUCHER'
-                                ? 'bg-rose-500/15 text-rose-600 dark:text-rose-400'
-                                : 'bg-blue-500/15 text-blue-600 dark:text-blue-400'
+                                ? 'bg-destructive/15 text-destructive'
+                                : 'bg-info/15 text-info'
                           }`}
                         >
                           {item.type === 'NEW_PRODUCT' && <Package className="size-3" />}
@@ -2376,7 +2471,7 @@ export function SettingsManager({
                         </h3>
 
                         {item.voucherCode && (
-                          <span className="inline-flex items-center gap-1 rounded border border-rose-500/20 bg-rose-500/10 px-2 py-0.5 font-mono text-[10px] font-bold text-rose-600 dark:text-rose-400">
+                          <span className="border-destructive/20 bg-destructive/10 text-destructive inline-flex items-center gap-1 rounded border px-2 py-0.5 font-mono text-[10px] font-bold">
                             <Gift className="size-3" />
                             {item.voucherCode}{' '}
                             {item.voucherDiscount ? `(${item.voucherDiscount})` : ''}
@@ -2384,7 +2479,7 @@ export function SettingsManager({
                         )}
 
                         {item.gameType && (
-                          <span className="inline-flex items-center gap-1 rounded border border-amber-500/20 bg-amber-500/10 px-2 py-0.5 text-[10px] font-bold text-amber-600 dark:text-amber-400">
+                          <span className="border-warning/20 bg-warning/10 text-warning inline-flex items-center gap-1 rounded border px-2 py-0.5 text-[10px] font-bold">
                             <Gamepad2 className="size-3" />
                             {item.gameType === 'LUCKY_WHEEL' ? 'Vòng quay' : 'Trắc nghiệm'}
                           </span>
@@ -2397,8 +2492,8 @@ export function SettingsManager({
                         )}
 
                         {item.proOnly ? (
-                          <span className="flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold text-amber-600 shadow-xs dark:text-amber-400">
-                            <Crown className="size-3 text-amber-500" />
+                          <span className="border-warning/30 bg-warning/15 text-warning flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-bold shadow-xs">
+                            <Crown className="text-warning size-3" />
                             Đặc quyền PRO
                           </span>
                         ) : (
@@ -2437,7 +2532,7 @@ export function SettingsManager({
                         onClick={() => handleToggle(item.id, 'proOnly')}
                         className={`flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-semibold transition-colors ${
                           item.proOnly
-                            ? 'border border-amber-500/40 bg-amber-500/20 text-amber-700 hover:bg-amber-500/30 dark:text-amber-300'
+                            ? 'border-warning/40 bg-warning/20 text-warning hover:bg-warning/30 border'
                             : 'bg-muted text-muted-foreground hover:bg-muted/80'
                         }`}
                         title="Chuyển chế độ: Chỉ tài khoản PRO mới thấy hay Tất cả mọi người"
@@ -2451,7 +2546,7 @@ export function SettingsManager({
                         onClick={() => handleToggle(item.id, 'isActive')}
                         className={`rounded-lg px-2.5 py-1 text-xs font-medium transition-colors ${
                           item.isActive
-                            ? 'bg-emerald-500/15 text-emerald-600 hover:bg-emerald-500/25 dark:text-emerald-400'
+                            ? 'bg-success/15 text-success hover:bg-success/25'
                             : 'bg-muted text-muted-foreground hover:bg-muted/80'
                         }`}
                         title="Bật/Tắt kích hoạt"
@@ -2509,7 +2604,7 @@ export function SettingsManager({
               <div className="absolute top-3 right-3 z-30">
                 {!previewCanClose ? (
                   <div className="flex animate-pulse items-center gap-1.5 rounded-full border border-white/20 bg-black/75 px-3 py-1 text-xs font-medium text-white shadow-lg backdrop-blur-md select-none">
-                    <span className="inline-block size-2 rounded-full bg-amber-400" />
+                    <span className="bg-warning inline-block size-2 rounded-full" />
                     <span>Đóng sau {previewCountdown}s</span>
                   </div>
                 ) : (

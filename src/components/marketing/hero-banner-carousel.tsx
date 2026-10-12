@@ -122,7 +122,7 @@ export function HeroBannerCarousel({ config, className }: HeroBannerCarouselProp
                 {/* Huy hiệu nhà tài trợ góc trên */}
                 <div className="absolute top-3.5 left-4 flex items-center gap-2 sm:top-5 sm:left-6">
                   <span className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-black/60 px-3 py-1 text-[11px] font-semibold text-white/90 shadow-sm backdrop-blur-md">
-                    <Sparkles className="size-3 text-amber-400" />
+                    <Sparkles className="text-warning size-3" />
                     <span>{banner.badge || 'Đối tác tài trợ'}</span>
                   </span>
                 </div>

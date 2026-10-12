@@ -320,7 +320,7 @@ export function RichTextEditor({
           <span>•</span>
           <span>{charCount.toLocaleString()} ký tự</span>
           <span>•</span>
-          <span className="font-medium text-emerald-600 dark:text-emerald-400">
+          <span className="text-success font-medium">
             Trình soạn thảo trực quan (Word / WYSIWYG)
           </span>
         </div>

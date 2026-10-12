@@ -231,10 +231,10 @@ export async function ProductDetailPage({ params }: Props) {
 
             {/* Đánh giá sao & Lượt bán */}
             <div className="text-muted-foreground flex flex-wrap items-center gap-3 pt-1 text-xs sm:text-sm">
-              <div className="flex items-center gap-1 font-bold text-amber-500">
+              <div className="text-warning flex items-center gap-1 font-bold">
                 <div className="flex">
                   {[1, 2, 3, 4, 5].map((s) => (
-                    <Star key={s} className="h-4 w-4 fill-amber-400 text-amber-400" />
+                    <Star key={s} className="fill-warning text-warning h-4 w-4" />
                   ))}
                 </div>
                 <span className="text-foreground ml-1">5.0</span>
@@ -242,9 +242,7 @@ export async function ProductDetailPage({ params }: Props) {
               <span className="text-border">|</span>
               <span>48 đánh giá</span>
               <span className="text-border">|</span>
-              <span className="font-medium text-emerald-600 dark:text-emerald-400">
-                Đã bán 120+
-              </span>
+              <span className="text-success font-medium">Đã bán 120+</span>
             </div>
 
             <p className="text-muted-foreground pt-1 text-base leading-relaxed sm:text-lg">
@@ -320,7 +318,7 @@ export async function ProductDetailPage({ params }: Props) {
                     {product.type === 'ACCOUNT' ? (
                       <>
                         <div className="flex items-center gap-2">
-                          <ShieldCheck className="h-4 w-4 shrink-0 text-emerald-500" />
+                          <ShieldCheck className="text-success h-4 w-4 shrink-0" />
                           <span>
                             {product.deliveryMode === 'MANUAL'
                               ? 'Bàn giao thủ công: Người bán chủ động liên hệ gửi tài khoản'
@@ -328,11 +326,11 @@ export async function ProductDetailPage({ params }: Props) {
                           </span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500" />
+                          <CheckCircle2 className="text-success h-4 w-4 shrink-0" />
                           <span>Hỗ trợ cấu hình OS & kiểm tra kết nối SSH ban đầu</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <RotateCcw className="h-4 w-4 shrink-0 text-indigo-500" />
+                          <RotateCcw className="text-primary h-4 w-4 shrink-0" />
                           <span>
                             {product.warrantyNote || 'Bảo hành đầy đủ trong suốt thời gian sử dụng'}
                           </span>
@@ -341,15 +339,15 @@ export async function ProductDetailPage({ params }: Props) {
                     ) : (
                       <>
                         <div className="flex items-center gap-2">
-                          <Truck className="h-4 w-4 shrink-0 text-emerald-500" />
+                          <Truck className="text-success h-4 w-4 shrink-0" />
                           <span>Phí ship tính theo tỉnh khi thanh toán</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500" />
+                          <CheckCircle2 className="text-success h-4 w-4 shrink-0" />
                           <span>Được kiểm tra hàng trước khi nhận</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <RotateCcw className="h-4 w-4 shrink-0 text-indigo-500" />
+                          <RotateCcw className="text-primary h-4 w-4 shrink-0" />
                           <span>Hỗ trợ đổi size miễn phí trong 7 ngày</span>
                         </div>
                       </>
@@ -429,11 +427,11 @@ export async function ProductDetailPage({ params }: Props) {
 
                   <div className="border-border text-muted-foreground space-y-2 border-t pt-4 text-xs">
                     <div className="flex items-center gap-2">
-                      <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500" />
+                      <CheckCircle2 className="text-success h-4 w-4 shrink-0" />
                       <span>Tối đa {product.maxDownloads} lượt tải về an toàn</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <ShieldCheck className="h-4 w-4 shrink-0 text-emerald-500" />
+                      <ShieldCheck className="text-success h-4 w-4 shrink-0" />
                       <span>Hỗ trợ kỹ thuật cấu hình trực tiếp từ tác giả</span>
                     </div>
                   </div>

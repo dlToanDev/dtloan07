@@ -907,30 +907,30 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
               <button
                 type="button"
                 onClick={() => handleInsertCallout('info')}
-                className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sky-700 hover:bg-sky-500/10 dark:text-sky-300"
+                className="text-info hover:bg-info/10 flex w-full items-center gap-2 rounded px-2 py-1.5 text-left"
               >
-                <span className="size-2 rounded-full bg-sky-500" /> Hộp Thông tin (Info)
+                <span className="bg-info size-2 rounded-full" /> Hộp Thông tin (Info)
               </button>
               <button
                 type="button"
                 onClick={() => handleInsertCallout('warning')}
-                className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-amber-700 hover:bg-amber-500/10 dark:text-amber-300"
+                className="text-warning hover:bg-warning/10 flex w-full items-center gap-2 rounded px-2 py-1.5 text-left"
               >
-                <span className="size-2 rounded-full bg-amber-500" /> Hộp Cảnh báo (Warning)
+                <span className="bg-warning size-2 rounded-full" /> Hộp Cảnh báo (Warning)
               </button>
               <button
                 type="button"
                 onClick={() => handleInsertCallout('success')}
-                className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-emerald-700 hover:bg-emerald-500/10 dark:text-emerald-300"
+                className="text-success hover:bg-success/10 flex w-full items-center gap-2 rounded px-2 py-1.5 text-left"
               >
-                <span className="size-2 rounded-full bg-emerald-500" /> Hộp Thành công (Success)
+                <span className="bg-success size-2 rounded-full" /> Hộp Thành công (Success)
               </button>
               <button
                 type="button"
                 onClick={() => handleInsertCallout('danger')}
-                className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-rose-700 hover:bg-rose-500/10 dark:text-rose-300"
+                className="text-destructive hover:bg-destructive/10 flex w-full items-center gap-2 rounded px-2 py-1.5 text-left"
               >
-                <span className="size-2 rounded-full bg-rose-500" /> Hộp Chú ý (Danger)
+                <span className="bg-destructive size-2 rounded-full" /> Hộp Chú ý (Danger)
               </button>
             </div>
           )}
@@ -994,7 +994,7 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
           className="border-border/80 hover:bg-muted text-foreground flex items-center gap-1 rounded border px-2 py-1 text-xs font-medium transition lg:justify-center"
           title="Chèn video (YouTube, Vimeo, MP4)"
         >
-          <VideoIcon className="size-3.5 text-amber-500" />
+          <VideoIcon className="text-warning size-3.5" />
           <span>Video</span>
         </button>
 
@@ -1011,7 +1011,7 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
           className="border-border/80 hover:bg-muted text-foreground flex items-center gap-1 rounded border px-2 py-1 text-xs font-medium transition lg:justify-center"
           title="Chèn audio / podcast"
         >
-          <Headphones className="size-3.5 text-sky-500" />
+          <Headphones className="text-info size-3.5" />
           <span>Audio</span>
         </button>
 
@@ -1207,7 +1207,7 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
           <div className="border-border bg-card w-full max-w-md rounded-xl border p-5 shadow-2xl">
             <div className="mb-4 flex items-center justify-between">
               <h3 className="flex items-center gap-2 text-base font-semibold">
-                <VideoIcon className="size-5 text-amber-500" /> Chèn video vào bài viết
+                <VideoIcon className="text-warning size-5" /> Chèn video vào bài viết
               </h3>
               <button
                 type="button"
@@ -1283,7 +1283,7 @@ export function EditorToolbar({ editor }: EditorToolbarProps) {
           <div className="border-border bg-card w-full max-w-md rounded-xl border p-5 shadow-2xl">
             <div className="mb-4 flex items-center justify-between">
               <h3 className="flex items-center gap-2 text-base font-semibold">
-                <Headphones className="size-5 text-sky-500" /> Chèn Audio / Podcast
+                <Headphones className="text-info size-5" /> Chèn Audio / Podcast
               </h3>
               <button
                 type="button"

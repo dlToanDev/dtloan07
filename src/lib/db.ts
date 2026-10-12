@@ -4,9 +4,23 @@ import { PrismaClient } from '@prisma/client';
  * Singleton PrismaClient để tránh connection pool exhaustion
  * do Next.js hot-reloading trong môi trường development.
  */
+const PRISMA_SCHEMA_VERSION = 'v3-exercise-quiz';
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
+  prismaSchemaVersion?: string;
 };
+
+// Đảm bảo tự động hủy client cũ và tạo mới khi schema thay đổi
+if (
+  process.env.NODE_ENV !== 'production' &&
+  globalForPrisma.prismaSchemaVersion !== PRISMA_SCHEMA_VERSION
+) {
+  if (globalForPrisma.prisma) {
+    globalForPrisma.prisma.$disconnect().catch(() => {});
+  }
+  globalForPrisma.prisma = undefined;
+  globalForPrisma.prismaSchemaVersion = PRISMA_SCHEMA_VERSION;
+}
 
 function getSafeDatabaseUrl(): string | undefined {
   let url = process.env.DATABASE_URL;
@@ -34,3 +48,4 @@ export const db =
 
 // Luôn lưu singleton trên globalThis để tái sử dụng connection pool
 globalForPrisma.prisma = db;
+globalForPrisma.prismaSchemaVersion = PRISMA_SCHEMA_VERSION;

@@ -254,14 +254,12 @@ export async function ProductManager({
               <span className="text-muted-foreground text-xs font-medium uppercase">
                 Tổng sản phẩm
               </span>
-              <Boxes className="size-4 text-blue-500" />
+              <Boxes className="text-primary size-4" />
             </div>
             <div className="mt-2 text-2xl font-bold">{totalProducts}</div>
             <div className="text-muted-foreground mt-1 text-xs">
-              <span className="font-semibold text-emerald-600 dark:text-emerald-400">
-                {activeCount} Đang bán
-              </span>{' '}
-              · <span>{draftCount} Bản nháp</span>
+              <span className="text-success font-semibold">{activeCount} Đang bán</span> ·{' '}
+              <span>{draftCount} Bản nháp</span>
             </div>
           </CardContent>
         </Card>
@@ -273,11 +271,11 @@ export async function ProductManager({
               <span className="text-muted-foreground text-xs font-medium uppercase">
                 Tài khoản số
               </span>
-              <KeyRound className="size-4 text-purple-500" />
+              <KeyRound className="text-primary size-4" />
             </div>
             <div className="mt-2 text-2xl font-bold">{accountProducts.length} mặt hàng</div>
             <div className="mt-1 text-xs">
-              <span className="font-semibold text-purple-600 dark:text-purple-400">
+              <span className="text-primary font-semibold">
                 {totalAvailableAccounts} tài khoản sẵn có
               </span>{' '}
               trong kho
@@ -292,7 +290,7 @@ export async function ProductManager({
               <span className="text-muted-foreground text-xs font-medium uppercase">
                 File Code & Dự án
               </span>
-              <FileCode className="size-4 text-indigo-500" />
+              <FileCode className="text-primary size-4" />
             </div>
             <div className="mt-2 text-2xl font-bold">{downloadProducts.length} sản phẩm</div>
             <div className="text-muted-foreground mt-1 text-xs">
@@ -308,14 +306,12 @@ export async function ProductManager({
               <span className="text-muted-foreground text-xs font-medium uppercase">
                 Bán trên Telegram Bot
               </span>
-              <Bot className="size-4 text-cyan-500" />
+              <Bot className="text-info size-4" />
             </div>
             <div className="mt-2 text-2xl font-bold">
               {telegramReadyProducts.length} / {totalProducts}
             </div>
-            <div className="mt-1 text-xs text-cyan-600 dark:text-cyan-400">
-              Kênh bot @dltoan07_bot
-            </div>
+            <div className="text-info mt-1 text-xs">Kênh bot @dltoan07_bot</div>
           </CardContent>
         </Card>
       </div>
@@ -399,7 +395,7 @@ export async function ProductManager({
                   <th className="px-4 py-3.5 text-right">Giá bán</th>
                   <th className="px-4 py-3.5 text-center">Tồn kho / Tệp</th>
                   <th className="px-4 py-3.5 text-center">
-                    <span className="inline-flex items-center gap-1 text-cyan-600 dark:text-cyan-400">
+                    <span className="text-info inline-flex items-center gap-1">
                       <Bot className="size-3.5" />
                       Bán Telegram
                     </span>
@@ -439,11 +435,11 @@ export async function ProductManager({
                                   className="size-full object-cover"
                                 />
                               ) : p.type === 'ACCOUNT' ? (
-                                <KeyRound className="size-5 text-purple-500" />
+                                <KeyRound className="text-primary size-5" />
                               ) : p.type === 'DOWNLOAD' ? (
-                                <FileCode className="size-5 text-indigo-500" />
+                                <FileCode className="text-info size-5" />
                               ) : (
-                                <Package className="size-5 text-amber-500" />
+                                <Package className="text-warning size-5" />
                               )}
                             </div>
                             <div className="min-w-0">
@@ -471,7 +467,7 @@ export async function ProductManager({
                           {p.type === 'ACCOUNT' ? (
                             <Badge
                               variant="outline"
-                              className="gap-1 border-purple-500/30 bg-purple-500/10 text-xs text-purple-700 dark:text-purple-300"
+                              className="border-primary/30 bg-primary/10 text-primary gap-1 text-xs"
                             >
                               <KeyRound className="size-3" />
                               Tài khoản số
@@ -479,7 +475,7 @@ export async function ProductManager({
                           ) : p.type === 'DOWNLOAD' ? (
                             <Badge
                               variant="outline"
-                              className="gap-1 border-indigo-500/30 bg-indigo-500/10 text-xs text-indigo-700 dark:text-indigo-300"
+                              className="border-info/30 bg-info/10 text-info gap-1 text-xs"
                             >
                               <FileCode className="size-3" />
                               Mã nguồn / File
@@ -487,7 +483,7 @@ export async function ProductManager({
                           ) : (
                             <Badge
                               variant="outline"
-                              className="gap-1 border-amber-500/30 bg-amber-500/10 text-xs text-amber-700 dark:text-amber-300"
+                              className="border-warning/30 bg-warning/10 text-warning gap-1 text-xs"
                             >
                               <Package className="size-3" />
                               Hàng vật lý
@@ -498,7 +494,7 @@ export async function ProductManager({
                         {/* Cột 3: Giá bán */}
                         <td className="px-4 py-3.5 text-right font-medium">
                           {p.saleMode === 'FREE' ? (
-                            <span className="font-semibold text-emerald-600">Miễn phí</span>
+                            <span className="text-success font-semibold">Miễn phí</span>
                           ) : p.saleMode === 'CONTACT' ? (
                             <span className="text-muted-foreground">Liên hệ</span>
                           ) : (
@@ -522,14 +518,14 @@ export async function ProductManager({
                               {availableAccounts > 0 ? (
                                 <Badge
                                   variant="outline"
-                                  className="border-emerald-500/30 bg-emerald-500/10 font-medium text-emerald-700 dark:text-emerald-300"
+                                  className="border-success/30 bg-success/10 text-success font-medium"
                                 >
                                   {availableAccounts} khả dụng
                                 </Badge>
                               ) : (
                                 <Badge
                                   variant="outline"
-                                  className="border-rose-500/30 bg-rose-500/10 font-medium text-rose-600"
+                                  className="border-destructive/30 bg-destructive/10 text-destructive font-medium"
                                 >
                                   Hết kho
                                 </Badge>
@@ -545,11 +541,11 @@ export async function ProductManager({
                             </div>
                           ) : p.type === 'DOWNLOAD' ? (
                             p.files.length > 0 ? (
-                              <span className="font-medium text-emerald-600">
+                              <span className="text-success font-medium">
                                 {p.files.length} tệp tải
                               </span>
                             ) : (
-                              <span className="font-medium text-rose-500">Chưa có tệp</span>
+                              <span className="text-destructive font-medium">Chưa có tệp</span>
                             )
                           ) : (
                             <span className="text-muted-foreground">
@@ -576,7 +572,7 @@ export async function ProductManager({
                             >
                               <button
                                 type="submit"
-                                className="group border-border/80 bg-background/90 flex cursor-pointer items-center gap-2 rounded-full border px-2.5 py-1 text-xs shadow-2xs transition-all hover:border-cyan-500/50 hover:bg-cyan-500/5"
+                                className="group border-border/80 bg-background/90 hover:border-info/50 hover:bg-info/5 flex cursor-pointer items-center gap-2 rounded-full border px-2.5 py-1 text-xs shadow-2xs transition-all"
                                 title={
                                   p.showOnTelegram
                                     ? 'Đang BẬT trên Telegram Bot (@dltoan07_bot). Bấm để TẮT.'
@@ -587,7 +583,7 @@ export async function ProductManager({
                                 <span
                                   className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors duration-200 ease-in-out ${
                                     p.showOnTelegram
-                                      ? 'bg-cyan-500'
+                                      ? 'bg-info'
                                       : 'bg-muted-foreground/30 dark:bg-muted-foreground/40'
                                   }`}
                                 >
@@ -599,9 +595,7 @@ export async function ProductManager({
                                 </span>
                                 <span
                                   className={`flex items-center gap-1 text-[11px] font-semibold ${
-                                    p.showOnTelegram
-                                      ? 'text-cyan-600 dark:text-cyan-400'
-                                      : 'text-muted-foreground'
+                                    p.showOnTelegram ? 'text-info' : 'text-muted-foreground'
                                   }`}
                                 >
                                   {p.showOnTelegram ? 'Bật' : 'Tắt'}
@@ -675,7 +669,7 @@ export async function ProductManager({
                                   variant="ghost"
                                   size="sm"
                                   type="submit"
-                                  className="h-8 px-2 text-xs text-rose-500 hover:bg-rose-500/10 hover:text-rose-600"
+                                  className="text-destructive hover:bg-destructive/10 hover:text-destructive h-8 px-2 text-xs"
                                   title="Xóa sản phẩm (chưa có đơn hàng)"
                                 >
                                   <Trash2 className="size-3.5" />

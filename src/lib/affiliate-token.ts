@@ -96,10 +96,10 @@ export function getCurrentAffiliateToken(now: number = Date.now()): string {
 }
 
 /**
- * Trả về đường dẫn hoàn chỉnh của trang affiliate ngẫu nhiên, ví dụ: "/a4d8e9f2c1b035e7"
+ * Trả về đường dẫn hoàn chỉnh của trang affiliate: "/affiliate"
  */
-export function getAffiliatePath(now: number = Date.now()): string {
-  return `/${getCurrentAffiliateToken(now)}`;
+export function getAffiliatePath(_now: number = Date.now()): string {
+  return '/affiliate';
 }
 
 /**

@@ -95,9 +95,9 @@ export function ProductCover({
         {/* Cửa sổ ứng dụng */}
         <div className="flex w-[42%] shrink-0 flex-col self-center overflow-hidden rounded-[1.5cqw] border border-white/15 bg-black/40 shadow-2xl backdrop-blur-sm">
           <div className="flex items-center gap-[1cqw] border-b border-white/10 px-[2cqw] py-[1.6cqw]">
-            <span className="size-[1.6cqw] rounded-full bg-red-400/80" />
-            <span className="size-[1.6cqw] rounded-full bg-amber-400/80" />
-            <span className="size-[1.6cqw] rounded-full bg-emerald-400/80" />
+            <span className="bg-destructive/80 size-[1.6cqw] rounded-full" />
+            <span className="bg-warning/80 size-[1.6cqw] rounded-full" />
+            <span className="bg-success/80 size-[1.6cqw] rounded-full" />
             <span className="ml-[1.5cqw] truncate font-mono text-[2cqw] text-white/50">
               {fileName}
             </span>

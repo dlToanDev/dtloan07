@@ -3,11 +3,12 @@ import { Loader2 } from 'lucide-react';
 import type { ButtonHTMLAttributes, ReactNode } from 'react';
 
 const variants = {
-  primary: 'bg-primary text-primary-foreground hover:opacity-90',
-  secondary: 'bg-secondary text-secondary-foreground hover:bg-muted',
-  outline: 'border border-border bg-transparent hover:bg-muted',
-  ghost: 'bg-transparent hover:bg-muted',
-  destructive: 'bg-destructive text-destructive-foreground hover:opacity-90',
+  primary: 'bg-primary text-primary-foreground hover:opacity-90 active:scale-[0.98]',
+  secondary: 'bg-secondary text-secondary-foreground hover:bg-muted active:scale-[0.98]',
+  outline: 'border border-border bg-transparent hover:bg-muted active:scale-[0.98]',
+  ghost: 'bg-transparent hover:bg-muted active:scale-[0.98]',
+  destructive: 'bg-destructive text-destructive-foreground hover:opacity-90 active:scale-[0.98]',
+  success: 'bg-success text-success-foreground hover:opacity-90 active:scale-[0.98]',
 } as const;
 
 const sizes = {

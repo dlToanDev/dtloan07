@@ -60,7 +60,7 @@ export default function UnsubscribePage() {
 
         <CardContent>
           {message ? (
-            <div className="rounded-lg bg-emerald-500/10 p-4 text-center text-sm font-medium text-emerald-600 dark:text-emerald-400">
+            <div className="bg-success/10 text-success rounded-lg p-4 text-center text-sm font-medium">
               {message}
             </div>
           ) : (
@@ -77,7 +77,7 @@ export default function UnsubscribePage() {
               </div>
 
               {error && (
-                <div className="rounded-lg bg-rose-500/10 p-3 text-sm text-rose-600 dark:text-rose-400">
+                <div className="bg-destructive/10 text-destructive rounded-lg p-3 text-sm">
                   {error}
                 </div>
               )}

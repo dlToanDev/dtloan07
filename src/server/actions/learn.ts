@@ -8,6 +8,7 @@ import { gradeSubmission, runSamples, type GradeResult, type SampleRun } from '@
 import { isLanguageKey, MAX_CODE_BYTES, type LanguageKey } from '@/lib/judge/languages';
 import { Cooldown } from '@/lib/judge/limiter';
 import { judgeRunner } from '@/lib/judge/runner';
+import { gradeQuiz, type QuizGradeResult, type QuizQuestion } from '@/lib/courses/quiz';
 
 type Result<T> = { ok: true; data: T } | { ok: false; error: string };
 
@@ -34,8 +35,6 @@ export async function enrollFreeCourse(courseId: string): Promise<Result<null>> 
 }
 
 async function loadExerciseForViewer(exerciseId: string, language: string, code: string) {
-  const viewer = await getViewer();
-  if (!viewer) return { error: ACCESS_MESSAGES.login } as const;
   if (!isLanguageKey(language)) return { error: 'Ngôn ngữ không hợp lệ.' } as const;
   if (new TextEncoder().encode(code).length > MAX_CODE_BYTES)
     return { error: 'Code quá dài (tối đa 64 KB).' } as const;
@@ -48,8 +47,17 @@ async function loadExerciseForViewer(exerciseId: string, language: string, code:
   if (!exercise) return { error: 'Không tìm thấy bài tập.' } as const;
   if (!exercise.languages.includes(language))
     return { error: 'Bài tập này không cho dùng ngôn ngữ đó.' } as const;
-  const access = await checkLessonAccess(exercise.lessonId, viewer);
-  if (!access.ok) return { error: ACCESS_MESSAGES[access.reason] } as const;
+
+  const viewer = await getViewer();
+
+  if (!exercise.isPublicPractice) {
+    if (!viewer) return { error: ACCESS_MESSAGES.login } as const;
+    if (exercise.lessonId) {
+      const access = await checkLessonAccess(exercise.lessonId, viewer);
+      if (!access.ok) return { error: ACCESS_MESSAGES[access.reason] } as const;
+    }
+  }
+
   return { viewer, exercise, language: language as LanguageKey } as const;
 }
 
@@ -62,7 +70,8 @@ export async function runExerciseCode(input: {
 }): Promise<Result<SampleRun[]>> {
   const loaded = await loadExerciseForViewer(input.exerciseId, input.language, input.code);
   if ('error' in loaded) return { ok: false, error: loaded.error! };
-  const wait = runCooldown.take(`run:${loaded.viewer.id}`);
+  const viewerKey = loaded.viewer ? loaded.viewer.id : 'guest';
+  const wait = runCooldown.take(`run:${viewerKey}`);
   if (wait > 0) return { ok: false, error: `Chờ ${Math.ceil(wait / 1000)} giây rồi chạy lại.` };
   if (input.customInput !== undefined && input.customInput.length > 64 * 1024)
     return { ok: false, error: 'Input quá dài.' };
@@ -99,7 +108,8 @@ export async function submitExerciseCode(input: {
   const loaded = await loadExerciseForViewer(input.exerciseId, input.language, input.code);
   if ('error' in loaded) return { ok: false, error: loaded.error! };
   const { viewer, exercise, language } = loaded;
-  const wait = submitCooldown.take(`submit:${viewer.id}`);
+  const viewerKey = viewer ? viewer.id : 'guest';
+  const wait = submitCooldown.take(`submit:${viewerKey}`);
   if (wait > 0) return { ok: false, error: `Chờ ${Math.ceil(wait / 1000)} giây rồi nộp lại.` };
 
   const result = await gradeSubmission({
@@ -112,24 +122,102 @@ export async function submitExerciseCode(input: {
   // Lỗi máy chấm không phải lỗi của học viên — không lưu, không tính lượt.
   if (result.verdict === 'SYSTEM_ERROR') return { ok: false, error: result.message! };
 
-  const submission = await db.submission.create({
-    data: {
-      exerciseId: exercise.id,
-      userId: viewer.id,
-      language,
-      code: input.code,
-      verdict: result.verdict,
-      passed: result.passed,
-      total: result.total,
-      details: JSON.parse(JSON.stringify(result.details)),
-      message: result.message,
-    },
-  });
+  let submissionId = 'practice-temp';
+  if (viewer) {
+    const submission = await db.submission.create({
+      data: {
+        exerciseId: exercise.id,
+        userId: viewer.id,
+        language,
+        code: input.code,
+        verdict: result.verdict,
+        passed: result.passed,
+        total: result.total,
+        details: JSON.parse(JSON.stringify(result.details)),
+        message: result.message,
+      },
+    });
+    submissionId = submission.id;
+  }
 
   let lessonCompleted = false;
-  if (result.verdict === 'ACCEPTED')
+  if (result.verdict === 'ACCEPTED' && exercise.lessonId && viewer) {
     lessonCompleted = await markLessonIfSolved(exercise.lessonId, viewer.id);
-  return { ok: true, data: { submissionId: submission.id, result, lessonCompleted } };
+  }
+  return { ok: true, data: { submissionId, result, lessonCompleted } };
+}
+
+export interface QuizSubmitResult {
+  submissionId: string;
+  result: QuizGradeResult;
+  lessonCompleted: boolean;
+}
+
+/** Nộp bài trắc nghiệm / điền từ: chấm điểm tự động, lưu bài nộp, đánh dấu hoàn thành nếu đạt. */
+export async function submitQuizAnswers(input: {
+  exerciseId: string;
+  answers: Record<string, string | string[]>;
+}): Promise<Result<QuizSubmitResult>> {
+  const viewer = await getViewer();
+
+  const exercise = await db.exercise.findUnique({
+    where: { id: input.exerciseId },
+  });
+  if (!exercise || exercise.type !== 'QUIZ') {
+    return { ok: false, error: 'Không tìm thấy bài tập trắc nghiệm.' };
+  }
+
+  if (!exercise.isPublicPractice) {
+    if (!viewer) return { ok: false, error: ACCESS_MESSAGES.login };
+    if (exercise.lessonId) {
+      const access = await checkLessonAccess(exercise.lessonId, viewer);
+      if (!access.ok) return { ok: false, error: ACCESS_MESSAGES[access.reason] };
+    }
+  }
+
+  const questions = (exercise.questions as unknown as QuizQuestion[]) || [];
+  if (questions.length === 0) {
+    return { ok: false, error: 'Bài tập này chưa có câu hỏi nào.' };
+  }
+
+  const viewerKey = viewer ? viewer.id : 'guest';
+  const wait = submitCooldown.take(`submit:${viewerKey}`);
+  if (wait > 0) return { ok: false, error: `Chờ ${Math.ceil(wait / 1000)} giây rồi nộp lại.` };
+
+  const gradeResult = gradeQuiz(questions, input.answers);
+  const verdict = gradeResult.passed ? 'ACCEPTED' : 'WRONG_ANSWER';
+
+  let submissionId = 'practice-quiz-temp';
+  if (viewer) {
+    const submission = await db.submission.create({
+      data: {
+        exerciseId: exercise.id,
+        userId: viewer.id,
+        language: 'quiz',
+        code: JSON.stringify(input.answers),
+        verdict,
+        passed: gradeResult.score,
+        total: gradeResult.total,
+        details: JSON.parse(JSON.stringify(gradeResult.details)),
+        message: `Đúng ${gradeResult.score}/${gradeResult.total} câu (${gradeResult.percent}%)`,
+      },
+    });
+    submissionId = submission.id;
+  }
+
+  let lessonCompleted = false;
+  if (gradeResult.passed && exercise.lessonId && viewer) {
+    lessonCompleted = await markLessonIfSolved(exercise.lessonId, viewer.id);
+  }
+
+  return {
+    ok: true,
+    data: {
+      submissionId,
+      result: gradeResult,
+      lessonCompleted,
+    },
+  };
 }
 
 /** Ghi hoàn thành bài học khi mọi bài tập đều đã có bài nộp đúng. Trả về true nếu vừa ghi. */

@@ -43,7 +43,7 @@ const DEFAULT_COMMENTS_MAP: Record<string, CommentItem[]> = {
       id: 'c1',
       author: 'Hoàng Long',
       badge: 'DevOps Engineer',
-      avatarBg: 'bg-emerald-600',
+      avatarBg: 'bg-muted text-muted-foreground',
       createdAt: '3 ngày trước',
       content:
         'Bài viết rất chi tiết ạ! Cho mình hỏi thêm là nếu server có nhiều CPU core thì worker_processes nên để auto hay set cứng theo số core vậy tác giả?',
@@ -53,7 +53,7 @@ const DEFAULT_COMMENTS_MAP: Record<string, CommentItem[]> = {
           id: 'c1-r1',
           author: 'Toàn Nguyễn',
           badge: 'Tác giả',
-          avatarBg: 'bg-primary',
+          avatarBg: 'bg-primary text-primary-foreground',
           createdAt: '3 ngày trước',
           content:
             'Chào bạn Long, nên để `worker_processes auto;` nhé bạn. Nginx phiên bản mới tự động nhận diện chính xác số core vật lý và gán worker rất chuẩn.',
@@ -65,7 +65,7 @@ const DEFAULT_COMMENTS_MAP: Record<string, CommentItem[]> = {
       id: 'c2',
       author: 'Minh Tuấn',
       badge: 'Fullstack Dev',
-      avatarBg: 'bg-blue-600',
+      avatarBg: 'bg-muted text-muted-foreground',
       createdAt: '1 tuần trước',
       content:
         'Cấu hình proxy_cache_valid 365d cho static chunks của Next.js thật sự cứu cánh, traffic bên mình giảm tải hẳn cho Node container trên con VPS Hetzner 4GB RAM.',
@@ -77,7 +77,7 @@ const DEFAULT_COMMENTS_MAP: Record<string, CommentItem[]> = {
       id: 'c3',
       author: 'Ngọc Hải',
       badge: 'Backend Dev',
-      avatarBg: 'bg-indigo-600',
+      avatarBg: 'bg-muted text-muted-foreground',
       createdAt: '4 ngày trước',
       content:
         'Cái healthcheck pg_isready quan trọng thật sự. Trước đây lúc chạy CI/CD toàn bị dính lỗi Prisma connect trước khi Postgres sẵn sàng, giờ thêm block healthcheck này là êm ru.',
@@ -86,7 +86,7 @@ const DEFAULT_COMMENTS_MAP: Record<string, CommentItem[]> = {
     {
       id: 'c4',
       author: 'Văn Đức',
-      avatarBg: 'bg-amber-600',
+      avatarBg: 'bg-muted text-muted-foreground',
       createdAt: '1 tuần trước',
       content:
         'Nếu muốn thêm extension pgvector cho bài toán AI embeddings thì image nên sửa như nào tác giả ơi?',
@@ -96,7 +96,7 @@ const DEFAULT_COMMENTS_MAP: Record<string, CommentItem[]> = {
           id: 'c4-r1',
           author: 'Toàn Nguyễn',
           badge: 'Tác giả',
-          avatarBg: 'bg-primary',
+          avatarBg: 'bg-primary text-primary-foreground',
           createdAt: '6 ngày trước',
           content:
             'Bạn chỉ cần đổi `image: pgvector/pgvector:pg16` là xong nhé, toàn bộ cú pháp volume và port trong compose giữ nguyên hoàn toàn!',
@@ -110,7 +110,7 @@ const DEFAULT_COMMENTS_MAP: Record<string, CommentItem[]> = {
       id: 'c5',
       author: 'Trần Quân',
       badge: 'Frontend Lead',
-      avatarBg: 'bg-purple-600',
+      avatarBg: 'bg-muted text-muted-foreground',
       createdAt: '5 ngày trước',
       content:
         'Chuẩn luôn anh, trước em dính bug thiếu NEXT_PUBLIC_API_URL trên production mà build không báo gì, khách bấm thanh toán mới lòi ra undefined cay đắng.',
@@ -119,7 +119,7 @@ const DEFAULT_COMMENTS_MAP: Record<string, CommentItem[]> = {
     {
       id: 'c6',
       author: 'Lê Hữu Nam',
-      avatarBg: 'bg-teal-600',
+      avatarBg: 'bg-muted text-muted-foreground',
       createdAt: '1 tuần trước',
       content:
         'Zod quả thật là chân ái cho TypeScript project. Đoạn ép kiểu parse serverEnv lúc boot xong từ đó code tự tin hẳn không sợ typo tên biến.',
@@ -131,7 +131,7 @@ const DEFAULT_COMMENTS_MAP: Record<string, CommentItem[]> = {
       id: 'c7',
       author: 'Đặng Khoa',
       badge: 'Solutions Architect',
-      avatarBg: 'bg-rose-600',
+      avatarBg: 'bg-muted text-muted-foreground',
       createdAt: 'Hôm qua',
       content:
         'Giải pháp chống Cache Stampede bằng distributed lock SET NX PX viết rất gãy gọn và dễ hiểu. Cảm ơn bài viết thực chiến của anh!',
@@ -140,7 +140,7 @@ const DEFAULT_COMMENTS_MAP: Record<string, CommentItem[]> = {
     {
       id: 'c8',
       author: 'Quang Huy',
-      avatarBg: 'bg-sky-600',
+      avatarBg: 'bg-muted text-muted-foreground',
       createdAt: '2 ngày trước',
       content:
         'Next.js 15 dùng fetch cache với Redis cache adapter này có xung đột gì với ISR không anh?',
@@ -150,7 +150,7 @@ const DEFAULT_COMMENTS_MAP: Record<string, CommentItem[]> = {
           id: 'c8-r1',
           author: 'Toàn Nguyễn',
           badge: 'Tác giả',
-          avatarBg: 'bg-primary',
+          avatarBg: 'bg-primary text-primary-foreground',
           createdAt: 'Hôm qua',
           content:
             'Không xung đột bạn nhé. ISR lưu trữ trang rendered HTML ở tầng Next.js server, còn Redis này ta dùng để cache dữ liệu thô (raw data/queries) ở tầng Service/Data Access.',
@@ -164,7 +164,7 @@ const DEFAULT_COMMENTS_MAP: Record<string, CommentItem[]> = {
       id: 'c9',
       author: 'Bảo Anh',
       badge: 'DevOps',
-      avatarBg: 'bg-emerald-600',
+      avatarBg: 'bg-muted text-muted-foreground',
       createdAt: '2 ngày trước',
       content:
         'Dùng docker buildx với cache-to: type=gha giúp thời gian build image của mình giảm từ 5 phút xuống còn 40 giây. Bài viết cực kỳ giá trị!',
@@ -176,7 +176,7 @@ const DEFAULT_COMMENTS_MAP: Record<string, CommentItem[]> = {
       id: 'c10',
       author: 'Thành Đạt',
       badge: 'Sysadmin',
-      avatarBg: 'bg-orange-600',
+      avatarBg: 'bg-muted text-muted-foreground',
       createdAt: '3 ngày trước',
       content:
         'Dashboard Grafana thiết kế rất đẹp và trực quan. Node exporter nhẹ thật sự, chạy trên con VPS 1GB RAM mà hầu như không cảm nhận thấy tốn tài nguyên.',
@@ -346,10 +346,10 @@ export function PostComments({
           ? 'Admin'
           : 'Thành viên',
       avatarBg: isCurrentUserAuthor
-        ? 'bg-primary'
+        ? 'bg-primary text-primary-foreground'
         : currentUser.role === 'ADMIN'
-          ? 'bg-indigo-600'
-          : 'bg-emerald-600',
+          ? 'bg-primary/80 text-primary-foreground'
+          : 'bg-muted text-muted-foreground',
       createdAt: 'Vừa xong',
       content: content.trim(),
       likes: 0,
@@ -496,7 +496,7 @@ export function PostComments({
                     </span>
                   ) : (
                     <>
-                      <span className="py-0.2 inline-flex items-center gap-0.5 rounded-full bg-emerald-500/10 px-1.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
+                      <span className="bg-success/10 text-success py-0.2 inline-flex items-center gap-0.5 rounded-full px-1.5 text-[10px] font-semibold">
                         <UserCheck className="size-2.5" /> Đã đăng nhập
                       </span>
                       {currentUser?.role === 'ADMIN' && (
@@ -533,7 +533,7 @@ export function PostComments({
               className="text-muted-foreground mb-1 block text-xs font-medium"
             >
               {replyingTo ? 'Nội dung phản hồi' : 'Nội dung bình luận của bạn'}{' '}
-              <span className="text-rose-500">*</span>
+              <span className="text-destructive">*</span>
             </label>
             <textarea
               id="comment-textarea"
@@ -563,7 +563,7 @@ export function PostComments({
           </div>
 
           {justSubmitted && (
-            <div className="flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+            <div className="border-success/30 bg-success/10 text-success flex items-center gap-2 rounded-lg border p-3 text-xs font-medium">
               <CheckCircle2 className="size-4 shrink-0" />
               Bình luận của bạn đã được xuất bản thành công!
             </div>
@@ -618,12 +618,17 @@ export function PostComments({
                     className={cn(
                       'inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs transition-colors',
                       comment.isLiked
-                        ? 'border-rose-500/30 bg-rose-500/10 font-semibold text-rose-500'
+                        ? 'border-destructive/30 bg-destructive/10 text-destructive font-semibold'
                         : 'text-muted-foreground hover:bg-muted hover:text-foreground border-transparent',
                     )}
                     title="Thích bình luận này"
                   >
-                    <Heart className={cn('size-3.5', comment.isLiked && 'fill-rose-500')} />
+                    <Heart
+                      className={cn(
+                        'size-3.5',
+                        comment.isLiked && 'fill-destructive text-destructive',
+                      )}
+                    />
                     <span>{comment.likes}</span>
                   </button>
 
@@ -692,11 +697,11 @@ export function PostComments({
                         className={cn(
                           'inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] transition-colors',
                           reply.isLiked
-                            ? 'font-semibold text-rose-500'
+                            ? 'text-destructive font-semibold'
                             : 'text-muted-foreground hover:text-foreground',
                         )}
                       >
-                        <Heart className={cn('size-3', reply.isLiked && 'fill-rose-500')} />
+                        <Heart className={cn('size-3', reply.isLiked && 'fill-destructive')} />
                         <span>{reply.likes}</span>
                       </button>
                     </div>

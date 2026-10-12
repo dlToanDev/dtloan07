@@ -94,17 +94,17 @@ export function HeaderWalletBadge({ balanceVnd, balanceUsd, className }: HeaderW
   return (
     <div
       className={cn(
-        'group inline-flex items-center rounded-full border border-emerald-500/40 bg-emerald-500/10 text-xs font-bold text-emerald-600 shadow-xs transition-all select-none hover:border-emerald-500/60 hover:bg-emerald-500/15 dark:text-emerald-400',
+        'group border-success/30 bg-success/10 text-success hover:border-success/50 hover:bg-success/15 inline-flex items-center rounded-full border text-xs font-bold shadow-xs transition-all select-none',
         className,
       )}
       title={getTooltip()}
     >
       <Link
         href="/account?tab=wallet"
-        className="flex items-center gap-1.5 py-1 pr-1 pl-2.5 transition hover:text-emerald-700 dark:hover:text-emerald-300"
+        className="flex items-center gap-1.5 py-1 pr-1 pl-2.5 transition hover:opacity-80"
         title="Nhấn để mở khu vực Ví và nạp/rút tiền"
       >
-        <Wallet className="size-3.5 shrink-0 text-emerald-600 transition-transform group-hover:scale-110 dark:text-emerald-400" />
+        <Wallet className="text-success size-3.5 shrink-0 transition-transform group-hover:scale-110" />
         <span className="font-mono font-extrabold tracking-tight whitespace-nowrap">
           {mounted
             ? renderAmount()
@@ -117,7 +117,7 @@ export function HeaderWalletBadge({ balanceVnd, balanceUsd, className }: HeaderW
       <button
         type="button"
         onClick={cycleMode}
-        className="ml-0.5 flex cursor-pointer items-center gap-1 border-l border-emerald-500/25 py-1 pr-2.5 pl-1.5 text-emerald-600/75 transition-colors hover:text-emerald-700 dark:text-emerald-400/80 dark:hover:text-emerald-200"
+        className="border-success/20 text-success/80 hover:text-success ml-0.5 flex cursor-pointer items-center gap-1 border-l py-1 pr-2.5 pl-1.5 transition-colors"
         title="Xoay tua hiển thị giữa USD và VND"
         aria-label="Xoay tua đơn vị tiền tệ"
       >

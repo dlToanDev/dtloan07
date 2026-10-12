@@ -597,6 +597,7 @@ model AffiliateItem {
   slug          String            @unique
   name          String
   category      AffiliateCategory @default(OTHER)
+  subCategory   String? // Danh mục sản phẩm (VD: Quần áo, Balo, Mỹ phẩm, Điện thoại...)
   platform      String? // "Shopee" | "TikTok" | "Lazada" | "Hetzner" | v.v.
   description   String            @db.Text
   perks         String?
@@ -613,6 +614,7 @@ model AffiliateItem {
 
   @@index([category, active])
   @@index([featured, active])
+  @@index([platform, active])
 }
 
 // ==========================================
@@ -699,25 +701,40 @@ model LessonAttachment {
   @@index([lessonId])
 }
 
-/// Bài tập code cuối bài, chấm theo nhập/xuất chuẩn.
-model Exercise {
-  id            String   @id @default(cuid())
-  lessonId      String
-  title         String
-  statement     String   @default("") @db.Text // Markdown
-  sortOrder     Int      @default(0)
-  languages     String[] @default([]) // Khóa ngôn ngữ trong src/lib/judge/languages.ts
-  starterCode   Json     @default("{}") // { cpp: "...", python: "..." }
-  timeLimitMs   Int      @default(2000)
-  memoryLimitMb Int      @default(256)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+enum ExerciseType {
+  CODE
+  QUIZ
+}
 
-  lesson      Lesson       @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+/// Bài tập cuối bài: Lập trình (chấm test cases) hoặc Trắc nghiệm & Điền từ (TOEIC, TOPIK, ngữ liệu đoạn văn/âm thanh/hình ảnh).
+model Exercise {
+  id               String       @id @default(cuid())
+  lessonId         String?
+  title            String
+  type             ExerciseType @default(CODE)
+  statement        String       @default("") @db.Text // Markdown hướng dẫn / đề bài
+  passage          String?      @db.Text // Ngữ liệu bài đọc / đoạn văn bản
+  audioUrl         String? // Ngữ liệu file âm thanh (TOEIC Listening, TOPIK...)
+  imageUrl         String? // Ngữ liệu hình ảnh (tranh mô tả, biểu đồ...)
+  videoUrl         String? // Ngữ liệu video
+  questions        Json         @default("[]") // Danh sách câu hỏi trắc nghiệm (1 đáp án, nhiều đáp án, điền từ)
+  sortOrder        Int          @default(0)
+  languages        String[]     @default([]) // Khóa ngôn ngữ trong src/lib/judge/languages.ts
+  starterCode      Json         @default("{}") // { cpp: "...", python: "..." }
+  timeLimitMs      Int          @default(2000)
+  memoryLimitMb    Int          @default(256)
+  isPublicPractice Boolean      @default(false) // Đăng lên trang Luyện đề mở (khách làm free)
+  category         String? // Phân loại chuyên đề (vd: Thuật toán, Web Dev, TOEIC Listening...)
+  difficulty       String       @default("MEDIUM") // EASY, MEDIUM, HARD
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  lesson      Lesson?      @relation(fields: [lessonId], references: [id], onDelete: Cascade)
   testCases   TestCase[]
   submissions Submission[]
 
   @@index([lessonId, sortOrder])
+  @@index([isPublicPractice])
 }
 
 model TestCase {
@@ -746,7 +763,7 @@ enum SubmissionVerdict {
 model Submission {
   id         String            @id @default(cuid())
   exerciseId String
-  userId     String
+  userId     String? // null khi khách vãng lai làm bài trên trang luyện đề
   language   String
   code       String            @db.Text
   verdict    SubmissionVerdict
@@ -757,7 +774,7 @@ model Submission {
   createdAt  DateTime          @default(now())
 
   exercise Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
-  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user     User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, exerciseId, createdAt])
 }

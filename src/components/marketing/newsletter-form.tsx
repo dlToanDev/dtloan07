@@ -65,7 +65,7 @@ export function NewsletterForm({
 
   if (success) {
     return (
-      <div className="flex items-center gap-3 rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-4 text-sm text-emerald-600 dark:text-emerald-400">
+      <div className="border-success/30 bg-success/10 text-success flex items-center gap-3 rounded-lg border p-4 text-sm">
         <CheckCircle2 className="h-5 w-5 shrink-0" />
         <p>{success}</p>
       </div>
@@ -113,7 +113,7 @@ export function NewsletterForm({
         </Button>
       </div>
 
-      {error && <p className="text-xs text-rose-600 dark:text-rose-400">{error}</p>}
+      {error && <p className="text-destructive text-xs">{error}</p>}
     </form>
   );
 }

@@ -21,20 +21,20 @@ export default auth(async function middleware(req) {
 
   // 1. Bảo vệ các route Admin (/admin và /admin/*)
   if (pathname === '/admin' || pathname.startsWith('/admin/')) {
-    const ip = getClientIp(req.headers);
-    const rateLimit = checkAdminScanRateLimit(ip);
-
-    // Chặn brute-force / URL scanning nếu vượt quá tần suất
-    if (!rateLimit.success) {
-      return new NextResponse('Too Many Requests', {
-        status: 429,
-        headers: { 'Retry-After': '60' },
-      });
-    }
-
     // Không phải ADMIN (chưa đăng nhập hoặc tài khoản thường):
-    // Trả về 404 Not Found để KHÔNG làm lộ sự tồn tại của trang quản trị
+    // Áp dụng giới hạn dò quét IP và trả về 404 Cloaking để KHÔNG làm lộ sự tồn tại của trang quản trị
     if (!isAdmin) {
+      const ip = getClientIp(req.headers);
+      const rateLimit = checkAdminScanRateLimit(ip);
+
+      // Chặn brute-force / URL scanning nếu vượt quá tần suất
+      if (!rateLimit.success) {
+        return new NextResponse('Too Many Requests', {
+          status: 429,
+          headers: { 'Retry-After': '60' },
+        });
+      }
+
       return new NextResponse(null, { status: 404 });
     }
 

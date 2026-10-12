@@ -109,7 +109,7 @@ export default async function AdminCommunityPage({
                   )}
                 </div>
                 {post.removedReason && (
-                  <p className="text-xs text-red-600">Lý do gỡ: {post.removedReason}</p>
+                  <p className="text-destructive text-xs">Lý do gỡ: {post.removedReason}</p>
                 )}
               </div>
               <PostModerationActions

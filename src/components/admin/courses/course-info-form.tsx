@@ -308,9 +308,9 @@ export function CourseInfoForm({ course }: { course: CourseInfoValue }) {
               Đã xuất bản <b>{value.publishedLessons}</b>
               {planned ? ` / ${planned}` : ''} bài ·{' '}
               {value.contentComplete ? (
-                <span className="font-medium text-emerald-600">✓ Đã soạn xong</span>
+                <span className="text-success font-medium">✓ Đã soạn xong</span>
               ) : (
-                <span className="font-medium text-amber-600">✎ Đang soạn</span>
+                <span className="text-warning font-medium">✎ Đang soạn</span>
               )}
             </span>
             <label className="flex items-center gap-2">
@@ -339,7 +339,7 @@ export function CourseInfoForm({ course }: { course: CourseInfoValue }) {
           ))}
         </div>
         {value.status === 'ACTIVE' && value.publishedLessons === 0 && !value.learnUrl && (
-          <p className="rounded-lg bg-amber-500/10 p-3 text-sm text-amber-700">
+          <p className="bg-warning/10 text-warning rounded-lg p-3 text-sm">
             Khóa học chưa có bài học nào được xuất bản — thêm bài ở tab “Bài học” trước khi mở cho
             học viên.
           </p>
@@ -363,7 +363,7 @@ export function CourseInfoForm({ course }: { course: CourseInfoValue }) {
         {!creating && (
           <div className="border-border mt-6 flex flex-wrap items-center justify-between gap-3 border-t pt-4">
             <div className="text-sm">
-              <p className="font-medium text-red-600">Xóa khóa học</p>
+              <p className="text-destructive font-medium">Xóa khóa học</p>
               <p className="text-muted-foreground text-xs">
                 Xóa vĩnh viễn bài học, bài tập, bài nộp, tiến độ học viên và video / tài liệu trên
                 R2.
@@ -374,7 +374,7 @@ export function CourseInfoForm({ course }: { course: CourseInfoValue }) {
               variant="outline"
               onClick={remove}
               disabled={busy}
-              className="text-red-600"
+              className="border-destructive/30 text-destructive hover:bg-destructive/10"
             >
               <Trash2 className="size-4" /> Xóa khóa học
             </Button>
@@ -385,7 +385,7 @@ export function CourseInfoForm({ course }: { course: CourseInfoValue }) {
       <div className="border-border bg-background/95 sticky bottom-0 z-20 -mx-4 flex flex-wrap items-center gap-3 border-t px-4 py-3 backdrop-blur sm:mx-0 sm:rounded-t-xl sm:border-x">
         <span
           className={`min-w-0 flex-1 truncate text-sm ${
-            message?.tone === 'bad' ? 'text-red-600' : 'text-muted-foreground'
+            message?.tone === 'bad' ? 'text-destructive' : 'text-muted-foreground'
           }`}
         >
           {busy ? (
@@ -412,11 +412,7 @@ export function CourseInfoForm({ course }: { course: CourseInfoValue }) {
             Xem trang ↗
           </Link>
         )}
-        <Button
-          type="submit"
-          className="bg-emerald-600 text-white hover:bg-emerald-700"
-          disabled={busy}
-        >
+        <Button type="submit" disabled={busy}>
           {creating ? 'Tạo khóa học' : 'Lưu thông tin'}
         </Button>
       </div>

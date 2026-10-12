@@ -27,11 +27,11 @@ export default async function SubscribeStatusPage({ searchParams }: Props) {
       <Card className="w-full max-w-md text-center">
         <CardHeader className="flex flex-col items-center">
           {isSuccess ? (
-            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-500">
+            <div className="bg-success/10 text-success mb-4 flex h-16 w-16 items-center justify-center rounded-full">
               <CheckCircle2 className="h-10 w-10" />
             </div>
           ) : (
-            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-rose-500/10 text-rose-500">
+            <div className="bg-destructive/10 text-destructive mb-4 flex h-16 w-16 items-center justify-center rounded-full">
               <AlertCircle className="h-10 w-10" />
             </div>
           )}

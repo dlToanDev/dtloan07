@@ -59,7 +59,7 @@ export default async function AdminPostsPage() {
           <span className="text-muted-foreground text-xs font-medium uppercase">
             Bài viết nổi bật (Featured)
           </span>
-          <div className="mt-1 text-2xl font-bold text-amber-500">
+          <div className="text-warning mt-1 text-2xl font-bold">
             {posts.filter((p) => p.featured).length} bài
           </div>
           <p className="text-muted-foreground mt-1 text-xs">Hiển thị ở trang chủ</p>
@@ -104,7 +104,7 @@ export default async function AdminPostsPage() {
                         <div className="text-muted-foreground mt-0.5 flex items-center gap-1.5 text-xs">
                           <span className="font-mono text-[11px]">/blog/{post.slug}</span>
                           {post.featured && (
-                            <span className="py-0.2 rounded border border-amber-500/30 bg-amber-500/15 px-1.5 text-[10px] font-semibold text-amber-600 dark:text-amber-400">
+                            <span className="py-0.2 border-warning/30 bg-warning/10 text-warning rounded border px-1.5 text-[10px] font-semibold">
                               Nổi bật
                             </span>
                           )}

@@ -564,7 +564,7 @@ export function ProfileManager({
               </div>
               {pro && (
                 <div
-                  className="absolute -right-1.5 -bottom-1.5 z-10 flex size-6 items-center justify-center rounded-full bg-amber-500 text-white shadow-md"
+                  className="bg-warning text-warning-foreground absolute -right-1.5 -bottom-1.5 z-10 flex size-6 items-center justify-center rounded-full shadow-md"
                   title="Thành viên PRO"
                 >
                   <Crown className="size-3.5" />
@@ -579,7 +579,7 @@ export function ProfileManager({
                   {name || user.email.split('@')[0]}
                 </h2>
                 {pro ? (
-                  <Badge className="bg-amber-500 font-bold text-white shadow-2xs hover:bg-amber-500">
+                  <Badge className="bg-warning text-warning-foreground hover:bg-warning font-bold shadow-2xs">
                     <Crown className="mr-1 size-3" /> PRO
                   </Badge>
                 ) : (
@@ -588,7 +588,7 @@ export function ProfileManager({
                   </Badge>
                 )}
                 {user.role === 'ADMIN' && (
-                  <Badge className="bg-rose-600 text-xs font-bold text-white hover:bg-rose-700">
+                  <Badge variant="destructive" className="text-xs font-bold">
                     <ShieldCheck className="mr-1 size-3" /> Quản trị viên
                   </Badge>
                 )}
@@ -620,7 +620,7 @@ export function ProfileManager({
                   </span>
                 )}
                 {pro && user.proUntil && (
-                  <span className="inline-flex items-center gap-1 font-semibold text-amber-600 dark:text-amber-400">
+                  <span className="text-warning inline-flex items-center gap-1 font-semibold">
                     <Clock className="size-3.5" />
                     Hết hạn: {new Date(user.proUntil).toLocaleDateString('vi-VN')} ({daysLeft} ngày)
                   </span>
@@ -640,17 +640,17 @@ export function ProfileManager({
             {user.role === 'ADMIN' && (
               <Link
                 href="/admin/entry"
-                className="inline-flex cursor-pointer items-center gap-1.5 rounded-xl bg-slate-900 px-3.5 py-2 text-xs font-bold text-white shadow-sm transition hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white"
+                className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex cursor-pointer items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-bold shadow-sm transition"
               >
                 <Settings className="size-3.5" /> Trang quản trị Admin
               </Link>
             )}
 
-            <div className="inline-flex items-center rounded-xl border border-emerald-500/40 bg-emerald-500/5 text-emerald-600 shadow-xs dark:text-emerald-400">
+            <div className="border-success/30 bg-success/5 text-success inline-flex items-center rounded-xl border shadow-xs">
               <button
                 type="button"
                 onClick={() => handleTabChange('wallet', true)}
-                className="inline-flex cursor-pointer items-center gap-1.5 rounded-l-xl px-3 py-2 text-xs font-bold transition hover:bg-emerald-500/10"
+                className="hover:bg-success/10 inline-flex cursor-pointer items-center gap-1.5 rounded-l-xl px-3 py-2 text-xs font-bold transition"
                 title="Nhấn để mở khu vực Quản lý Ví và Nạp/Quy đổi tiền"
               >
                 <Wallet className="size-4 shrink-0" />
@@ -665,7 +665,7 @@ export function ProfileManager({
               <button
                 type="button"
                 onClick={cycleWalletDisplayMode}
-                className="flex cursor-pointer items-center gap-1 rounded-r-xl border-l border-emerald-500/30 px-2 py-2 font-mono text-[11px] font-bold transition hover:bg-emerald-500/10"
+                className="border-success/30 hover:bg-success/10 flex cursor-pointer items-center gap-1 rounded-r-xl border-l px-2 py-2 font-mono text-[11px] font-bold transition"
                 title="Nhấn để xoay tua hiển thị giữa USD và VND"
                 aria-label="Xoay tua đơn vị tiền tệ"
               >
@@ -678,7 +678,7 @@ export function ProfileManager({
               <Button
                 type="button"
                 onClick={() => setProModalOpen(true)}
-                className="cursor-pointer bg-gradient-to-r from-amber-500 to-amber-600 font-bold text-white shadow-md hover:from-amber-600 hover:to-amber-700"
+                className="bg-warning text-warning-foreground hover:bg-warning/90 cursor-pointer font-bold shadow-md"
               >
                 <Crown className="mr-1.5 size-4" /> Nâng cấp PRO
               </Button>
@@ -687,7 +687,7 @@ export function ProfileManager({
                 type="button"
                 onClick={() => setProModalOpen(true)}
                 variant="outline"
-                className="cursor-pointer border-amber-500/40 font-bold text-amber-600 shadow-xs hover:bg-amber-500/10 dark:text-amber-400"
+                className="border-warning/40 text-warning hover:bg-warning/10 cursor-pointer font-bold shadow-xs"
               >
                 <Sparkles className="mr-1.5 size-4" /> Gia hạn PRO
               </Button>
@@ -697,7 +697,7 @@ export function ProfileManager({
               type="button"
               disabled={isLoggingOut}
               onClick={handleSignOut}
-              className="inline-flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-xl border border-rose-500/30 bg-rose-500/10 px-3.5 py-2 text-xs font-bold text-rose-600 shadow-2xs transition hover:border-rose-500/60 hover:bg-rose-500/20 disabled:opacity-50 sm:w-auto dark:text-rose-400 dark:hover:bg-rose-500/20"
+              className="border-destructive/30 bg-destructive/10 text-destructive hover:border-destructive/60 hover:bg-destructive/20 inline-flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-xl border px-3.5 py-2 text-xs font-bold shadow-2xs transition disabled:opacity-50 sm:w-auto"
               title="Đăng xuất khỏi tài khoản"
             >
               {isLoggingOut ? (
@@ -715,16 +715,16 @@ export function ProfileManager({
           <button
             type="button"
             onClick={() => handleTabChange('wallet', true)}
-            className="hover:bg-muted/50 group col-span-2 cursor-pointer rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-2.5 text-left transition sm:col-span-1"
+            className="hover:bg-muted/50 border-success/30 bg-success/5 group col-span-2 cursor-pointer rounded-xl border p-2.5 text-left transition sm:col-span-1"
             title="Nhấn để mở khu vực Quản lý Ví và Nạp/Quy đổi tiền"
           >
-            <div className="flex items-center justify-between text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+            <div className="text-success flex items-center justify-between text-xs font-semibold">
               <span className="flex items-center gap-1">
                 <Wallet className="size-3.5" /> Ví số dư
               </span>
               <span
                 onClick={cycleWalletDisplayMode}
-                className="text-muted-foreground flex items-center gap-0.5 rounded px-1 py-0.5 font-mono text-[10px] font-medium transition hover:bg-emerald-500/10 hover:text-emerald-600 dark:hover:text-emerald-400"
+                className="text-muted-foreground hover:bg-success/10 hover:text-success flex items-center gap-0.5 rounded px-1 py-0.5 font-mono text-[10px] font-medium transition"
                 title="Nhấn để xoay tua hiển thị giữa USD và VND"
               >
                 <span>{walletDisplayMode}</span>

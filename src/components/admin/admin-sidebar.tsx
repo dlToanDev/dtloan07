@@ -25,6 +25,7 @@ import {
   ChevronRight,
   Settings,
   Headset,
+  BookOpen,
 } from 'lucide-react';
 
 interface NavItem {
@@ -33,8 +34,6 @@ interface NavItem {
   icon: React.ComponentType<{ className?: string }>;
   exact?: boolean;
   badge?: string;
-  iconColor: string;
-  iconBg: string;
 }
 
 interface NavGroup {
@@ -51,58 +50,47 @@ const navGroups: NavGroup[] = [
         href: '/admin',
         icon: LayoutDashboard,
         exact: true,
-        iconColor: 'text-rose-500',
-        iconBg: 'bg-rose-500/10',
+      },
+      {
+        title: 'Quản lý người dùng',
+        href: '/admin/users',
+        icon: Users,
       },
       {
         title: 'Quản lý sản phẩm',
         href: '/admin/products',
         icon: ShoppingBag,
         badge: 'Shop & Bot',
-        iconColor: 'text-amber-500',
-        iconBg: 'bg-amber-500/10',
       },
       {
         title: 'Đơn hàng',
         href: '/admin/orders',
         icon: Package,
-        iconColor: 'text-purple-500',
-        iconBg: 'bg-purple-500/10',
       },
       {
         title: 'Bản quyền',
         href: '/admin/licenses',
         icon: KeyRound,
-        iconColor: 'text-amber-500',
-        iconBg: 'bg-amber-500/10',
       },
       {
         title: 'Trợ giúp & Hỗ trợ',
         href: '/admin/support',
         icon: Headset,
-        iconColor: 'text-violet-500',
-        iconBg: 'bg-violet-500/10',
       },
       {
         title: 'Subscribers',
         href: '/admin/subscribers',
         icon: Mail,
-        iconColor: 'text-pink-500',
-        iconBg: 'bg-pink-500/10',
       },
       {
         title: 'Hosting & Cloud Deals',
         href: '/admin/affiliates',
         icon: Cloud,
-        iconColor: 'text-cyan-500',
-        iconBg: 'bg-cyan-500/10',
       },
       {
         title: 'Cài đặt',
         href: '/admin/settings',
         icon: Settings,
-        iconColor: 'text-emerald-500',
-        iconBg: 'bg-emerald-500/10',
       },
     ],
   },
@@ -114,50 +102,42 @@ const navGroups: NavGroup[] = [
         href: '/admin/posts',
         icon: FileText,
         badge: 'MDX',
-        iconColor: 'text-blue-500',
-        iconBg: 'bg-blue-500/10',
       },
       {
         title: 'Bài cộng đồng',
         href: '/admin/community',
         icon: Users,
-        iconColor: 'text-sky-500',
-        iconBg: 'bg-sky-500/10',
       },
       {
         title: 'Khóa học',
         href: '/admin/courses',
         icon: GraduationCap,
-        iconColor: 'text-indigo-500',
-        iconBg: 'bg-indigo-500/10',
+      },
+      {
+        title: 'Kho Luyện Đề & Bài tập',
+        href: '/admin/practice',
+        icon: BookOpen,
+        badge: 'Free',
       },
       {
         title: 'Affiliate TikTok & Shopee',
         href: '/admin/affiliate-shopping',
         icon: ShoppingBag,
-        iconColor: 'text-amber-500',
-        iconBg: 'bg-amber-500/10',
       },
       {
         title: 'Danh mục shop',
         href: '/admin/shop/categories',
         icon: Tags,
-        iconColor: 'text-orange-500',
-        iconBg: 'bg-orange-500/10',
       },
       {
         title: 'Phí ship',
         href: '/admin/shop/shipping',
         icon: Truck,
-        iconColor: 'text-teal-500',
-        iconBg: 'bg-teal-500/10',
       },
       {
         title: 'Voucher',
         href: '/admin/vouchers',
         icon: Ticket,
-        iconColor: 'text-rose-500',
-        iconBg: 'bg-rose-500/10',
       },
     ],
   },
@@ -168,7 +148,7 @@ const allItems = navGroups.flatMap((g) => g.items);
 
 export function AdminSidebar({
   userEmail,
-  userName = 'Hoàng Anh Toàn',
+  userName = 'Admin',
   adminToken,
 }: {
   userEmail: string;
@@ -177,7 +157,7 @@ export function AdminSidebar({
 }) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const adminDisplayName = userName && userName !== 'Admin' ? userName : 'Hoàng Anh Toàn';
+  const adminDisplayName = userName?.trim() || 'Admin';
 
   // Chuyển đổi href sang dạng URL động kèm Token bảo mật: /admin/:token/...
   const getLinkHref = (baseHref: string) => {
@@ -221,8 +201,6 @@ export function AdminSidebar({
     href: '/admin',
     icon: LayoutDashboard,
     exact: true,
-    iconColor: 'text-rose-500',
-    iconBg: 'bg-rose-500/10',
   };
 
   const currentItem = allItems.find(isItemActive) ?? fallbackItem;
@@ -236,13 +214,7 @@ export function AdminSidebar({
         {/* Mobile Header Box */}
         <div className="border-border bg-card flex items-center justify-between rounded-xl border p-3 shadow-xs">
           <div className="flex min-w-0 items-center gap-2.5">
-            <div
-              className={cn(
-                'flex size-8 shrink-0 items-center justify-center rounded-lg',
-                currentItem.iconBg,
-                currentItem.iconColor,
-              )}
-            >
+            <div className="bg-primary/10 text-primary flex size-8 shrink-0 items-center justify-center rounded-lg">
               <currentItem.icon className="size-4" />
             </div>
             <div className="min-w-0">
@@ -323,7 +295,7 @@ export function AdminSidebar({
                               'flex size-7 shrink-0 items-center justify-center rounded-lg',
                               active
                                 ? 'bg-primary-foreground/20 text-primary-foreground'
-                                : `${item.iconBg} ${item.iconColor}`,
+                                : 'bg-muted/70 text-muted-foreground',
                             )}
                           >
                             <item.icon className="size-4" />
@@ -385,8 +357,8 @@ export function AdminSidebar({
                   <span className="text-foreground text-sm font-bold tracking-tight">
                     Admin Portal
                   </span>
-                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
-                    <span className="size-1.5 animate-pulse rounded-full bg-emerald-500" />
+                  <span className="bg-success/10 text-success inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold">
+                    <span className="bg-success size-1.5 animate-pulse rounded-full" />
                     Live
                   </span>
                 </div>
@@ -422,7 +394,7 @@ export function AdminSidebar({
                                   'flex size-7 shrink-0 items-center justify-center rounded-lg transition-colors',
                                   active
                                     ? 'bg-primary-foreground/20 text-primary-foreground'
-                                    : `${item.iconBg} ${item.iconColor} transition-transform group-hover:scale-105`,
+                                    : 'bg-muted/70 text-muted-foreground group-hover:bg-muted group-hover:text-foreground transition-transform group-hover:scale-105',
                                 )}
                               >
                                 <item.icon className="size-4" />
@@ -466,10 +438,10 @@ export function AdminSidebar({
                   {adminDisplayName}
                 </p>
                 <p className="text-muted-foreground truncate text-[11px]" title={userEmail}>
-                  {userEmail || 'hatoan13@gmail.com'}
+                  {userEmail || 'Chưa có email'}
                 </p>
               </div>
-              <span className="shrink-0 rounded-md bg-rose-500/10 px-1.5 py-0.5 text-[10px] font-bold text-rose-600 uppercase dark:text-rose-400">
+              <span className="bg-destructive/10 text-destructive shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-bold uppercase">
                 ADMIN
               </span>
             </div>

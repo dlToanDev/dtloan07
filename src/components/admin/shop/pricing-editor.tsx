@@ -118,7 +118,7 @@ export function PricingEditor({
                 <input
                   key={column.label}
                   className={`${inputClass} ${columns.length === 1 ? 'col-span-2 sm:col-span-1' : ''} ${
-                    duplicated ? 'border-red-500' : ''
+                    duplicated ? 'border-destructive' : ''
                   }`}
                   value={line.attrs[index]}
                   maxLength={48}
@@ -189,14 +189,14 @@ export function PricingEditor({
       </div>
 
       {duplicates.size > 0 && (
-        <p role="alert" className="text-sm text-red-600">
+        <p role="alert" className="text-destructive text-sm">
           Có dòng bị trùng {goodsType === 'PHYSICAL' ? 'màu + size' : 'tên gói'}, hãy sửa lại cho
           khác nhau.
         </p>
       )}
 
       {stockFromAccounts ? (
-        <p className="rounded-lg bg-sky-500/10 p-3 text-xs text-sky-700 dark:text-sky-300">
+        <p className="border-info/20 bg-info/10 text-info rounded-lg border p-3 text-xs">
           Số lượng được tính tự động theo số tài khoản còn trống trong <b>Kho tài khoản</b> (cuối
           trang).
         </p>

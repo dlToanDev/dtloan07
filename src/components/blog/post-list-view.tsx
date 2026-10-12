@@ -6,6 +6,7 @@ import { calculateFeaturedScore, type PostMeta } from '@/types/post';
 import { PaginationControl } from '@/components/ui/pagination-control';
 import { ViewSwitcher, type ViewMode } from '@/components/ui/view-switcher';
 import { Input } from '@/components/ui/input';
+import { Select } from '@/components/ui/select';
 import {
   Clock,
   Flame,
@@ -68,7 +69,7 @@ export interface BlogTopicGroup {
 export const BLOG_TOPICS: BlogTopicGroup[] = [
   {
     id: 'WEB_DEV',
-    name: '💻 Lập trình Web & Fullstack',
+    name: 'Lập trình Web & Fullstack',
     match: (p) => {
       const cat = p.category || '';
       const s = p.slug.toLowerCase();
@@ -87,7 +88,7 @@ export const BLOG_TOPICS: BlogTopicGroup[] = [
     subtopics: [
       {
         id: 'NEXTJS',
-        name: '⚛️ Next.js & Server Actions',
+        name: 'Next.js & Server Actions',
         match: (p) => {
           const s = p.slug.toLowerCase();
           const tags = (p.tags || []).map((t) => t.toLowerCase());
@@ -96,7 +97,7 @@ export const BLOG_TOPICS: BlogTopicGroup[] = [
       },
       {
         id: 'TYPESCRIPT',
-        name: '📘 TypeScript & Zod Validation',
+        name: 'TypeScript & Zod Validation',
         match: (p) => {
           const s = p.slug.toLowerCase();
           const tags = (p.tags || []).map((t) => t.toLowerCase());
@@ -105,7 +106,7 @@ export const BLOG_TOPICS: BlogTopicGroup[] = [
       },
       {
         id: 'POSTGRES',
-        name: '🐘 PostgreSQL & Prisma ORM',
+        name: 'PostgreSQL & Prisma ORM',
         match: (p) => {
           const s = p.slug.toLowerCase();
           const tags = (p.tags || []).map((t) => t.toLowerCase());
@@ -116,7 +117,7 @@ export const BLOG_TOPICS: BlogTopicGroup[] = [
   },
   {
     id: 'DEVOPS',
-    name: '☁️ DevOps, VPS & Cloud',
+    name: 'DevOps & Hạ tầng Cloud',
     match: (p) => {
       const cat = p.category || '';
       const s = p.slug.toLowerCase();
@@ -138,7 +139,7 @@ export const BLOG_TOPICS: BlogTopicGroup[] = [
     subtopics: [
       {
         id: 'DOCKER',
-        name: '🐳 Docker & Docker Compose',
+        name: 'Docker & Containerization',
         match: (p) => {
           const s = p.slug.toLowerCase();
           const tags = (p.tags || []).map((t) => t.toLowerCase());
@@ -147,7 +148,7 @@ export const BLOG_TOPICS: BlogTopicGroup[] = [
       },
       {
         id: 'LINUX_SECURITY',
-        name: '🐧 Linux, UFW & Fail2ban',
+        name: 'Linux Server, UFW & Bảo mật',
         match: (p) => {
           const s = p.slug.toLowerCase();
           const tags = (p.tags || []).map((t) => t.toLowerCase());
@@ -161,7 +162,7 @@ export const BLOG_TOPICS: BlogTopicGroup[] = [
       },
       {
         id: 'NGINX',
-        name: '🌐 Nginx & Reverse Proxy',
+        name: 'Nginx Web Server & Reverse Proxy',
         match: (p) => {
           const s = p.slug.toLowerCase();
           const tags = (p.tags || []).map((t) => t.toLowerCase());
@@ -170,7 +171,7 @@ export const BLOG_TOPICS: BlogTopicGroup[] = [
       },
       {
         id: 'MONITORING_CICD',
-        name: '📈 Giám sát & GitHub Actions CI/CD',
+        name: 'Giám sát Prometheus & GitHub Actions CI/CD',
         match: (p) => {
           const s = p.slug.toLowerCase();
           const tags = (p.tags || []).map((t) => t.toLowerCase());
@@ -181,7 +182,7 @@ export const BLOG_TOPICS: BlogTopicGroup[] = [
   },
   {
     id: 'SYSTEM_AI',
-    name: '🏗️ Kiến trúc hệ thống & AI',
+    name: 'Kiến trúc hệ thống & AI',
     match: (p) => {
       const cat = p.category || '';
       const s = p.slug.toLowerCase();
@@ -200,7 +201,7 @@ export const BLOG_TOPICS: BlogTopicGroup[] = [
     subtopics: [
       {
         id: 'AI_MODELS',
-        name: '🤖 AI Agents, GPT & Claude',
+        name: 'AI Agents, LLM & OpenAI',
         match: (p) => {
           const s = p.slug.toLowerCase();
           const tags = (p.tags || []).map((t) => t.toLowerCase());
@@ -211,7 +212,7 @@ export const BLOG_TOPICS: BlogTopicGroup[] = [
       },
       {
         id: 'MESSAGE_QUEUE',
-        name: '🐇 RabbitMQ & Event-Driven',
+        name: 'RabbitMQ & Event-Driven Architecture',
         match: (p) => {
           const s = p.slug.toLowerCase();
           const tags = (p.tags || []).map((t) => t.toLowerCase());
@@ -220,7 +221,7 @@ export const BLOG_TOPICS: BlogTopicGroup[] = [
       },
       {
         id: 'CACHE_LAYER',
-        name: '⚡ Redis Cache Layer',
+        name: 'Redis Cache & Tối ưu truy vấn',
         match: (p) => {
           const s = p.slug.toLowerCase();
           const tags = (p.tags || []).map((t) => t.toLowerCase());
@@ -231,12 +232,12 @@ export const BLOG_TOPICS: BlogTopicGroup[] = [
   },
   {
     id: 'COMMUNITY',
-    name: '👥 Bài viết cộng đồng',
+    name: 'Bài viết cộng đồng',
     match: (p) => p.category === 'cong-dong',
     subtopics: [
       {
         id: 'PERFORMANCE',
-        name: '🚀 Tối ưu hiệu năng & Lighthouse',
+        name: 'Tối ưu hiệu năng & Lighthouse',
         match: (p) => {
           const s = p.slug.toLowerCase();
           return s.includes('lighthouse') || s.includes('toi-uu');
@@ -363,7 +364,7 @@ export function PostListView({ posts }: { posts: PostMeta[] }) {
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <SlidersHorizontal className="text-primary size-4" />
-            <h2 className="text-sm font-bold">Tìm kiếm & Bộ lọc bài viết 2 tầng bậc</h2>
+            <h2 className="text-sm font-bold">Bộ lọc bài viết</h2>
           </div>
           {isFiltered && (
             <button
@@ -376,7 +377,7 @@ export function PostListView({ posts }: { posts: PostMeta[] }) {
           )}
         </div>
 
-        {/* Lưới Listbox 2 Tầng: Tầng 1 (Chủ đề lớn) -> Tầng 2 (Chuyên đề con) */}
+        {/* Lưới Bộ Lọc: Từ khóa | Chủ đề chính | Chuyên mục con | Sắp xếp */}
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {/* Ô tìm kiếm từ khóa */}
           <div className="relative">
@@ -385,72 +386,65 @@ export function PostListView({ posts }: { posts: PostMeta[] }) {
             <Input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Tìm tiêu đề, tag..."
+              placeholder="Tìm theo tiêu đề, từ khóa, tag..."
               className="bg-background h-10 pl-9 text-xs sm:text-sm"
             />
           </div>
 
-          {/* TẦNG 1: CHỦ ĐỀ CHÍNH (Listbox) */}
+          {/* CHỦ ĐỀ CHÍNH */}
           <div>
-            <label className="sr-only">Tầng 1: Chọn chủ đề chính</label>
-            <select
+            <label className="sr-only">Chọn chủ đề chính</label>
+            <Select
               value={selectedTopic}
-              onChange={(e) => {
-                setSelectedTopic(e.target.value);
-                setSelectedSubtopic('ALL'); // Reset tầng 2 khi đổi tầng 1
+              fullWidth
+              onChange={(val) => {
+                setSelectedTopic(val);
+                setSelectedSubtopic('ALL');
               }}
-              aria-label="Tầng 1: Chọn chủ đề chính"
-              className="border-input bg-background text-foreground focus:ring-primary/40 h-10 w-full cursor-pointer rounded-md border px-3 text-xs font-medium outline-none focus:ring-2"
-            >
-              <option value="ALL">📚 Tất cả lĩnh vực / chủ đề</option>
-              {BLOG_TOPICS.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.name}
-                </option>
-              ))}
-            </select>
+              aria-label="Chọn chủ đề bài viết"
+              options={[
+                { value: 'ALL', label: 'Tất cả chủ đề' },
+                ...BLOG_TOPICS.map((t) => ({ value: t.id, label: t.name })),
+              ]}
+            />
           </div>
 
-          {/* TẦNG 2: CHUYÊN ĐỀ CON (Tự động đổi theo Tầng 1) */}
+          {/* CHUYÊN MỤC CON */}
           <div>
-            <label className="sr-only">Tầng 2: Chọn chuyên sâu</label>
-            <select
+            <label className="sr-only">Chọn chuyên mục con</label>
+            <Select
               value={selectedSubtopic}
-              onChange={(e) => setSelectedSubtopic(e.target.value)}
+              fullWidth
               disabled={selectedTopic === 'ALL'}
-              aria-label="Tầng 2: Chọn chuyên sâu"
-              className={`h-10 w-full cursor-pointer rounded-md border px-3 text-xs font-semibold transition outline-none ${
-                selectedTopic === 'ALL'
-                  ? 'border-input/50 bg-muted/30 text-muted-foreground cursor-not-allowed'
-                  : 'border-primary/50 bg-primary/5 text-primary focus:ring-primary/40 focus:ring-2'
-              }`}
-            >
-              <option value="ALL">
-                {selectedTopic === 'ALL' ? '📁 Chọn chủ đề trước' : `📂 Tất cả chuyên đề con`}
-              </option>
-              {availableSubtopics.map((sub) => (
-                <option key={sub.id} value={sub.id}>
-                  {sub.name}
-                </option>
-              ))}
-            </select>
+              onChange={(val) => setSelectedSubtopic(val)}
+              aria-label="Chọn chuyên mục con"
+              placeholder={selectedTopic === 'ALL' ? 'Chọn chủ đề trước' : 'Tất cả chuyên mục con'}
+              options={[
+                {
+                  value: 'ALL',
+                  label: selectedTopic === 'ALL' ? 'Chọn chủ đề trước' : 'Tất cả chuyên mục con',
+                },
+                ...availableSubtopics.map((sub) => ({ value: sub.id, label: sub.name })),
+              ]}
+            />
           </div>
 
-          {/* Sắp xếp */}
+          {/* SẮP XẾP */}
           <div>
-            <label className="sr-only">Sắp xếp</label>
-            <select
+            <label className="sr-only">Sắp xếp bài viết</label>
+            <Select
               value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as SortOption)}
+              fullWidth
+              onChange={(val) => setSortBy(val as SortOption)}
               aria-label="Sắp xếp danh sách bài viết"
-              className="border-input bg-background text-foreground focus:ring-primary/40 h-10 w-full cursor-pointer rounded-md border px-3 text-xs font-medium outline-none focus:ring-2"
-            >
-              <option value="newest">🕒 Ngày đăng: Mới nhất</option>
-              <option value="interactions">🔥 Điểm tương tác cao nhất</option>
-              <option value="views">👁️ Lượt xem: Nhiều nhất</option>
-              <option value="likes">❤️ Lượt thích: Nhiều nhất</option>
-              <option value="comments">💬 Bình luận: Nhiều nhất</option>
-            </select>
+              options={[
+                { value: 'newest', label: 'Ngày đăng: Mới nhất' },
+                { value: 'interactions', label: 'Điểm tương tác cao nhất' },
+                { value: 'views', label: 'Lượt xem: Nhiều nhất' },
+                { value: 'likes', label: 'Lượt thích: Nhiều nhất' },
+                { value: 'comments', label: 'Bình luận: Nhiều nhất' },
+              ]}
+            />
           </div>
         </div>
 
@@ -472,7 +466,7 @@ export function PostListView({ posts }: { posts: PostMeta[] }) {
             />
             <FilterTabButton
               active={activeTab === 'latest'}
-              icon={<Clock className="size-3.5 text-blue-500" />}
+              icon={<Clock className="text-info size-3.5" />}
               label="Mới nhất"
               onClick={() => {
                 setActiveTab('latest');
@@ -481,7 +475,7 @@ export function PostListView({ posts }: { posts: PostMeta[] }) {
             />
             <FilterTabButton
               active={activeTab === 'featured'}
-              icon={<Sparkles className="size-3.5 text-amber-500" />}
+              icon={<Sparkles className="text-warning size-3.5" />}
               label="Nổi bật"
               count={featuredCount}
               onClick={() => {
@@ -490,7 +484,7 @@ export function PostListView({ posts }: { posts: PostMeta[] }) {
             />
             <FilterTabButton
               active={activeTab === 'popular'}
-              icon={<Flame className="size-3.5 text-rose-500" />}
+              icon={<Flame className="text-destructive size-3.5" />}
               label="Tương tác cao"
               onClick={() => {
                 setActiveTab('popular');

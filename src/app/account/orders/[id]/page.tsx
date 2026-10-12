@@ -83,7 +83,7 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
         <div>
           <Badge variant={paymentStatusBadgeVariant(order.status)} className="px-3 py-1 text-sm">
             {isPaid ? (
-              <CheckCircle2 className="mr-1.5 h-4 w-4 text-green-500" />
+              <CheckCircle2 className="text-success mr-1.5 h-4 w-4" />
             ) : (
               <Clock className="mr-1.5 h-4 w-4" />
             )}
@@ -205,7 +205,7 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
           </div>
 
           {order.discountVnd > 0 && (
-            <div className="flex justify-between font-medium text-green-600">
+            <div className="text-success flex justify-between font-medium">
               <span>
                 Giảm giá {order.coupon ? `(${order.coupon.code ?? order.coupon.name})` : ''}
               </span>
@@ -214,7 +214,7 @@ export default async function OrderDetailPage({ params }: OrderDetailPageProps) 
           )}
 
           {order.shippingDiscountVnd > 0 && (
-            <div className="flex justify-between font-medium text-green-600">
+            <div className="text-success flex justify-between font-medium">
               <span>Được miễn phí ship</span>
               <span>-{order.shippingDiscountVnd.toLocaleString('vi-VN')} đ</span>
             </div>

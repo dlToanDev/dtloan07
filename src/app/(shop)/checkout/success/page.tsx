@@ -46,9 +46,9 @@ export default async function CheckoutSuccessPage({ searchParams }: Props) {
 
   return (
     <Container className="flex min-h-[70vh] items-center justify-center py-12">
-      <Card className="w-full max-w-xl border-emerald-500/20 text-center shadow-xl">
+      <Card className="border-success/30 w-full max-w-xl text-center shadow-xl">
         <CardHeader className="flex flex-col items-center pb-2">
-          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-500">
+          <div className="bg-success/10 text-success mb-4 flex h-16 w-16 items-center justify-center rounded-full">
             <CheckCircle2 className="h-10 w-10" />
           </div>
           <CardTitle as="h1" className="text-foreground text-2xl font-extrabold">

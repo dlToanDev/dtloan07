@@ -86,16 +86,21 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         return token;
       }
 
-      const dbUser = await db.user.findUnique({
-        where: { id: token.id as string },
-        select: { lockedAt: true, role: true, name: true, image: true },
-      });
-      if (!dbUser || dbUser.lockedAt) return null;
-      token.role = dbUser.role;
-      token.lockCheckedAt = now;
-      if (dbUser.name && !token.name) token.name = dbUser.name;
-      if (dbUser.image && !token.picture) token.picture = dbUser.image;
-      return token;
+      try {
+        const dbUser = await db.user.findUnique({
+          where: { id: token.id as string },
+          select: { lockedAt: true, role: true, name: true, image: true },
+        });
+        if (!dbUser || dbUser.lockedAt) return null;
+        token.role = dbUser.role;
+        token.lockCheckedAt = now;
+        if (dbUser.name && !token.name) token.name = dbUser.name;
+        if (dbUser.image && !token.picture) token.picture = dbUser.image;
+        return token;
+      } catch (err) {
+        console.error('[auth] Lỗi kiểm tra database trong jwt callback:', err);
+        return token;
+      }
     },
   },
   providers: [

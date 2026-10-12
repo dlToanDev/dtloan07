@@ -24,21 +24,41 @@ const githubClientSecret = (
 export const isGoogleAuthEnabled = Boolean(googleClientId && googleClientSecret);
 export const isGitHubAuthEnabled = Boolean(githubClientId && githubClientSecret);
 
+const configuredSecret = (process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || '').trim();
+const devFallbackSecret = 'development-only-auth-secret-32-chars-long!';
+
+const authSecrets = Array.from(
+  new Set([configuredSecret, process.env.NODE_ENV !== 'production' ? devFallbackSecret : '']),
+).filter((s): s is string => Boolean(s && s.length >= 32));
+
 /**
  * Cấu hình Auth nhẹ, an toàn cho Edge Runtime (dùng trong middleware).
  * Tuyệt đối KHÔNG import adapter DB (Prisma) hay module Node.js native ở đây.
  */
 export const authConfig = {
-  secret:
-    process.env.AUTH_SECRET ||
-    (process.env.NODE_ENV !== 'production'
-      ? 'development-only-auth-secret-32-chars-long!'
-      : undefined),
+  secret: authSecrets.length > 1 ? authSecrets : authSecrets[0] || devFallbackSecret,
+  session: {
+    strategy: 'jwt',
+  },
   trustHost: true,
   pages: {
     signIn: '/login',
     error: '/login',
     verifyRequest: '/verify',
+  },
+  logger: {
+    error(error) {
+      const errorType = (error as { type?: string })?.type || (error as Error)?.name;
+      if (errorType === 'JWTSessionError') {
+        if (process.env.NODE_ENV === 'development') {
+          console.warn(
+            '[auth] Phát hiện session token cũ hoặc không hợp lệ từ trình duyệt (JWTSessionError). Phiên sẽ được đặt lại.',
+          );
+        }
+        return;
+      }
+      console.error(error);
+    },
   },
   providers: [
     Google({

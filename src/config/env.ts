@@ -76,7 +76,7 @@ const serverSchema = z.object({
 
 const clientSchema = z.object({
   NEXT_PUBLIC_SITE_URL: z.string().url(),
-  NEXT_PUBLIC_SHOP_PATH: optional(z.string()).default('/afiuafhu283an'),
+  NEXT_PUBLIC_SHOP_PATH: optional(z.string()).default('/shop'),
 });
 
 /**
@@ -85,7 +85,7 @@ const clientSchema = z.object({
  */
 const clientRuntime = {
   NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:5000',
-  NEXT_PUBLIC_SHOP_PATH: process.env.NEXT_PUBLIC_SHOP_PATH ?? '/afiuafhu283an',
+  NEXT_PUBLIC_SHOP_PATH: process.env.NEXT_PUBLIC_SHOP_PATH ?? '/shop',
 };
 
 function parse<T extends z.ZodTypeAny>(schema: T, source: unknown, label: string): z.infer<T> {

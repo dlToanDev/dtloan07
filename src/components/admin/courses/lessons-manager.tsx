@@ -10,6 +10,7 @@ import {
   createLessonsFromFiles,
   deleteLesson,
   reorderLessons,
+  toggleLessonStatus,
 } from '@/server/actions/course-lessons';
 import { moveItem } from '@/lib/shop/product-form';
 import { safeAction } from '@/lib/courses/safe-action';
@@ -103,6 +104,19 @@ export function LessonsManager({
     });
   };
 
+  const handleToggleLessonStatus = (lesson: AdminLessonRow) => {
+    startTransition(async () => {
+      const result = await safeAction(() => toggleLessonStatus(lesson.id));
+      if (!result.ok) return setError(result.error);
+      setLessons((prev) =>
+        prev.map((item) =>
+          item.id === lesson.id ? { ...item, status: result.data.status } : item,
+        ),
+      );
+      router.refresh();
+    });
+  };
+
   return (
     <section className="border-border bg-card space-y-4 rounded-xl border p-5">
       <div>
@@ -143,16 +157,28 @@ export function LessonsManager({
                 >
                   Bài {index + 1}: {lesson.title}
                 </Link>
-                <p className="text-muted-foreground text-xs">
-                  {lesson.status === 'PUBLISHED' ? (
-                    <span className="text-emerald-600">Đã xuất bản</span>
-                  ) : (
-                    <span className="text-amber-600">Nháp</span>
-                  )}
-                  {' · '}
-                  {lesson.exerciseCount} bài tập
-                  {lesson.hasVideo && ' · video'}
-                  {lesson.hasSlide && ' · slide'}
+                <p className="text-muted-foreground flex items-center gap-1.5 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => handleToggleLessonStatus(lesson)}
+                    disabled={pending}
+                    className={`inline-flex cursor-pointer items-center gap-1 rounded px-1.5 py-0.5 font-medium transition ${
+                      lesson.status === 'PUBLISHED'
+                        ? 'bg-success/10 text-success hover:bg-success/20'
+                        : 'bg-warning/10 text-warning hover:bg-warning/20'
+                    }`}
+                    title={
+                      lesson.status === 'PUBLISHED'
+                        ? 'Đã xuất bản (học viên học được). Bấm để chuyển về Nháp.'
+                        : 'Bản nháp (học viên chưa thấy). Bấm để Xuất bản.'
+                    }
+                  >
+                    ● {lesson.status === 'PUBLISHED' ? 'Đã xuất bản' : 'Nháp'}
+                  </button>
+                  <span>·</span>
+                  <span>{lesson.exerciseCount} bài tập</span>
+                  {lesson.hasVideo && <span>· video</span>}
+                  {lesson.hasSlide && <span>· slide</span>}
                 </p>
               </div>
               <div className="flex gap-1">
@@ -225,8 +251,8 @@ export function LessonsManager({
         “Tạo bài từ file”: chọn một hoặc nhiều file Word (.docx) / Markdown (.md, .mdx), mỗi file
         thành một bài, tên bài lấy từ tiêu đề trong file.
       </p>
-      {notice && <p className="text-sm text-emerald-600">{notice}</p>}
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {notice && <p className="text-success text-sm">{notice}</p>}
+      {error && <p className="text-destructive text-sm">{error}</p>}
     </section>
   );
 }

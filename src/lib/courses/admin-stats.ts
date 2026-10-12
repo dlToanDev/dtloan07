@@ -32,7 +32,11 @@ export async function loadCourseStats(courseIds: string[]): Promise<Map<string, 
       },
     }),
     db.submission.findMany({
-      where: { verdict: 'ACCEPTED', exercise: { lesson: { courseId: { in: courseIds } } } },
+      where: {
+        verdict: 'ACCEPTED',
+        userId: { not: null },
+        exercise: { lesson: { courseId: { in: courseIds } } },
+      },
       distinct: ['userId', 'exerciseId'],
       select: {
         userId: true,
@@ -42,7 +46,10 @@ export async function loadCourseStats(courseIds: string[]): Promise<Map<string, 
     }),
     db.submission.groupBy({
       by: ['userId', 'exerciseId'],
-      where: { exercise: { lesson: { courseId: { in: courseIds } } } },
+      where: {
+        userId: { not: null },
+        exercise: { lesson: { courseId: { in: courseIds } } },
+      },
       _max: { createdAt: true },
     }),
   ]);
@@ -57,7 +64,8 @@ export async function loadCourseStats(courseIds: string[]): Promise<Map<string, 
   for (const course of courses) {
     const lastByUser = new Map<string, Date>();
     for (const row of lastSubs) {
-      if (exerciseCourse.get(row.exerciseId) !== course.id || !row._max.createdAt) continue;
+      if (!row.userId || exerciseCourse.get(row.exerciseId) !== course.id || !row._max.createdAt)
+        continue;
       const prev = lastByUser.get(row.userId);
       if (!prev || row._max.createdAt > prev) lastByUser.set(row.userId, row._max.createdAt);
     }
@@ -73,7 +81,11 @@ export async function loadCourseStats(courseIds: string[]): Promise<Map<string, 
           enrolledAt: enrollment.createdAt,
         })),
         progress: progress.filter((row) => row.lesson.courseId === course.id),
-        solved: solved.filter((row) => row.exercise.lesson.courseId === course.id),
+        solved: solved
+          .filter((row): row is typeof row & { userId: string } =>
+            Boolean(row.userId && row.exercise.lesson?.courseId === course.id),
+          )
+          .map((row) => ({ userId: row.userId, exerciseId: row.exerciseId })),
         lastSubmissionAt: [...lastByUser].map(([userId, at]) => ({ userId, at })),
       }),
     );

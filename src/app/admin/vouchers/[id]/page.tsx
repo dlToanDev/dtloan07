@@ -106,7 +106,7 @@ export default async function EditVoucherPage({ params }: { params: Promise<{ id
                 <span className="text-muted-foreground min-w-0 flex-1 truncate">
                   {redemption.email} · {paymentStatusLabel(redemption.order.status)}
                 </span>
-                <span className="font-medium text-emerald-600">
+                <span className="text-success font-medium">
                   -{redemption.discountVnd.toLocaleString('vi-VN')} đ
                 </span>
               </li>

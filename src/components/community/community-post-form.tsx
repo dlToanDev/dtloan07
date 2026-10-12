@@ -72,7 +72,7 @@ export function CommunityPostForm({ initial }: { initial?: CommunityPostFormValu
       }}
     >
       {error && (
-        <p role="alert" className="rounded-lg bg-red-500/10 p-3 text-sm text-red-600">
+        <p role="alert" className="bg-destructive/10 text-destructive rounded-lg p-3 text-sm">
           {error}
         </p>
       )}

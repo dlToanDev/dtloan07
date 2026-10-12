@@ -51,7 +51,7 @@ export function PostCard({
         />
         {(post.featured || (post.featuredScore ?? 0) >= 1500) && (
           <span
-            className="absolute top-2.5 left-2.5 z-10 inline-flex items-center gap-1 rounded-md bg-amber-500/95 px-2 py-0.5 text-xs font-semibold text-white shadow-xs backdrop-blur-xs"
+            className="bg-warning text-warning-foreground absolute top-2.5 left-2.5 z-10 inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-semibold shadow-xs backdrop-blur-xs"
             title={`Điểm nổi bật: ${post.featuredScore ?? 0} (Lượt xem ×1 + Like ×2 + Bình luận ×3 + Chia sẻ ×2)`}
           >
             <Sparkles className="size-3" /> Nổi bật
@@ -68,7 +68,7 @@ export function PostCard({
                 <UserRound className="text-primary/70 size-3.5" />
                 <span>{post.author.name}</span>
                 {post.author.pro && (
-                  <Badge className="bg-amber-500 px-1.5 py-0 text-[10px] font-bold text-white hover:bg-amber-500">
+                  <Badge className="bg-warning text-warning-foreground hover:bg-warning px-1.5 py-0 text-[10px] font-bold">
                     PRO
                   </Badge>
                 )}
@@ -145,24 +145,24 @@ export function PostCard({
             <span>{(post.views ?? 0).toLocaleString('vi-VN')}</span>
           </span>
           <span
-            className="inline-flex items-center gap-1.5 font-medium transition-colors hover:text-rose-500"
+            className="hover:text-destructive inline-flex items-center gap-1.5 font-medium transition-colors"
             title={`${post.likes ?? 0} lượt thích (2 điểm)`}
           >
-            <Heart className="size-3.5 fill-rose-500/20 text-rose-500/90" />
+            <Heart className="fill-destructive/20 text-destructive/90 size-3.5" />
             <span>{post.likes ?? 0}</span>
           </span>
           <span
-            className="inline-flex items-center gap-1.5 font-medium transition-colors hover:text-sky-500"
+            className="hover:text-info inline-flex items-center gap-1.5 font-medium transition-colors"
             title={`${post.comments ?? 0} bình luận (3 điểm)`}
           >
-            <MessageSquare className="size-3.5 text-sky-500" />
+            <MessageSquare className="text-info size-3.5" />
             <span>{post.comments ?? 0}</span>
           </span>
           <span
-            className="inline-flex items-center gap-1.5 font-medium transition-colors hover:text-emerald-500"
+            className="hover:text-success inline-flex items-center gap-1.5 font-medium transition-colors"
             title={`${post.shares ?? 0} lượt chia sẻ (2 điểm)`}
           >
-            <Share2 className="size-3.5 text-emerald-500" />
+            <Share2 className="text-success size-3.5" />
             <span>{post.shares ?? 0}</span>
           </span>
         </div>

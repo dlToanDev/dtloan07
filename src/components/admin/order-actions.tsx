@@ -10,13 +10,13 @@ const initialState: OrderActionState = {};
 function Feedback({ state }: { state: OrderActionState | AccountStockState }) {
   if (state.error)
     return (
-      <p role="alert" className="text-sm text-red-600">
+      <p role="alert" className="text-destructive text-sm">
         {state.error}
       </p>
     );
   if (state.success)
     return (
-      <p role="status" className="text-sm text-emerald-600">
+      <p role="status" className="text-success text-sm">
         {state.success}
       </p>
     );
@@ -71,13 +71,7 @@ export function FulfillmentActions({
           </Button>
         )}
         {fulfillmentStatus === 'SHIPPING' && (
-          <Button
-            type="submit"
-            name="action"
-            value="DELIVER"
-            disabled={pending}
-            className="bg-emerald-600 text-white hover:bg-emerald-700"
-          >
+          <Button type="submit" name="action" value="DELIVER" disabled={pending} variant="success">
             {paymentMethod === 'COD' ? 'Đã giao & đã thu tiền' : 'Đã giao'}
           </Button>
         )}

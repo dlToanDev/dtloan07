@@ -9,6 +9,7 @@ import { runExerciseCode, submitExerciseCode, type SubmitResult } from '@/server
 import { DEFAULT_STARTER, LANGUAGES, type LanguageKey } from '@/lib/judge/languages';
 import type { SampleRun } from '@/lib/judge/grade';
 import { TONE_CLASS, VERDICT_LABEL } from '@/lib/courses/verdicts';
+import { LearningMaterialsBox } from './learning-materials-box';
 
 const CodeEditor = dynamic(
   () => import('@/components/courses/code-editor').then((m) => m.CodeEditor),
@@ -31,6 +32,10 @@ export interface ExerciseView {
   memoryLimitMb: number;
   samples: { input: string; expectedOutput: string }[];
   totalTests: number;
+  passage?: string | null;
+  audioUrl?: string | null;
+  imageUrl?: string | null;
+  videoUrl?: string | null;
 }
 
 const draftKey = (exerciseId: string, language: string) => `code:${exerciseId}:${language}`;
@@ -53,7 +58,7 @@ function Pre({ children, tone }: { children: ReactNode; tone?: 'bad' }) {
   return (
     <pre
       className={`max-h-48 overflow-auto rounded-md px-3 py-2 font-mono text-xs whitespace-pre-wrap ${
-        tone === 'bad' ? 'bg-red-500/10 text-red-700 dark:text-red-300' : 'bg-muted/60'
+        tone === 'bad' ? 'bg-destructive/10 text-destructive' : 'bg-muted/60'
       }`}
     >
       {children === '' ? <span className="text-muted-foreground italic">(trống)</span> : children}
@@ -165,7 +170,7 @@ export function ExerciseWorkspace({
           Bài tập {index}: {exercise.title}
         </h3>
         {solved ? (
-          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-400">
+          <span className="bg-success/10 text-success inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold">
             <CheckCircle2 className="size-3.5" /> Đã giải
           </span>
         ) : (
@@ -176,6 +181,13 @@ export function ExerciseWorkspace({
       </div>
 
       {statement}
+
+      <LearningMaterialsBox
+        passage={exercise.passage}
+        audioUrl={exercise.audioUrl}
+        videoUrl={exercise.videoUrl}
+        imageUrl={exercise.imageUrl}
+      />
 
       {exercise.samples.length > 0 && (
         <div className="space-y-2">
@@ -264,7 +276,7 @@ export function ExerciseWorkspace({
       </div>
 
       {error && (
-        <p role="alert" className="rounded-lg bg-red-500/10 p-3 text-sm text-red-600">
+        <p role="alert" className="bg-destructive/10 text-destructive rounded-lg p-3 text-sm">
           {error}
         </p>
       )}
@@ -325,7 +337,7 @@ export function ExerciseWorkspace({
                   } — qua ${verdict.passed}/${verdict.total} test.`}
           </div>
           {submitted?.lessonCompleted && (
-            <p className="rounded-lg bg-emerald-500/10 p-3 text-sm font-semibold text-emerald-700 dark:text-emerald-400">
+            <p className="bg-success/10 text-success rounded-lg p-3 text-sm font-semibold">
               🎉 Bạn đã hoàn thành bài học này — bài tiếp theo đã được mở!
             </p>
           )}

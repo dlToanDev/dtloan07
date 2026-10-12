@@ -73,25 +73,25 @@ export function AnnouncementDetailModal({
       case 'NEW_PRODUCT':
         return {
           icon: Package,
-          color: 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20',
+          color: 'text-success bg-success/10 border-success/30',
           defaultBadge: 'Sản phẩm mới',
         };
       case 'VOUCHER':
         return {
           icon: Tag,
-          color: 'text-rose-500 bg-rose-500/10 border-rose-500/20',
+          color: 'text-destructive bg-destructive/10 border-destructive/30',
           defaultBadge: 'Ưu đãi Voucher',
         };
       case 'FEATURE':
         return {
           icon: Rocket,
-          color: 'text-blue-500 bg-blue-500/10 border-blue-500/20',
+          color: 'text-info bg-info/10 border-info/30',
           defaultBadge: 'Tính năng mới',
         };
       case 'MAINTENANCE':
         return {
           icon: Info,
-          color: 'text-amber-500 bg-amber-500/10 border-amber-500/20',
+          color: 'text-warning bg-warning/10 border-warning/30',
           defaultBadge: 'Thông báo',
         };
       default:
@@ -138,8 +138,8 @@ export function AnnouncementDetailModal({
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex flex-wrap items-center gap-2">
               {announcement.proOnly && (
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/40 bg-gradient-to-r from-amber-500/20 via-amber-500/10 to-amber-500/20 px-3 py-1 text-xs font-bold text-amber-600 shadow-xs dark:text-amber-400">
-                  <Crown className="size-3.5 text-amber-500" />
+                <span className="border-warning/40 from-warning/20 via-warning/10 to-warning/20 text-warning inline-flex items-center gap-1.5 rounded-full border bg-gradient-to-r px-3 py-1 text-xs font-bold shadow-xs">
+                  <Crown className="text-warning size-3.5" />
                   <span>ĐẶC QUYỀN DÀNH RIÊNG CHO THÀNH VIÊN PRO</span>
                 </span>
               )}
@@ -169,21 +169,19 @@ export function AnnouncementDetailModal({
             className={cn(
               'relative space-y-3 overflow-hidden rounded-2xl border-2 border-dashed p-4 sm:p-5',
               announcement.proOnly
-                ? 'border-amber-500/50 bg-gradient-to-br from-amber-500/15 via-amber-500/5 to-transparent'
-                : 'border-rose-500/40 bg-rose-500/5',
+                ? 'border-warning/50 from-warning/15 via-warning/5 bg-gradient-to-br to-transparent'
+                : 'border-destructive/40 bg-destructive/5',
             )}
           >
             <div className="flex items-center justify-between">
               <div
                 className={cn(
                   'flex items-center gap-2 text-sm font-bold',
-                  announcement.proOnly
-                    ? 'text-amber-600 dark:text-amber-400'
-                    : 'text-rose-600 dark:text-rose-400',
+                  announcement.proOnly ? 'text-warning' : 'text-destructive',
                 )}
               >
                 {announcement.proOnly ? (
-                  <Crown className="size-4 text-amber-500" />
+                  <Crown className="text-warning size-4" />
                 ) : (
                   <Gift className="size-4" />
                 )}
@@ -198,7 +196,8 @@ export function AnnouncementDetailModal({
                   variant={announcement.proOnly ? 'default' : 'destructive'}
                   className={cn(
                     'text-xs font-bold',
-                    announcement.proOnly && 'bg-amber-500 text-amber-950 hover:bg-amber-600',
+                    announcement.proOnly &&
+                      'bg-warning text-warning-foreground hover:bg-warning/90',
                   )}
                 >
                   {announcement.voucherDiscount}
@@ -209,7 +208,7 @@ export function AnnouncementDetailModal({
             <div
               className={cn(
                 'bg-background flex flex-col items-stretch justify-between gap-3 rounded-xl border p-3 shadow-xs sm:flex-row sm:items-center',
-                announcement.proOnly ? 'border-amber-500/30' : 'border-rose-500/20',
+                announcement.proOnly ? 'border-warning/30' : 'border-destructive/30',
               )}
             >
               <div className="space-y-0.5">
@@ -219,9 +218,7 @@ export function AnnouncementDetailModal({
                 <div
                   className={cn(
                     'font-mono text-xl font-black tracking-wider sm:text-2xl',
-                    announcement.proOnly
-                      ? 'text-amber-600 dark:text-amber-400'
-                      : 'text-rose-600 dark:text-rose-400',
+                    announcement.proOnly ? 'text-warning' : 'text-destructive',
                   )}
                 >
                   {announcement.voucherCode}
@@ -237,13 +234,13 @@ export function AnnouncementDetailModal({
                   className={cn(
                     'h-10 font-semibold',
                     announcement.proOnly
-                      ? 'border-amber-500/40 text-amber-600 hover:bg-amber-500/10 dark:text-amber-400'
-                      : 'border-rose-500/30 text-rose-600 hover:bg-rose-500/10',
+                      ? 'border-warning/40 text-warning hover:bg-warning/10'
+                      : 'border-destructive/30 text-destructive hover:bg-destructive/10',
                   )}
                 >
                   {copied ? (
                     <>
-                      <Check className="mr-1 size-4 text-emerald-500" />
+                      <Check className="text-success mr-1 size-4" />
                       Đã chép
                     </>
                   ) : (
@@ -257,10 +254,10 @@ export function AnnouncementDetailModal({
                   href={siteConfig.shopPath}
                   onClick={onClose}
                   className={cn(
-                    'inline-flex h-10 items-center justify-center rounded-lg px-4 text-xs font-bold text-white shadow-xs transition-colors',
+                    'inline-flex h-10 items-center justify-center rounded-lg px-4 text-xs font-bold shadow-xs transition-colors',
                     announcement.proOnly
-                      ? 'bg-amber-600 hover:bg-amber-700'
-                      : 'bg-rose-600 hover:bg-rose-700',
+                      ? 'bg-warning text-warning-foreground hover:bg-warning/90'
+                      : 'bg-destructive text-destructive-foreground hover:bg-destructive/90',
                   )}
                 >
                   Dùng ngay

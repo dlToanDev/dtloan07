@@ -103,7 +103,7 @@ export default async function CoursePage({ params, searchParams }: Props) {
     <Container className="grid gap-10 py-12 lg:grid-cols-[minmax(0,1fr)_22rem]">
       <div className="min-w-0 space-y-8">
         {search.status === 'success' && (
-          <div className="flex items-center gap-2.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm font-semibold text-emerald-700 dark:text-emerald-400">
+          <div className="border-success/30 bg-success/10 text-success flex items-center gap-2.5 rounded-xl border p-4 text-sm font-semibold">
             <CheckCircle2 className="size-5 shrink-0" />
             <span>
               Thanh toán thành công! Bạn đã được kích hoạt khóa học &quot;{course.title}&quot;.
@@ -111,7 +111,7 @@ export default async function CoursePage({ params, searchParams }: Props) {
           </div>
         )}
         {search.cancelled && (
-          <div className="flex items-center gap-2.5 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-700 dark:text-amber-400">
+          <div className="border-warning/30 bg-warning/10 text-warning flex items-center gap-2.5 rounded-xl border p-4 text-sm font-medium">
             <AlertCircle className="size-5 shrink-0" />
             <span>
               Bạn đã hủy phiên thanh toán PayOS. Bạn có thể chọn thanh toán bằng Ví tài khoản hoặc
@@ -199,7 +199,7 @@ export default async function CoursePage({ params, searchParams }: Props) {
                 </span>
               </div>
               <div className="bg-muted h-2 overflow-hidden rounded-full">
-                <div className="h-full bg-emerald-500" style={{ width: `${percent}%` }} />
+                <div className="bg-success h-full" style={{ width: `${percent}%` }} />
               </div>
             </div>
           )}

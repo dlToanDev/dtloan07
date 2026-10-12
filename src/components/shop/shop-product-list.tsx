@@ -6,6 +6,7 @@ import { ViewSwitcher, type ViewMode } from '@/components/ui/view-switcher';
 import { PaginationControl } from '@/components/ui/pagination-control';
 import { summarizeVariants } from '@/lib/shop/variants';
 import { Input } from '@/components/ui/input';
+import { Select } from '@/components/ui/select';
 import type { Prisma } from '@prisma/client';
 import { PackageSearch, RotateCcw, Search, SlidersHorizontal, ChevronRight } from 'lucide-react';
 
@@ -453,7 +454,7 @@ export function ShopProductList({ products, initialCategorySlug = 'all' }: ShopP
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <SlidersHorizontal className="text-primary size-4" />
-            <h2 className="text-sm font-bold">Tìm kiếm & Bộ lọc 2 tầng bậc</h2>
+            <h2 className="text-sm font-bold">Bộ lọc sản phẩm cửa hàng</h2>
           </div>
           {hasActiveFilters && (
             <button
@@ -483,83 +484,82 @@ export function ShopProductList({ products, initialCategorySlug = 'all' }: ShopP
           {/* 2. TẦNG 1: CHỌN LOẠI HÀNG CHÍNH (Listbox) */}
           <div>
             <label className="sr-only">Chọn loại hàng chính</label>
-            <select
+            <Select
               value={selectedMainTier}
-              onChange={(e) => {
-                setSelectedMainTier(e.target.value);
-                setSelectedSubTier('ALL'); // Reset danh mục con khi đổi loại hàng
+              fullWidth
+              onChange={(val) => {
+                setSelectedMainTier(val);
+                setSelectedSubTier('ALL');
               }}
               aria-label="Tầng 1: Chọn loại hàng chính"
-              className="border-input bg-background text-foreground focus:ring-primary/40 h-10 w-full cursor-pointer rounded-md border px-3 text-xs font-medium outline-none focus:ring-2"
-            >
-              <option value="ALL">Tất cả loại hàng</option>
-              {SHOP_TIERS.map((tier) => (
-                <option key={tier.id} value={tier.id}>
-                  {tier.name}
-                </option>
-              ))}
-            </select>
+              options={[
+                { value: 'ALL', label: 'Tất cả loại hàng' },
+                ...SHOP_TIERS.map((tier) => ({ value: tier.id, label: tier.name })),
+              ]}
+            />
           </div>
 
           {/* 3. TẦNG 2: DANH MỤC CON CHI TIẾT (Tự động đổi theo Tầng 1) */}
           <div>
             <label className="sr-only">Chọn danh mục con chi tiết</label>
-            <select
+            <Select
               value={selectedSubTier}
-              onChange={(e) => setSelectedSubTier(e.target.value)}
+              fullWidth
               disabled={selectedMainTier === 'ALL'}
+              onChange={(val) => setSelectedSubTier(val)}
               aria-label="Tầng 2: Chọn danh mục con"
-              className={`h-10 w-full cursor-pointer rounded-md border px-3 text-xs font-semibold transition outline-none ${
+              placeholder={
                 selectedMainTier === 'ALL'
-                  ? 'border-input/50 bg-muted/30 text-muted-foreground cursor-not-allowed'
-                  : 'border-primary/50 bg-primary/5 text-primary focus:ring-primary/40 focus:ring-2'
-              }`}
-            >
-              <option value="ALL">
-                {selectedMainTier === 'ALL'
                   ? 'Chọn loại hàng trước'
-                  : `Tất cả ${activeMainGroup?.name || 'chi tiết'}`}
-              </option>
-              {availableSubcategories.map((sub) => (
-                <option key={sub.id} value={sub.id}>
-                  {sub.name}
-                </option>
-              ))}
-            </select>
+                  : `Tất cả ${activeMainGroup?.name || 'chi tiết'}`
+              }
+              options={[
+                {
+                  value: 'ALL',
+                  label:
+                    selectedMainTier === 'ALL'
+                      ? 'Chọn loại hàng trước'
+                      : `Tất cả ${activeMainGroup?.name || 'chi tiết'}`,
+                },
+                ...availableSubcategories.map((sub) => ({ value: sub.id, label: sub.name })),
+              ]}
+            />
           </div>
 
           {/* 4. Khoảng giá */}
           <div>
             <label className="sr-only">Khoảng giá</label>
-            <select
+            <Select
               value={priceRange}
-              onChange={(e) => setPriceRange(e.target.value as PriceRange)}
+              fullWidth
+              onChange={(val) => setPriceRange(val as PriceRange)}
               aria-label="Khoảng giá"
-              className="border-input bg-background text-foreground focus:ring-primary/40 h-10 w-full cursor-pointer rounded-md border px-3 text-xs font-medium outline-none focus:ring-2"
-            >
-              <option value="ALL">Mọi mức giá</option>
-              <option value="FREE">Miễn phí</option>
-              <option value="UNDER_200">Dưới 200.000 đ</option>
-              <option value="200_500">200.000 đ - 500.000 đ</option>
-              <option value="500_1000">500.000 đ - 1.000.000 đ</option>
-              <option value="ABOVE_1000">Trên 1.000.000 đ</option>
-            </select>
+              options={[
+                { value: 'ALL', label: 'Mọi mức giá' },
+                { value: 'FREE', label: 'Miễn phí' },
+                { value: 'UNDER_200', label: 'Dưới 200.000 đ' },
+                { value: '200_500', label: '200.000 đ - 500.000 đ' },
+                { value: '500_1000', label: '500.000 đ - 1.000.000 đ' },
+                { value: 'ABOVE_1000', label: 'Trên 1.000.000 đ' },
+              ]}
+            />
           </div>
 
           {/* 5. Sắp xếp */}
           <div>
             <label className="sr-only">Sắp xếp</label>
-            <select
+            <Select
               value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as SortOption)}
+              fullWidth
+              onChange={(val) => setSortBy(val as SortOption)}
               aria-label="Sắp xếp sản phẩm"
-              className="border-input bg-background text-foreground focus:ring-primary/40 h-10 w-full cursor-pointer rounded-md border px-3 text-xs font-medium outline-none focus:ring-2"
-            >
-              <option value="newest">Mới nhất</option>
-              <option value="price_asc">Giá: Thấp đến cao</option>
-              <option value="price_desc">Giá: Cao đến thấp</option>
-              <option value="discount">Giảm giá nhiều nhất</option>
-            </select>
+              options={[
+                { value: 'newest', label: 'Mới nhất' },
+                { value: 'price_asc', label: 'Giá: Thấp đến cao' },
+                { value: 'price_desc', label: 'Giá: Cao đến thấp' },
+                { value: 'discount', label: 'Giảm giá nhiều nhất' },
+              ]}
+            />
           </div>
         </div>
 
@@ -567,7 +567,7 @@ export function ShopProductList({ products, initialCategorySlug = 'all' }: ShopP
         <div className="border-border/60 space-y-2 border-t pt-1">
           {/* Tầng 1 Quick Chips */}
           <div className="flex flex-wrap items-center gap-1.5">
-            <span className="text-muted-foreground mr-1 text-xs font-medium">Loại hàng:</span>
+            <span className="text-muted-foreground mr-1 text-xs font-medium">Phân loại:</span>
             <button
               type="button"
               onClick={() => {
@@ -604,7 +604,7 @@ export function ShopProductList({ products, initialCategorySlug = 'all' }: ShopP
           {/* Tầng 2 Quick Chips: Khi chọn Loại hàng thì hiện các chip con */}
           {selectedMainTier !== 'ALL' && availableSubcategories.length > 0 && (
             <div className="border-primary/40 animate-in fade-in flex flex-wrap items-center gap-1.5 border-l-2 pl-2 duration-200">
-              <span className="text-primary text-xs font-semibold">Chi tiết:</span>
+              <span className="text-primary text-xs font-semibold">Danh mục:</span>
               <button
                 type="button"
                 onClick={() => setSelectedSubTier('ALL')}
